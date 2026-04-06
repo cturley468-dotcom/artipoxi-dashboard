@@ -9,128 +9,92 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
   const [isSignup, setIsSignup] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    setMessage("");
 
-    if (isSignup) {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-          },
-        },
-      });
+    try {
+      if (isSignup) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
 
-      setLoading(false);
+        if (error) throw error;
 
-      if (error) {
-        alert(error.message);
-        return;
+        setMessage("Check your email to confirm your account.");
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) throw error;
+
+        router.replace("/");
       }
-
-      alert("Account created. Check your email if confirmation is enabled.");
-      return;
+    } catch (err: any) {
+      setMessage(err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
     }
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    setLoading(false);
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    router.push("/auth/callback");
-    router.refresh();
   }
 
   return (
-    <div className="min-h-screen bg-black px-6 py-12 text-white">
-      <div className="mx-auto max-w-md rounded-2xl border border-white/10 bg-neutral-900 p-6">
-        <p className="text-sm uppercase tracking-[0.25em] text-cyan-300">
-          ArtiPoxi
-        </p>
-        <h1 className="mt-3 text-3xl font-bold">
+    <div className="min-h-screen flex items-center justify-center bg-black text-white p-6">
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-md rounded-2xl border border-white/10 bg-neutral-900 p-6 space-y-4"
+      >
+        <h1 className="text-2xl font-bold">
           {isSignup ? "Create Account" : "Login"}
         </h1>
-        <p className="mt-2 text-sm text-zinc-400">
-          {isSignup
-            ? "Create an account for portal access."
-            : "Sign in to continue."}
-        </p>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          {isSignup && (
-            <div>
-              <label className="mb-2 block text-sm text-zinc-400">
-                Full Name
-              </label>
-              <input
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-black px-4 py-3 outline-none"
-              />
-            </div>
-          )}
+        <input
+          type="email"
+          placeholder="Email"
+          className="w-full rounded-lg bg-black border border-white/10 p-3"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
 
-          <div>
-            <label className="mb-2 block text-sm text-zinc-400">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-black px-4 py-3 outline-none"
-              required
-            />
-          </div>
+        <input
+          type="password"
+          placeholder="Password"
+          className="w-full rounded-lg bg-black border border-white/10 p-3"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
 
-          <div>
-            <label className="mb-2 block text-sm text-zinc-400">
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-black px-4 py-3 outline-none"
-              required
-            />
-          </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full rounded-lg bg-cyan-500 text-black font-semibold py-3"
+        >
+          {loading ? "Loading..." : isSignup ? "Sign Up" : "Login"}
+        </button>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-cyan-500 px-4 py-3 font-semibold text-black disabled:opacity-60"
-          >
-            {loading
-              ? "Please wait..."
-              : isSignup
-              ? "Create Account"
-              : "Login"}
-          </button>
-        </form>
+        {message && (
+          <div className="text-sm text-red-400">{message}</div>
+        )}
 
         <button
           type="button"
-          onClick={() => setIsSignup((v) => !v)}
-          className="mt-4 text-sm text-cyan-300"
+          onClick={() => setIsSignup(!isSignup)}
+          className="text-sm text-cyan-300"
         >
           {isSignup
             ? "Already have an account? Login"
-            : "Need an account? Sign up"}
+            : "Create an account"}
         </button>
-      </div>
+      </form>
     </div>
   );
 }

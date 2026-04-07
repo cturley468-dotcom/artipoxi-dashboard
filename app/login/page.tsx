@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { supabase } from "../lib/supabase";
+import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "../lib/supabase";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  async function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     const { error } = await supabase.auth.signInWithPassword({
@@ -26,26 +26,37 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ padding: 40 }}>
-      <h1>Login</h1>
+    <div className="min-h-screen flex items-center justify-center bg-black text-white p-6">
+      <form
+        onSubmit={handleLogin}
+        className="w-full max-w-md rounded-2xl border border-white/10 bg-neutral-900 p-6 space-y-4"
+      >
+        <h1 className="text-2xl font-bold">Login</h1>
 
-      <form onSubmit={handleLogin}>
         <input
+          type="email"
           placeholder="Email"
+          className="w-full rounded-lg bg-black border border-white/10 p-3"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          required
         />
-        <br /><br />
 
         <input
           type="password"
           placeholder="Password"
+          className="w-full rounded-lg bg-black border border-white/10 p-3"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          required
         />
-        <br /><br />
 
-        <button type="submit">Login</button>
+        <button
+          type="submit"
+          className="w-full rounded-lg bg-cyan-500 text-black font-semibold py-3"
+        >
+          Login
+        </button>
       </form>
     </div>
   );

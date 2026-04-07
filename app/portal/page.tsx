@@ -27,6 +27,11 @@ export default function PortalPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
 
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    router.replace("/login");
+  }
+
   useEffect(() => {
     async function load() {
       try {
@@ -46,7 +51,9 @@ export default function PortalPage() {
 
         const { data } = await supabase
           .from("jobs")
-          .select("id, name, customer, status, scheduled_start, scheduled_end, notes")
+          .select(
+            "id, name, customer, status, scheduled_start, scheduled_end, notes"
+          )
           .eq("customer", currentProfile.full_name || "");
 
         setJobs((data as Job[]) || []);
@@ -71,15 +78,26 @@ export default function PortalPage() {
     <div className="min-h-screen bg-black p-6 text-white">
       <div className="mx-auto max-w-5xl space-y-6">
         <div className="rounded-2xl border border-white/10 bg-neutral-900 p-6">
-          <p className="text-sm uppercase tracking-[0.25em] text-cyan-300">
-            Customer Portal
-          </p>
-          <h1 className="mt-3 text-3xl font-bold">
-            Welcome{profile?.full_name ? `, ${profile.full_name}` : ""}
-          </h1>
-          <p className="mt-2 text-zinc-400">
-            View your project updates, dates, and notes here.
-          </p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-sm uppercase tracking-[0.25em] text-cyan-300">
+                Customer Portal
+              </p>
+              <h1 className="mt-3 text-3xl font-bold">
+                Welcome{profile?.full_name ? `, ${profile.full_name}` : ""}
+              </h1>
+              <p className="mt-2 text-zinc-400">
+                View your project updates, dates, and notes here.
+              </p>
+            </div>
+
+            <button
+              onClick={handleLogout}
+              className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-2 font-semibold text-red-300 transition hover:bg-red-500/20"
+            >
+              Logout
+            </button>
+          </div>
         </div>
 
         <div className="space-y-4">
@@ -93,7 +111,9 @@ export default function PortalPage() {
                 key={job.id}
                 className="rounded-2xl border border-white/10 bg-neutral-900 p-6"
               >
-                <h2 className="text-2xl font-bold">{job.name || "Untitled Project"}</h2>
+                <h2 className="text-2xl font-bold">
+                  {job.name || "Untitled Project"}
+                </h2>
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   <Info label="Status" value={job.status || "-"} />
@@ -103,7 +123,9 @@ export default function PortalPage() {
                 </div>
 
                 <div className="mt-5">
-                  <div className="mb-2 text-sm text-zinc-400">Project Notes</div>
+                  <div className="mb-2 text-sm text-zinc-400">
+                    Project Notes
+                  </div>
                   <div className="rounded-lg border border-white/10 bg-black/30 p-4 text-zinc-200">
                     {job.notes || "No notes yet."}
                   </div>

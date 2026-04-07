@@ -19,6 +19,8 @@ type Job = {
   scheduled_start: string | null;
   scheduled_end: string | null;
   notes: string | null;
+  assigned_installer_id: string | null;
+  assigned_installer_name: string | null;
 };
 
 export default function InstallerPage() {
@@ -54,9 +56,17 @@ export default function InstallerPage() {
 
         setProfile(currentProfile as Profile);
 
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("jobs")
-          .select("id, name, customer, status, scheduled_start, scheduled_end, notes");
+          .select(
+            "id, name, customer, status, scheduled_start, scheduled_end, notes, assigned_installer_id, assigned_installer_name"
+          )
+          .eq("assigned_installer_id", currentProfile.id)
+          .order("scheduled_start", { ascending: true });
+
+        if (error) {
+          throw error;
+        }
 
         setJobs((data as Job[]) || []);
         setLoading(false);
@@ -71,7 +81,9 @@ export default function InstallerPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-black p-6 text-white">
-        <div className="rounded-xl bg-neutral-900 p-4">Loading installer dashboard...</div>
+        <div className="rounded-xl bg-neutral-900 p-4">
+          Loading installer dashboard...
+        </div>
       </div>
     );
   }
@@ -89,7 +101,7 @@ export default function InstallerPage() {
                 Welcome{profile?.full_name ? `, ${profile.full_name}` : ""}
               </h1>
               <p className="mt-2 text-zinc-400">
-                View your assigned work orders and schedule.
+                View only the work orders and schedule assigned to you.
               </p>
             </div>
 

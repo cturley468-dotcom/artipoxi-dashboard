@@ -22,6 +22,11 @@ export default function AuthCallbackPage() {
           return;
         }
 
+        if (profile.role === "installer") {
+          router.replace("/installer");
+          return;
+        }
+
         router.replace("/portal");
       } catch {
         router.replace("/login");

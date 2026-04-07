@@ -6,64 +6,80 @@ import { supabase } from "../lib/supabase";
 
 export default function LoginPage() {
   const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
-  async function handleLogin(e: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setLoading(true);
+    setMessage("");
 
-    const [fullName, setFullName] = useState("");
- const { error } = await supabase.auth.signUp({
-  email,
-  password,
-  options: {
-    data: {
-      full_name: fullName,
-    },
-  },
-});
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
     if (error) {
-      alert(error.message);
+      setMessage(error.message);
+      setLoading(false);
       return;
     }
 
-    router.push("/dashboard");
+    router.push("/auth/callback");
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black text-white p-6">
-      <form
-        onSubmit={handleLogin}
-        className="w-full max-w-md rounded-2xl border border-white/10 bg-neutral-900 p-6 space-y-4"
-      >
-        <h1 className="text-2xl font-bold">Login</h1>
+    <div className="min-h-screen bg-black text-white">
+      <div className="flex min-h-screen items-center justify-center p-6">
+        <div className="w-full max-w-md rounded-2xl border border-white/10 bg-neutral-900 p-6 shadow-2xl">
+          <div className="mb-6">
+            <p className="text-sm uppercase tracking-[0.25em] text-cyan-300">
+              ArtiPoxi
+            </p>
+            <h1 className="mt-3 text-3xl font-bold">Login</h1>
+            <p className="mt-2 text-sm text-zinc-400">
+              Authorized users only. Contact ArtiPoxi if you need access.
+            </p>
+          </div>
 
-        <input
-          type="email"
-          placeholder="Email"
-          className="w-full rounded-lg bg-black border border-white/10 p-3"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <input
+              type="email"
+              placeholder="Email"
+              className="w-full rounded-lg border border-white/10 bg-black p-3 outline-none"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
 
-        <input
-          type="password"
-          placeholder="Password"
-          className="w-full rounded-lg bg-black border border-white/10 p-3"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+            <input
+              type="password"
+              placeholder="Password"
+              className="w-full rounded-lg border border-white/10 bg-black p-3 outline-none"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
 
-        <button
-          type="submit"
-          className="w-full rounded-lg bg-cyan-500 text-black font-semibold py-3"
-        >
-          Login
-        </button>
-      </form>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-lg bg-cyan-500 py-3 font-semibold text-black transition hover:opacity-90 disabled:opacity-60"
+            >
+              {loading ? "Please wait..." : "Login"}
+            </button>
+          </form>
+
+          {message && (
+            <div className="mt-4 rounded-lg border border-white/10 bg-black/40 p-3 text-sm text-zinc-300">
+              {message}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

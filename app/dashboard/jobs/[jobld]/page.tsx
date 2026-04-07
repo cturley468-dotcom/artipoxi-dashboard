@@ -53,8 +53,7 @@ type WorkOrder = {
 export default function JobDetailsPage() {
   const router = useRouter();
   const params = useParams();
-
-const rawJobId =
+  const rawJobId =
   (params?.jobId as string | string[] | undefined) ??
   (params?.jobid as string | string[] | undefined) ??
   (params?.id as string | string[] | undefined);

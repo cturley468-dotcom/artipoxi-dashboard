@@ -7,7 +7,7 @@ const navItems = [
   { href: "/dashboard/schedule", label: "Schedule" },
   { href: "/dashboard/leads", label: "Leads" },
   { href: "/dashboard/inventory", label: "Inventory" },
-  { href: "/dashboard/configurator", label: "Configurator" },
+  { href: "/configurator", label: "Configurator" },
 ];
 
 export default function DashboardLayout({

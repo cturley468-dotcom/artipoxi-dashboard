@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { getCurrentProfile } from "../../../lib/auth";
@@ -35,17 +35,34 @@ type Job = {
   assigned_installer_name: string | null;
 };
 
+type WorkOrderStatus = "Open" | "In Progress" | "Completed";
+
+type WorkOrder = {
+  id: string;
+  job_id: string | null;
+  title: string | null;
+  description: string | null;
+  materials: string | null;
+  scheduled_date: string | null;
+  status: WorkOrderStatus;
+  assigned_installer_id: string | null;
+  assigned_installer_name: string | null;
+  created_at: string;
+};
+
 export default function JobDetailsPage() {
   const router = useRouter();
   const params = useParams();
   const jobId = params?.jobId as string;
 
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [savingJob, setSavingJob] = useState(false);
+  const [creatingWorkOrder, setCreatingWorkOrder] = useState(false);
   const [installersLoading, setInstallersLoading] = useState(true);
 
   const [job, setJob] = useState<Job | null>(null);
   const [installers, setInstallers] = useState<Profile[]>([]);
+  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [message, setMessage] = useState("");
 
   const [name, setName] = useState("");
@@ -55,6 +72,13 @@ export default function JobDetailsPage() {
   const [scheduledEnd, setScheduledEnd] = useState("");
   const [notes, setNotes] = useState("");
   const [assignedInstallerId, setAssignedInstallerId] = useState("");
+
+  const [woTitle, setWoTitle] = useState("");
+  const [woDescription, setWoDescription] = useState("");
+  const [woMaterials, setWoMaterials] = useState("");
+  const [woScheduledDate, setWoScheduledDate] = useState("");
+  const [woStatus, setWoStatus] = useState<WorkOrderStatus>("Open");
+  const [woAssignedInstallerId, setWoAssignedInstallerId] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -71,38 +95,53 @@ export default function JobDetailsPage() {
           return;
         }
 
-        const [{ data: jobData, error: jobError }, { data: installersData, error: installersError }] =
-          await Promise.all([
-            supabase
-              .from("jobs")
-              .select(
-                "id, name, customer, status, scheduled_start, scheduled_end, notes, assigned_installer_id, assigned_installer_name"
-              )
-              .eq("id", jobId)
-              .single(),
-            supabase
-              .from("profiles")
-              .select("id, email, full_name, role")
-              .eq("role", "installer")
-              .order("full_name", { ascending: true }),
-          ]);
+        const [
+          { data: jobData, error: jobError },
+          { data: installersData, error: installersError },
+          { data: workOrdersData, error: workOrdersError },
+        ] = await Promise.all([
+          supabase
+            .from("jobs")
+            .select(
+              "id, name, customer, status, scheduled_start, scheduled_end, notes, assigned_installer_id, assigned_installer_name"
+            )
+            .eq("id", jobId)
+            .single(),
+          supabase
+            .from("profiles")
+            .select("id, email, full_name, role")
+            .eq("role", "installer")
+            .order("full_name", { ascending: true }),
+          supabase
+            .from("work_orders")
+            .select(
+              "id, job_id, title, description, materials, scheduled_date, status, assigned_installer_id, assigned_installer_name, created_at"
+            )
+            .eq("job_id", jobId)
+            .order("created_at", { ascending: false }),
+        ]);
 
         if (jobError) throw jobError;
         if (installersError) throw installersError;
+        if (workOrdersError) throw workOrdersError;
 
         const loadedJob = jobData as Job;
         const loadedInstallers = (installersData as Profile[]) || [];
+        const loadedWorkOrders = (workOrdersData as WorkOrder[]) || [];
 
         setJob(loadedJob);
         setInstallers(loadedInstallers);
+        setWorkOrders(loadedWorkOrders);
 
         setName(loadedJob.name || "");
         setCustomer(loadedJob.customer || "");
-        setStatus((loadedJob.status as JobStatus) || "New");
+        setStatus(loadedJob.status || "New");
         setScheduledStart(loadedJob.scheduled_start || "");
         setScheduledEnd(loadedJob.scheduled_end || "");
         setNotes(loadedJob.notes || "");
         setAssignedInstallerId(loadedJob.assigned_installer_id || "");
+
+        setWoAssignedInstallerId(loadedJob.assigned_installer_id || "");
 
         setInstallersLoading(false);
         setLoading(false);
@@ -116,16 +155,18 @@ export default function JobDetailsPage() {
     if (jobId) load();
   }, [jobId, router]);
 
-  async function handleSave() {
+  const selectedInstaller = useMemo(
+    () => installers.find((installer) => installer.id === assignedInstallerId) || null,
+    [installers, assignedInstallerId]
+  );
+
+  async function handleSaveJob() {
     if (!job) return;
 
-    setSaving(true);
+    setSavingJob(true);
     setMessage("");
 
     try {
-      const selectedInstaller =
-        installers.find((installer) => installer.id === assignedInstallerId) || null;
-
       const updates = {
         name: name || null,
         customer: customer || null,
@@ -148,13 +189,85 @@ export default function JobDetailsPage() {
 
       if (error) throw error;
 
-      const updatedJob = data as Job;
-      setJob(updatedJob);
+      setJob(data as Job);
       setMessage("Job updated successfully.");
     } catch (error: any) {
       setMessage(error?.message || "Failed to save job.");
     } finally {
-      setSaving(false);
+      setSavingJob(false);
+    }
+  }
+
+  async function handleCreateWorkOrder() {
+    if (!job) return;
+
+    if (!woTitle.trim()) {
+      setMessage("Please enter a work order title.");
+      return;
+    }
+
+    setCreatingWorkOrder(true);
+    setMessage("");
+
+    try {
+      const installer =
+        installers.find((item) => item.id === woAssignedInstallerId) || null;
+
+      const { data, error } = await supabase
+        .from("work_orders")
+        .insert({
+          job_id: job.id,
+          title: woTitle,
+          description: woDescription || null,
+          materials: woMaterials || null,
+          scheduled_date: woScheduledDate || null,
+          status: woStatus,
+          assigned_installer_id: woAssignedInstallerId || null,
+          assigned_installer_name: installer?.full_name || null,
+        })
+        .select(
+          "id, job_id, title, description, materials, scheduled_date, status, assigned_installer_id, assigned_installer_name, created_at"
+        )
+        .single();
+
+      if (error) throw error;
+
+      setWorkOrders((prev) => [data as WorkOrder, ...prev]);
+
+      setWoTitle("");
+      setWoDescription("");
+      setWoMaterials("");
+      setWoScheduledDate("");
+      setWoStatus("Open");
+      setWoAssignedInstallerId(assignedInstallerId || "");
+
+      setMessage("Work order created.");
+    } catch (error: any) {
+      setMessage(error?.message || "Failed to create work order.");
+    } finally {
+      setCreatingWorkOrder(false);
+    }
+  }
+
+  async function handleUpdateWorkOrderStatus(
+    workOrderId: string,
+    nextStatus: WorkOrderStatus
+  ) {
+    try {
+      const { error } = await supabase
+        .from("work_orders")
+        .update({ status: nextStatus })
+        .eq("id", workOrderId);
+
+      if (error) throw error;
+
+      setWorkOrders((prev) =>
+        prev.map((order) =>
+          order.id === workOrderId ? { ...order, status: nextStatus } : order
+        )
+      );
+    } catch (error: any) {
+      setMessage(error?.message || "Failed to update work order.");
     }
   }
 
@@ -180,8 +293,8 @@ export default function JobDetailsPage() {
 
   return (
     <div className="min-h-screen bg-black p-6 text-white">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-sm uppercase tracking-[0.25em] text-cyan-300">
               Job Details
@@ -189,11 +302,14 @@ export default function JobDetailsPage() {
             <h1 className="mt-2 text-3xl font-bold">
               {job.name || "Untitled Job"}
             </h1>
+            <p className="mt-2 text-zinc-400">
+              Manage project details, installer assignment, and work orders.
+            </p>
           </div>
 
           <Link
             href="/dashboard/jobs"
-            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:border-cyan-400/30"
+            className="inline-flex rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:border-cyan-400/30"
           >
             Back to Jobs
           </Link>
@@ -205,7 +321,7 @@ export default function JobDetailsPage() {
           </div>
         )}
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
           <section className="rounded-2xl border border-white/10 bg-neutral-900 p-6">
             <h2 className="text-xl font-bold">Project Info</h2>
 
@@ -268,13 +384,7 @@ export default function JobDetailsPage() {
                   onChange={(e) => setNotes(e.target.value)}
                 />
               </Field>
-            </div>
-          </section>
 
-          <section className="rounded-2xl border border-white/10 bg-neutral-900 p-6">
-            <h2 className="text-xl font-bold">Installer Assignment</h2>
-
-            <div className="mt-5 space-y-4">
               <Field label="Assigned Installer">
                 <select
                   className="w-full rounded-lg border border-white/10 bg-black p-3 outline-none"
@@ -292,28 +402,170 @@ export default function JobDetailsPage() {
               </Field>
 
               <div className="rounded-xl border border-white/10 bg-black/30 p-4">
-                <div className="text-sm text-zinc-400">Current Assignment</div>
+                <div className="text-sm text-zinc-400">Current Installer</div>
                 <div className="mt-2 text-white">
-                  {job.assigned_installer_name || "No installer assigned"}
+                  {selectedInstaller?.full_name ||
+                    job.assigned_installer_name ||
+                    "No installer assigned"}
                 </div>
               </div>
 
-              <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-4 text-sm text-zinc-200">
-                Installers will only see jobs assigned to their own profile.
+              <div className="flex justify-end">
+                <button
+                  onClick={handleSaveJob}
+                  disabled={savingJob}
+                  className="rounded-xl bg-cyan-500 px-5 py-3 font-semibold text-black transition hover:opacity-90 disabled:opacity-60"
+                >
+                  {savingJob ? "Saving..." : "Save Job"}
+                </button>
               </div>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-white/10 bg-neutral-900 p-6">
+            <h2 className="text-xl font-bold">Create Work Order</h2>
+
+            <div className="mt-5 space-y-4">
+              <Field label="Title">
+                <input
+                  className="w-full rounded-lg border border-white/10 bg-black p-3 outline-none"
+                  value={woTitle}
+                  onChange={(e) => setWoTitle(e.target.value)}
+                  placeholder="Example: Prep and basecoat"
+                />
+              </Field>
+
+              <Field label="Description">
+                <textarea
+                  className="min-h-[110px] w-full rounded-lg border border-white/10 bg-black p-3 outline-none"
+                  value={woDescription}
+                  onChange={(e) => setWoDescription(e.target.value)}
+                  placeholder="Tasks, instructions, site notes..."
+                />
+              </Field>
+
+              <Field label="Materials">
+                <textarea
+                  className="min-h-[90px] w-full rounded-lg border border-white/10 bg-black p-3 outline-none"
+                  value={woMaterials}
+                  onChange={(e) => setWoMaterials(e.target.value)}
+                  placeholder="Primer, flake, topcoat, rollers..."
+                />
+              </Field>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Scheduled Date">
+                  <input
+                    type="date"
+                    className="w-full rounded-lg border border-white/10 bg-black p-3 outline-none"
+                    value={woScheduledDate}
+                    onChange={(e) => setWoScheduledDate(e.target.value)}
+                  />
+                </Field>
+
+                <Field label="Status">
+                  <select
+                    className="w-full rounded-lg border border-white/10 bg-black p-3 outline-none"
+                    value={woStatus}
+                    onChange={(e) =>
+                      setWoStatus(e.target.value as WorkOrderStatus)
+                    }
+                  >
+                    <option value="Open">Open</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Completed">Completed</option>
+                  </select>
+                </Field>
+              </div>
+
+              <Field label="Assign Installer">
+                <select
+                  className="w-full rounded-lg border border-white/10 bg-black p-3 outline-none"
+                  value={woAssignedInstallerId}
+                  onChange={(e) => setWoAssignedInstallerId(e.target.value)}
+                >
+                  <option value="">Unassigned</option>
+                  {installers.map((installer) => (
+                    <option key={installer.id} value={installer.id}>
+                      {installer.full_name || installer.email || installer.id}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <button
+                onClick={handleCreateWorkOrder}
+                disabled={creatingWorkOrder}
+                className="w-full rounded-lg bg-lime-400 py-3 font-semibold text-black transition hover:opacity-90 disabled:opacity-60"
+              >
+                {creatingWorkOrder ? "Creating..." : "Create Work Order"}
+              </button>
             </div>
           </section>
         </div>
 
-        <div className="flex justify-end">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="rounded-xl bg-cyan-500 px-5 py-3 font-semibold text-black transition hover:opacity-90 disabled:opacity-60"
-          >
-            {saving ? "Saving..." : "Save Job"}
-          </button>
-        </div>
+        <section className="rounded-2xl border border-white/10 bg-neutral-900 p-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold">Work Orders for This Job</h2>
+            <div className="text-sm text-zinc-400">{workOrders.length} total</div>
+          </div>
+
+          <div className="mt-5 space-y-4">
+            {workOrders.length === 0 ? (
+              <div className="rounded-xl border border-white/10 bg-black/30 p-4 text-zinc-400">
+                No work orders created for this job yet.
+              </div>
+            ) : (
+              workOrders.map((order) => (
+                <div
+                  key={order.id}
+                  className="rounded-xl border border-white/10 bg-black/30 p-4"
+                >
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                      <div className="text-lg font-bold text-white">
+                        {order.title || "Untitled Work Order"}
+                      </div>
+                      <div className="mt-1 text-sm text-zinc-400">
+                        Scheduled: {order.scheduled_date || "-"}
+                      </div>
+                      <div className="mt-1 text-sm text-zinc-400">
+                        Installer: {order.assigned_installer_name || "Unassigned"}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <StatusButton
+                        active={order.status === "Open"}
+                        label="Open"
+                        onClick={() => handleUpdateWorkOrderStatus(order.id, "Open")}
+                      />
+                      <StatusButton
+                        active={order.status === "In Progress"}
+                        label="In Progress"
+                        onClick={() =>
+                          handleUpdateWorkOrderStatus(order.id, "In Progress")
+                        }
+                      />
+                      <StatusButton
+                        active={order.status === "Completed"}
+                        label="Completed"
+                        onClick={() =>
+                          handleUpdateWorkOrderStatus(order.id, "Completed")
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <InfoCard title="Description" value={order.description || "No description."} />
+                    <InfoCard title="Materials" value={order.materials || "No materials listed."} />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
       </div>
     </div>
   );
@@ -331,5 +583,37 @@ function Field({
       <div className="mb-2 text-sm text-zinc-400">{label}</div>
       {children}
     </label>
+  );
+}
+
+function InfoCard({ title, value }: { title: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-white/10 bg-neutral-900 px-4 py-3">
+      <div className="text-sm text-zinc-400">{title}</div>
+      <div className="mt-2 whitespace-pre-wrap text-white">{value}</div>
+    </div>
+  );
+}
+
+function StatusButton({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+        active
+          ? "border-cyan-400/30 bg-cyan-400/15 text-cyan-300"
+          : "border-white/10 bg-white/5 text-zinc-300 hover:border-cyan-400/20"
+      }`}
+    >
+      {label}
+    </button>
   );
 }

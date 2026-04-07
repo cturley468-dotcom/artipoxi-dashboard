@@ -58,12 +58,12 @@ export default function JobDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [savingJob, setSavingJob] = useState(false);
   const [creatingWorkOrder, setCreatingWorkOrder] = useState(false);
-  const [installersLoading, setInstallersLoading] = useState(true);
 
   const [job, setJob] = useState<Job | null>(null);
   const [installers, setInstallers] = useState<Profile[]>([]);
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
-  const [message, setMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const [name, setName] = useState("");
   const [customer, setCustomer] = useState("");
@@ -80,9 +80,28 @@ export default function JobDetailsPage() {
   const [woStatus, setWoStatus] = useState<WorkOrderStatus>("Open");
   const [woAssignedInstallerId, setWoAssignedInstallerId] = useState("");
 
+  const selectedInstaller = useMemo(
+    () => installers.find((installer) => installer.id === assignedInstallerId) || null,
+    [installers, assignedInstallerId]
+  );
+
   useEffect(() => {
-    async function load() {
+    let cancelled = false;
+
+    async function loadPage() {
+      if (!jobId) {
+        if (!cancelled) {
+          setErrorMessage("Missing job ID.");
+          setLoading(false);
+        }
+        return;
+      }
+
       try {
+        setLoading(true);
+        setErrorMessage("");
+        setSuccessMessage("");
+
         const currentProfile = await getCurrentProfile();
 
         if (!currentProfile) {
@@ -95,18 +114,14 @@ export default function JobDetailsPage() {
           return;
         }
 
-        const [
-          { data: jobData, error: jobError },
-          { data: installersData, error: installersError },
-          { data: workOrdersData, error: workOrdersError },
-        ] = await Promise.all([
+        const [jobResult, installersResult, workOrdersResult] = await Promise.all([
           supabase
             .from("jobs")
             .select(
               "id, name, customer, status, scheduled_start, scheduled_end, notes, assigned_installer_id, assigned_installer_name"
             )
             .eq("id", jobId)
-            .single(),
+            .maybeSingle(),
           supabase
             .from("profiles")
             .select("id, email, full_name, role")
@@ -121,78 +136,91 @@ export default function JobDetailsPage() {
             .order("created_at", { ascending: false }),
         ]);
 
-        if (jobError) throw jobError;
-        if (installersError) throw installersError;
-        if (workOrdersError) throw workOrdersError;
+        if (jobResult.error) throw jobResult.error;
+        if (installersResult.error) throw installersResult.error;
+        if (workOrdersResult.error) throw workOrdersResult.error;
 
-        const loadedJob = jobData as Job;
-        const loadedInstallers = (installersData as Profile[]) || [];
-        const loadedWorkOrders = (workOrdersData as WorkOrder[]) || [];
+        if (!jobResult.data) {
+          if (!cancelled) {
+            setErrorMessage("Job not found.");
+            setJob(null);
+            setInstallers((installersResult.data as Profile[]) || []);
+            setWorkOrders((workOrdersResult.data as WorkOrder[]) || []);
+            setLoading(false);
+          }
+          return;
+        }
 
-        setJob(loadedJob);
-        setInstallers(loadedInstallers);
-        setWorkOrders(loadedWorkOrders);
+        const loadedJob = jobResult.data as Job;
+        const loadedInstallers = (installersResult.data as Profile[]) || [];
+        const loadedWorkOrders = (workOrdersResult.data as WorkOrder[]) || [];
 
-        setName(loadedJob.name || "");
-        setCustomer(loadedJob.customer || "");
-        setStatus(loadedJob.status || "New");
-        setScheduledStart(loadedJob.scheduled_start || "");
-        setScheduledEnd(loadedJob.scheduled_end || "");
-        setNotes(loadedJob.notes || "");
-        setAssignedInstallerId(loadedJob.assigned_installer_id || "");
+        if (!cancelled) {
+          setJob(loadedJob);
+          setInstallers(loadedInstallers);
+          setWorkOrders(loadedWorkOrders);
 
-        setWoAssignedInstallerId(loadedJob.assigned_installer_id || "");
-
-        setInstallersLoading(false);
-        setLoading(false);
+          setName(loadedJob.name || "");
+          setCustomer(loadedJob.customer || "");
+          setStatus(loadedJob.status || "New");
+          setScheduledStart(loadedJob.scheduled_start || "");
+          setScheduledEnd(loadedJob.scheduled_end || "");
+          setNotes(loadedJob.notes || "");
+          setAssignedInstallerId(loadedJob.assigned_installer_id || "");
+          setWoAssignedInstallerId(loadedJob.assigned_installer_id || "");
+          setLoading(false);
+        }
       } catch (error: any) {
-        setMessage(error?.message || "Failed to load job.");
-        setInstallersLoading(false);
-        setLoading(false);
+        if (!cancelled) {
+          setErrorMessage(error?.message || "Failed to load job details.");
+          setLoading(false);
+        }
       }
     }
 
-    if (jobId) load();
-  }, [jobId, router]);
+    loadPage();
 
-  const selectedInstaller = useMemo(
-    () => installers.find((installer) => installer.id === assignedInstallerId) || null,
-    [installers, assignedInstallerId]
-  );
+    return () => {
+      cancelled = true;
+    };
+  }, [jobId, router]);
 
   async function handleSaveJob() {
     if (!job) return;
 
-    setSavingJob(true);
-    setMessage("");
-
     try {
-      const updates = {
-        name: name || null,
-        customer: customer || null,
-        status,
-        scheduled_start: scheduledStart || null,
-        scheduled_end: scheduledEnd || null,
-        notes: notes || null,
-        assigned_installer_id: assignedInstallerId || null,
-        assigned_installer_name: selectedInstaller?.full_name || null,
-      };
+      setSavingJob(true);
+      setErrorMessage("");
+      setSuccessMessage("");
+
+      const installer =
+        installers.find((item) => item.id === assignedInstallerId) || null;
 
       const { data, error } = await supabase
         .from("jobs")
-        .update(updates)
+        .update({
+          name: name || null,
+          customer: customer || null,
+          status,
+          scheduled_start: scheduledStart || null,
+          scheduled_end: scheduledEnd || null,
+          notes: notes || null,
+          assigned_installer_id: assignedInstallerId || null,
+          assigned_installer_name: installer?.full_name || null,
+        })
         .eq("id", job.id)
         .select(
           "id, name, customer, status, scheduled_start, scheduled_end, notes, assigned_installer_id, assigned_installer_name"
         )
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error("Updated job was not returned.");
 
       setJob(data as Job);
-      setMessage("Job updated successfully.");
+      setSuccessMessage("Job updated successfully.");
     } catch (error: any) {
-      setMessage(error?.message || "Failed to save job.");
+      setErrorMessage(error?.message || "Failed to save job.");
     } finally {
       setSavingJob(false);
     }
@@ -202,14 +230,16 @@ export default function JobDetailsPage() {
     if (!job) return;
 
     if (!woTitle.trim()) {
-      setMessage("Please enter a work order title.");
+      setErrorMessage("Please enter a work order title.");
+      setSuccessMessage("");
       return;
     }
 
-    setCreatingWorkOrder(true);
-    setMessage("");
-
     try {
+      setCreatingWorkOrder(true);
+      setErrorMessage("");
+      setSuccessMessage("");
+
       const installer =
         installers.find((item) => item.id === woAssignedInstallerId) || null;
 
@@ -228,22 +258,21 @@ export default function JobDetailsPage() {
         .select(
           "id, job_id, title, description, materials, scheduled_date, status, assigned_installer_id, assigned_installer_name, created_at"
         )
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error("Work order was not returned.");
 
       setWorkOrders((prev) => [data as WorkOrder, ...prev]);
-
       setWoTitle("");
       setWoDescription("");
       setWoMaterials("");
       setWoScheduledDate("");
       setWoStatus("Open");
       setWoAssignedInstallerId(assignedInstallerId || "");
-
-      setMessage("Work order created.");
+      setSuccessMessage("Work order created.");
     } catch (error: any) {
-      setMessage(error?.message || "Failed to create work order.");
+      setErrorMessage(error?.message || "Failed to create work order.");
     } finally {
       setCreatingWorkOrder(false);
     }
@@ -254,6 +283,9 @@ export default function JobDetailsPage() {
     nextStatus: WorkOrderStatus
   ) {
     try {
+      setErrorMessage("");
+      setSuccessMessage("");
+
       const { error } = await supabase
         .from("work_orders")
         .update({ status: nextStatus })
@@ -266,15 +298,17 @@ export default function JobDetailsPage() {
           order.id === workOrderId ? { ...order, status: nextStatus } : order
         )
       );
+
+      setSuccessMessage("Work order status updated.");
     } catch (error: any) {
-      setMessage(error?.message || "Failed to update work order.");
+      setErrorMessage(error?.message || "Failed to update work order.");
     }
   }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-black p-6 text-white">
-        <div className="rounded-2xl border border-white/10 bg-neutral-900 p-6">
+        <div className="mx-auto max-w-7xl rounded-2xl border border-white/10 bg-neutral-900 p-6">
           Loading job...
         </div>
       </div>
@@ -284,8 +318,17 @@ export default function JobDetailsPage() {
   if (!job) {
     return (
       <div className="min-h-screen bg-black p-6 text-white">
-        <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-6">
-          Job not found.
+        <div className="mx-auto max-w-7xl space-y-4">
+          <Link
+            href="/dashboard/jobs"
+            className="inline-flex rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white"
+          >
+            Back to Jobs
+          </Link>
+
+          <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-6">
+            {errorMessage || "Job not found."}
+          </div>
         </div>
       </div>
     );
@@ -315,9 +358,15 @@ export default function JobDetailsPage() {
           </Link>
         </div>
 
-        {message && (
-          <div className="rounded-xl border border-white/10 bg-neutral-900 p-4 text-sm text-zinc-300">
-            {message}
+        {errorMessage && (
+          <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">
+            {errorMessage}
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="rounded-xl border border-lime-400/20 bg-lime-400/10 p-4 text-sm text-lime-200">
+            {successMessage}
           </div>
         )}
 
@@ -390,7 +439,6 @@ export default function JobDetailsPage() {
                   className="w-full rounded-lg border border-white/10 bg-black p-3 outline-none"
                   value={assignedInstallerId}
                   onChange={(e) => setAssignedInstallerId(e.target.value)}
-                  disabled={installersLoading}
                 >
                   <option value="">Unassigned</option>
                   {installers.map((installer) => (
@@ -558,8 +606,14 @@ export default function JobDetailsPage() {
                   </div>
 
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
-                    <InfoCard title="Description" value={order.description || "No description."} />
-                    <InfoCard title="Materials" value={order.materials || "No materials listed."} />
+                    <InfoCard
+                      title="Description"
+                      value={order.description || "No description."}
+                    />
+                    <InfoCard
+                      title="Materials"
+                      value={order.materials || "No materials listed."}
+                    />
                   </div>
                 </div>
               ))

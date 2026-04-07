@@ -8,7 +8,7 @@ import { supabase } from "../lib/supabase";
 type Profile = {
   id: string;
   full_name: string | null;
-  role: "admin" | "staff" | "customer";
+  role: "admin" | "staff" | "installer" | "customer";
 };
 
 type Job = {
@@ -47,13 +47,16 @@ export default function PortalPage() {
           return;
         }
 
+        if (currentProfile.role === "installer") {
+          router.replace("/installer");
+          return;
+        }
+
         setProfile(currentProfile as Profile);
 
         const { data } = await supabase
           .from("jobs")
-          .select(
-            "id, name, customer, status, scheduled_start, scheduled_end, notes"
-          )
+          .select("id, name, customer, status, scheduled_start, scheduled_end, notes")
           .eq("customer", currentProfile.full_name || "");
 
         setJobs((data as Job[]) || []);
@@ -123,9 +126,7 @@ export default function PortalPage() {
                 </div>
 
                 <div className="mt-5">
-                  <div className="mb-2 text-sm text-zinc-400">
-                    Project Notes
-                  </div>
+                  <div className="mb-2 text-sm text-zinc-400">Project Notes</div>
                   <div className="rounded-lg border border-white/10 bg-black/30 p-4 text-zinc-200">
                     {job.notes || "No notes yet."}
                   </div>

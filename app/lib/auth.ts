@@ -1,6 +1,6 @@
 import { supabase } from "../lib/supabase";
 
-export type UserRole = "admin" | "staff" | "customer";
+export type UserRole = "admin" | "staff" | "installer" | "customer";
 
 export type Profile = {
   id: string;

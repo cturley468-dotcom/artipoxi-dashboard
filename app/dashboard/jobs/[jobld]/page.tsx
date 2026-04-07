@@ -53,7 +53,13 @@ type WorkOrder = {
 export default function JobDetailsPage() {
   const router = useRouter();
   const params = useParams();
-  const jobId = params?.jobId as string;
+
+const rawJobId =
+  (params?.jobId as string | string[] | undefined) ??
+  (params?.jobid as string | string[] | undefined) ??
+  (params?.id as string | string[] | undefined);
+
+const jobId = Array.isArray(rawJobId) ? rawJobId[0] : rawJobId;
 
   const [loading, setLoading] = useState(true);
   const [savingJob, setSavingJob] = useState(false);

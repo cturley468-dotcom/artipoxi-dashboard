@@ -1,20 +1,25 @@
-import type { Metadata } from "next";
 import "./globals.css";
+import type { Metadata } from "next";
+import { Playfair_Display } from "next/font/google";
 
 export const metadata: Metadata = {
   title: "ArtiPoxi",
-  description:
-    "Premium epoxy flooring quotes, job tracking, lead pipeline, and inventory management.",
+  description: "Operations Dashboard",
 };
+
+export const playfair = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["600", "700"],
+});
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
-      <body className="bg-black text-white antialiased">{children}</body>
+      <body className="bg-black text-white">{children}</body>
     </html>
   );
 }

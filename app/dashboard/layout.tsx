@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { usePathname } from "next/navigation";
 
 const navItems = [
   { href: "/dashboard", label: "Overview" },
@@ -15,38 +18,58 @@ export default function DashboardLayout({
 }: {
   children: ReactNode;
 }) {
+  const pathname = usePathname();
+
   return (
     <main className="min-h-screen bg-black text-white">
-      <div className="grid min-h-screen lg:grid-cols-[260px_1fr]">
-        <aside className="border-r border-white/10 bg-zinc-950 p-6">
-          <div className="mb-8">
-            <h1 className="bg-gradient-to-r from-cyan-400 to-lime-400 bg-clip-text text-4xl font-bold text-transparent">
-              ArtiPoxi
-            </h1>
-            <p className="mt-2 text-sm text-zinc-400">Operations Dashboard</p>
+      <div className="mx-auto flex max-w-[1600px] gap-4 px-3 py-3 md:gap-5 md:px-4 md:py-4">
+        <aside className="sticky top-3 h-[calc(100vh-24px)] w-[210px] shrink-0 rounded-3xl border border-white/10 bg-neutral-950/90 p-4 md:top-4 md:h-[calc(100vh-32px)] md:w-[220px] md:p-5">
+          <div className="border-b border-white/10 pb-4">
+            <Link href="/dashboard" className="block">
+              <div className="text-4xl font-black tracking-tight text-cyan-300">
+                ArtiPoxi
+              </div>
+              <div className="mt-1 text-sm text-zinc-400">
+                Operations Dashboard
+              </div>
+            </Link>
           </div>
 
-          <nav className="space-y-3">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="block rounded-xl border border-white/10 bg-white/5 px-4 py-3 font-medium transition hover:border-cyan-400 hover:bg-cyan-500/10"
-              >
-                {item.label}
-              </Link>
-            ))}
+          <nav className="mt-5 space-y-2">
+            {navItems.map((item) => {
+              const active =
+                pathname === item.href ||
+                (item.href !== "/dashboard" && pathname.startsWith(item.href));
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`block rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
+                    active
+                      ? "border-cyan-400/30 bg-cyan-400/10 text-cyan-300 shadow-[0_0_0_1px_rgba(34,211,238,0.08)]"
+                      : "border-white/10 bg-white/[0.03] text-zinc-200 hover:border-cyan-400/20 hover:bg-white/[0.05]"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
 
-          <div className="mt-8 rounded-2xl border border-white/10 bg-black/30 p-4">
-            <div className="text-sm text-zinc-400">System Status</div>
-            <div className="mt-2 text-sm font-medium text-lime-300">
+          <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="text-xs uppercase tracking-[0.22em] text-zinc-500">
+              System Status
+            </div>
+            <div className="mt-3 text-sm font-semibold text-lime-300">
               Dashboard active
             </div>
           </div>
         </aside>
 
-        <section className="p-6 lg:p-8">{children}</section>
+        <section className="min-w-0 flex-1 rounded-3xl border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.05),transparent_20%),radial-gradient(circle_at_bottom_right,rgba(132,204,22,0.04),transparent_18%),#0a0a0a] p-4 md:p-6">
+          {children}
+        </section>
       </div>
     </main>
   );

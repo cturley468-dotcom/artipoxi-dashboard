@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { getCurrentProfile } from "../../lib/auth";
-import { supabase } from "../../lib/supabase";
+import { getCurrentProfile } from "../../../lib/auth";
+import { supabase } from "../../../lib/supabase";
 
 type UserRole = "admin" | "staff" | "installer" | "customer";
 

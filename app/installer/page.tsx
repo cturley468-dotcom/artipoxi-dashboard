@@ -5,6 +5,13 @@ import { useRouter } from "next/navigation";
 import { getCurrentProfile } from "../lib/auth";
 import { supabase } from "../lib/supabase";
 
+<a
+  href="/installer/work-orders"
+  className="inline-flex rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 font-semibold text-cyan-300"
+>
+  View My Work Orders
+</a>
+
 type Profile = {
   id: string;
   full_name: string | null;

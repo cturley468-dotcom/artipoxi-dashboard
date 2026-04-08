@@ -35,46 +35,94 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-black p-6 text-white">
-      <div className="w-full max-w-md rounded-3xl border border-white/10 bg-neutral-900 p-8 shadow-2xl">
-        <div className="mb-8 text-center">
-          <BrandMark href="/" subtitle="Secure client and team access" size="md" />
+    <main className="min-h-screen text-white">
+      <div className="mx-auto flex min-h-screen max-w-7xl items-center px-4 py-8 md:px-6">
+        <div className="grid w-full gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+          <section className="glass-panel-soft rounded-[30px] p-6 md:p-8">
+            <BrandMark href="/" subtitle="Secure Access" size="md" />
+
+            <div className="mt-8">
+              <div className="section-kicker">Team / Client Access</div>
+              <h1 className="mt-4 text-4xl font-black tracking-tight md:text-5xl">
+                Sign in to your workspace.
+              </h1>
+              <p className="mt-4 max-w-xl text-base leading-7 text-zinc-400">
+                Employees, installers, and approved clients can securely access
+                their dashboard, portal, and assigned work.
+              </p>
+            </div>
+
+            <div className="mt-8 grid gap-3 sm:grid-cols-3">
+              <MiniInfo title="Employees" value="Operations" />
+              <MiniInfo title="Installers" value="Assigned Work" />
+              <MiniInfo title="Clients" value="Project Updates" />
+            </div>
+          </section>
+
+          <section className="glass-panel-soft rounded-[30px] p-6 md:p-8">
+            <div className="section-kicker">Login</div>
+            <div className="mt-3 panel-title">Secure Login</div>
+            <div className="panel-subtitle mt-2 text-sm">
+              Use your approved email and password to continue.
+            </div>
+
+            <form onSubmit={handleLogin} className="mt-6 space-y-4">
+              <div>
+                <label className="mb-2 block text-xs uppercase tracking-[0.22em] text-zinc-500">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  placeholder="you@example.com"
+                  className="ui-input"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-xs uppercase tracking-[0.22em] text-zinc-500">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  placeholder="Password"
+                  className="ui-input"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="ui-btn ui-btn-primary w-full disabled:opacity-50"
+              >
+                {loading ? "Signing In..." : "Login"}
+              </button>
+            </form>
+          </section>
         </div>
-
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="mb-2 block text-sm text-zinc-400">Email</label>
-            <input
-              type="email"
-              placeholder="you@example.com"
-              className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none placeholder:text-zinc-500"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm text-zinc-400">Password</label>
-            <input
-              type="password"
-              placeholder="Password"
-              className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none placeholder:text-zinc-500"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-xl bg-cyan-500 px-4 py-3 font-semibold text-black transition hover:opacity-90 disabled:opacity-60"
-          >
-            {loading ? "Signing in..." : "Login"}
-          </button>
-        </form>
       </div>
+    </main>
+  );
+}
+
+function MiniInfo({
+  title,
+  value,
+}: {
+  title: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-[18px] border border-white/10 bg-black/20 p-4">
+      <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">
+        {title}
+      </div>
+      <div className="mt-2 text-sm font-semibold text-white">{value}</div>
     </div>
   );
 }

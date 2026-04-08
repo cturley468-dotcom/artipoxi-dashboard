@@ -3,12 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { Playfair_Display } from "next/font/google";
-
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  weight: ["600", "700"],
-});
+import BrandMark from "../components/BrandMark";
 
 const navItems = [
   { href: "/dashboard", label: "Overview" },
@@ -31,16 +26,7 @@ export default function DashboardLayout({
       <div className="mx-auto flex max-w-[1600px] gap-4 px-3 py-3 md:gap-5 md:px-4 md:py-4">
         <aside className="sticky top-3 h-[calc(100vh-24px)] w-[210px] shrink-0 rounded-3xl border border-white/10 bg-neutral-950/90 p-4 md:top-4 md:h-[calc(100vh-32px)] md:w-[220px] md:p-5">
           <div className="border-b border-white/10 pb-4">
-            <Link href="/dashboard" className="block">
-              <div className={`text-3xl tracking-wide ${playfair.className}`}>
-                <span className="text-cyan-300">Arti</span>
-                <span className="text-white">Poxi</span>
-              </div>
-
-              <div className="mt-1 text-sm text-zinc-400">
-                Operations Dashboard
-              </div>
-            </Link>
+            <BrandMark href="/dashboard" subtitle="Operations Dashboard" size="md" />
           </div>
 
           <nav className="mt-5 space-y-2">

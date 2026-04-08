@@ -1,4 +1,5 @@
 import Link from "next/link";
+import BrandMark from "./components/BrandMark";
 
 const systems = [
   {
@@ -45,14 +46,7 @@ export default function HomePage() {
     <main className="min-h-screen bg-black text-white">
       <section className="border-b border-white/10">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-          <div>
-            <div className="text-3xl font-black tracking-tight text-cyan-300">
-              ArtiPoxi
-            </div>
-            <div className="text-sm text-zinc-400">
-              Premium epoxy floors, projects, and custom finish systems
-            </div>
-          </div>
+          <BrandMark href="/" subtitle="Premium epoxy floors and systems" size="lg" />
 
           <div className="flex items-center gap-3">
             <a
@@ -165,10 +159,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section
-        id="projects"
-        className="border-t border-white/10 bg-neutral-950/60"
-      >
+      <section id="projects" className="border-t border-white/10 bg-neutral-950/60">
         <div className="mx-auto max-w-7xl px-6 py-16">
           <div className="max-w-2xl">
             <p className="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-300">
@@ -260,7 +251,7 @@ export default function HomePage() {
                   Custom Floor Preview
                 </div>
 
-                <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <div className="mt-6 grid gap-3 sm:grid-cols-2)">
                   <PreviewCard title="Space Type" value="Garage / Shop" />
                   <PreviewCard title="Color Profile" value="Dark Modern Blend" />
                   <PreviewCard title="Coating Style" value="Decorative Flake" />

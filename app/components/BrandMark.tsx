@@ -1,37 +1,43 @@
+"use client";
+
 import Link from "next/link";
-import { Playfair_Display } from "next/font/google";
-
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  weight: ["600", "700"],
-});
-
-type BrandMarkProps = {
-  href?: string;
-  subtitle?: string;
-  size?: "sm" | "md" | "lg";
-};
+import Image from "next/image";
 
 export default function BrandMark({
   href = "/",
-  subtitle = "Premium epoxy systems",
+  subtitle,
   size = "md",
-}: BrandMarkProps) {
-  const sizeClass =
-    size === "sm" ? "text-2xl" : size === "lg" ? "text-4xl md:text-5xl" : "text-3xl";
-
-  const subtitleClass =
-    size === "sm" ? "text-[10px]" : size === "lg" ? "text-xs" : "text-[11px]";
+}: {
+  href?: string;
+  subtitle?: string;
+  size?: "sm" | "md" | "lg";
+}) {
+  const sizes = {
+    sm: "w-8 h-8",
+    md: "w-10 h-10",
+    lg: "w-12 h-12",
+  };
 
   return (
-    <Link href={href} className="inline-block">
-      <div className={`${playfair.className} ${sizeClass} leading-none tracking-wide`}>
-        <span className="text-cyan-300">Arti</span>
-        <span className="text-white">Poxi</span>
+    <Link href={href} className="flex items-center gap-3 group">
+      <div className={`relative ${sizes[size]}`}>
+        <Image
+          src="/branding/logo-icon.png"
+          alt="ArtiPoxi"
+          fill
+          className="object-contain drop-shadow-[0_0_15px_rgba(0,200,255,0.6)] group-hover:scale-105 transition"
+        />
       </div>
 
-      <div className={`mt-1 uppercase tracking-[0.28em] text-zinc-500 ${subtitleClass}`}>
-        {subtitle}
+      <div className="flex flex-col leading-tight">
+        <span className="text-white font-semibold tracking-wide text-sm">
+          ArtiPoxi
+        </span>
+        {subtitle && (
+          <span className="text-xs text-zinc-400">
+            {subtitle}
+          </span>
+        )}
       </div>
     </Link>
   );

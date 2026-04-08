@@ -22,6 +22,8 @@ type Job = {
   quotedprice: number | null;
   notes?: string | null;
   assigned_installer_name?: string | null;
+  scheduled_start?: string | null;
+  scheduled_end?: string | null;
   created_at?: string | null;
 };
 
@@ -107,8 +109,8 @@ export default function JobsPage() {
       const { data, error } = await supabase
         .from("jobs")
         .insert({
-          name: jobName,
-          customer: customer || null,
+          name: jobName.trim(),
+          customer: customer.trim() || null,
           quotedprice: quotedPrice ? Number(quotedPrice) : null,
           status,
         })
@@ -132,50 +134,63 @@ export default function JobsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black p-6 text-white">
-        <div className="rounded-2xl border border-white/10 bg-neutral-900 p-6">
-          Loading jobs...
-        </div>
+      <div className="rounded-[28px] border border-white/10 bg-black/20 p-6 text-white">
+        Loading jobs...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black p-6 text-white">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-6">
-          <p className="text-sm uppercase tracking-[0.25em] text-cyan-300">
-            Jobs
-          </p>
-          <h1 className="mt-2 text-4xl font-bold">Job Management</h1>
-          <p className="mt-2 text-zinc-400">
-            Add jobs, search projects, and manage active work.
-          </p>
-        </div>
+    <div className="text-white">
+      <div className="flex flex-col gap-6">
+        <section className="glass-panel-soft rounded-[28px] p-5 md:p-6">
+          <div className="section-kicker">Jobs</div>
+          <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <h1 className="text-3xl font-black tracking-tight md:text-4xl">
+                Job Management
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm leading-7 text-zinc-400 md:text-base">
+                Search projects, manage active work, and create new jobs without
+                leaving the dashboard.
+              </p>
+            </div>
 
-        {message && (
-          <div className="mb-4 rounded-xl border border-white/10 bg-neutral-900 p-4 text-sm text-zinc-300">
-            {message}
-          </div>
-        )}
-
-        <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
-          <section className="rounded-2xl border border-white/10 bg-neutral-900 p-5">
-            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="text-xl font-semibold">Jobs</h2>
-
+            <div className="w-full lg:max-w-md">
+              <label className="mb-2 block text-xs uppercase tracking-[0.22em] text-zinc-500">
+                Quick Search
+              </label>
               <input
                 type="text"
                 placeholder="Search jobs, customers, installer, status..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-black px-4 py-2.5 text-sm text-white outline-none placeholder:text-zinc-500 sm:max-w-md"
+                className="ui-input"
               />
             </div>
+          </div>
+        </section>
 
-            <div className="space-y-2">
+        {message && (
+          <div className="rounded-[20px] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-zinc-300">
+            {message}
+          </div>
+        )}
+
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+          <section className="glass-panel-soft rounded-[28px] p-4 md:p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <div className="panel-title">Jobs</div>
+                <div className="panel-subtitle mt-1 text-sm">
+                  {filteredJobs.length} result{filteredJobs.length === 1 ? "" : "s"}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
               {filteredJobs.length === 0 ? (
-                <div className="rounded-xl border border-white/10 bg-black/30 px-4 py-4 text-sm text-zinc-400">
+                <div className="rounded-[22px] border border-white/10 bg-black/20 px-4 py-5 text-sm text-zinc-400">
                   No jobs found.
                 </div>
               ) : (
@@ -183,26 +198,31 @@ export default function JobsPage() {
                   <Link
                     key={job.id}
                     href={`/dashboard/jobs/${job.id}`}
-                    className="block rounded-xl border border-white/10 bg-black/25 px-4 py-3 transition hover:border-cyan-400/30 hover:bg-black/40"
+                    className="block rounded-[22px] border border-white/10 bg-black/20 px-4 py-4 transition hover:border-cyan-400/20 hover:bg-white/[0.03]"
                   >
-                    <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                       <div className="min-w-0">
-                        <div className="truncate text-base font-semibold text-white">
+                        <div className="truncate text-lg font-bold text-white">
                           {job.name || "Untitled Job"}
                         </div>
-                        <div className="mt-1 text-sm text-zinc-400">
-                          {job.customer || "No customer"}
-                          {job.assigned_installer_name
-                            ? ` • ${job.assigned_installer_name}`
-                            : ""}
+
+                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-zinc-400">
+                          <span>{job.customer || "No customer"}</span>
+                          {job.assigned_installer_name && (
+                            <span>• Installer: {job.assigned_installer_name}</span>
+                          )}
+                          {job.scheduled_start && (
+                            <span>• {formatDate(job.scheduled_start)}</span>
+                          )}
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2 text-sm">
-                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-zinc-300">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="ui-chip">
                           {job.status || "No status"}
                         </span>
-                        <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-cyan-300">
+
+                        <span className="ui-chip ui-chip-cyan">
                           {job.quotedprice != null
                             ? `$${Number(job.quotedprice).toLocaleString()}`
                             : "No quote"}
@@ -215,52 +235,77 @@ export default function JobsPage() {
             </div>
           </section>
 
-          <aside className="rounded-2xl border border-white/10 bg-neutral-900 p-5 xl:sticky xl:top-6 xl:self-start">
-            <h2 className="text-lg font-semibold">Add New Job</h2>
+          <aside className="glass-panel-soft rounded-[28px] p-4 md:p-5 xl:sticky xl:top-6 xl:self-start">
+            <div className="section-kicker">Create</div>
+            <div className="mt-3 panel-title">Add New Job</div>
+            <div className="panel-subtitle mt-2 text-sm">
+              Start a new project entry for estimating, scheduling, and work
+              order flow.
+            </div>
 
-            <form onSubmit={handleAddJob} className="mt-4 space-y-3">
-              <input
-                type="text"
-                placeholder="Job name"
-                value={jobName}
-                onChange={(e) => setJobName(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-black px-4 py-2.5 text-sm text-white outline-none placeholder:text-zinc-500"
-                required
-              />
+            <form onSubmit={handleAddJob} className="mt-5 space-y-3">
+              <div>
+                <label className="mb-2 block text-xs uppercase tracking-[0.22em] text-zinc-500">
+                  Job Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="Example: Smith Garage"
+                  value={jobName}
+                  onChange={(e) => setJobName(e.target.value)}
+                  className="ui-input"
+                  required
+                />
+              </div>
 
-              <input
-                type="text"
-                placeholder="Customer"
-                value={customer}
-                onChange={(e) => setCustomer(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-black px-4 py-2.5 text-sm text-white outline-none placeholder:text-zinc-500"
-              />
+              <div>
+                <label className="mb-2 block text-xs uppercase tracking-[0.22em] text-zinc-500">
+                  Customer
+                </label>
+                <input
+                  type="text"
+                  placeholder="Customer name"
+                  value={customer}
+                  onChange={(e) => setCustomer(e.target.value)}
+                  className="ui-input"
+                />
+              </div>
 
-              <input
-                type="number"
-                placeholder="Quoted price"
-                value={quotedPrice}
-                onChange={(e) => setQuotedPrice(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-black px-4 py-2.5 text-sm text-white outline-none placeholder:text-zinc-500"
-              />
+              <div>
+                <label className="mb-2 block text-xs uppercase tracking-[0.22em] text-zinc-500">
+                  Quoted Price
+                </label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={quotedPrice}
+                  onChange={(e) => setQuotedPrice(e.target.value)}
+                  className="ui-input"
+                />
+              </div>
 
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as JobStatus)}
-                className="w-full rounded-xl border border-white/10 bg-black px-4 py-2.5 text-sm text-white outline-none"
-              >
-                <option value="New">New</option>
-                <option value="Quoted">Quoted</option>
-                <option value="Follow Up">Follow Up</option>
-                <option value="Scheduled">Scheduled</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Completed">Completed</option>
-              </select>
+              <div>
+                <label className="mb-2 block text-xs uppercase tracking-[0.22em] text-zinc-500">
+                  Status
+                </label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as JobStatus)}
+                  className="ui-select"
+                >
+                  <option value="New">New</option>
+                  <option value="Quoted">Quoted</option>
+                  <option value="Follow Up">Follow Up</option>
+                  <option value="Scheduled">Scheduled</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Completed">Completed</option>
+                </select>
+              </div>
 
               <button
                 type="submit"
                 disabled={saving}
-                className="w-full rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:opacity-90 disabled:opacity-60"
+                className="ui-btn ui-btn-primary w-full"
               >
                 {saving ? "Adding..." : "Add Job"}
               </button>
@@ -270,4 +315,12 @@ export default function JobsPage() {
       </div>
     </div>
   );
+}
+
+function formatDate(value: string) {
+  try {
+    return new Date(value).toLocaleDateString();
+  } catch {
+    return value;
+  }
 }

@@ -9,6 +9,7 @@ type Job = {
   id: string;
   name: string | null;
   customer: string | null;
+  quotedprice?: number | null;
 };
 
 type FinancialEntry = {
@@ -23,6 +24,27 @@ type FinancialEntry = {
   receipt_url: string | null;
   entry_date: string;
   created_at: string;
+};
+
+type MonthlyBucket = {
+  key: string;
+  label: string;
+  income: number;
+  expenses: number;
+  invoices: number;
+  payments: number;
+};
+
+type JobProfitRow = {
+  jobId: string;
+  jobName: string;
+  customer: string;
+  quotedRevenue: number;
+  trackedIncome: number;
+  trackedExpenses: number;
+  invoiceTotal: number;
+  paymentTotal: number;
+  estimatedProfit: number;
 };
 
 export default function FinancePage() {
@@ -70,7 +92,7 @@ export default function FinancePage() {
             .order("created_at", { ascending: false }),
           supabase
             .from("jobs")
-            .select("id, name, customer")
+            .select("id, name, customer, quotedprice")
             .order("created_at", { ascending: false }),
         ]);
 
@@ -102,15 +124,110 @@ export default function FinancePage() {
       .filter((e) => e.entry_type === "invoice")
       .reduce((sum, e) => sum + Number(e.amount || 0), 0);
 
+    const payments = entries
+      .filter((e) => e.entry_type === "payment")
+      .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+
     const profit = income - expenses;
 
     return {
       expenses,
       income,
       invoices,
+      payments,
       profit,
     };
   }, [entries]);
+
+  const monthlySummary = useMemo(() => {
+    const buckets = new Map<string, MonthlyBucket>();
+
+    for (const entry of entries) {
+      const date = new Date(entry.entry_date);
+      if (Number.isNaN(date.getTime())) continue;
+
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      const label = date.toLocaleDateString(undefined, {
+        month: "short",
+        year: "numeric",
+      });
+
+      if (!buckets.has(key)) {
+        buckets.set(key, {
+          key,
+          label,
+          income: 0,
+          expenses: 0,
+          invoices: 0,
+          payments: 0,
+        });
+      }
+
+      const bucket = buckets.get(key)!;
+      const amount = Number(entry.amount || 0);
+
+      if (entry.entry_type === "expense") bucket.expenses += amount;
+      if (entry.entry_type === "income") bucket.income += amount;
+      if (entry.entry_type === "invoice") bucket.invoices += amount;
+      if (entry.entry_type === "payment") {
+        bucket.payments += amount;
+        bucket.income += amount;
+      }
+    }
+
+    return Array.from(buckets.values())
+      .sort((a, b) => b.key.localeCompare(a.key))
+      .slice(0, 6);
+  }, [entries]);
+
+  const jobProfitability = useMemo(() => {
+    const rows: JobProfitRow[] = jobs.map((job) => {
+      const related = entries.filter((e) => e.job_id === job.id);
+
+      const trackedIncome = related
+        .filter((e) => e.entry_type === "income")
+        .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+
+      const trackedExpenses = related
+        .filter((e) => e.entry_type === "expense")
+        .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+
+      const invoiceTotal = related
+        .filter((e) => e.entry_type === "invoice")
+        .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+
+      const paymentTotal = related
+        .filter((e) => e.entry_type === "payment")
+        .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+
+      const quotedRevenue = Number(job.quotedprice || 0);
+      const revenueBasis =
+        trackedIncome > 0 ? trackedIncome : paymentTotal > 0 ? paymentTotal : quotedRevenue;
+
+      return {
+        jobId: job.id,
+        jobName: job.name || "Untitled Job",
+        customer: job.customer || "No customer",
+        quotedRevenue,
+        trackedIncome,
+        trackedExpenses,
+        invoiceTotal,
+        paymentTotal,
+        estimatedProfit: revenueBasis - trackedExpenses,
+      };
+    });
+
+    return rows
+      .filter(
+        (row) =>
+          row.quotedRevenue > 0 ||
+          row.trackedIncome > 0 ||
+          row.trackedExpenses > 0 ||
+          row.invoiceTotal > 0 ||
+          row.paymentTotal > 0
+      )
+      .sort((a, b) => b.estimatedProfit - a.estimatedProfit);
+  }, [entries, jobs]);
 
   async function handleAddEntry(e: React.FormEvent) {
     e.preventDefault();
@@ -188,8 +305,8 @@ export default function FinancePage() {
                 Financial Control Center
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-7 text-zinc-400 md:text-base">
-                Track expenses, invoices, payments, and business cash flow in one
-                private admin-only space.
+                Track expenses, invoices, payments, monthly activity, and job-level
+                profitability in one private admin-only space.
               </p>
             </div>
 
@@ -203,7 +320,7 @@ export default function FinancePage() {
           </div>
         )}
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           <MetricCard
             label="Income / Payments"
             value={`$${metrics.income.toLocaleString()}`}
@@ -216,6 +333,10 @@ export default function FinancePage() {
           <MetricCard
             label="Invoices"
             value={`$${metrics.invoices.toLocaleString()}`}
+          />
+          <MetricCard
+            label="Payments"
+            value={`$${metrics.payments.toLocaleString()}`}
           />
           <MetricCard
             label="Profit Snapshot"
@@ -338,86 +459,174 @@ export default function FinancePage() {
             </form>
           </aside>
 
-          <section className="glass-panel-soft rounded-[28px] p-4 md:p-5">
-            <div className="mb-4">
-              <div className="panel-title">Recent Financial Activity</div>
-              <div className="panel-subtitle mt-1 text-sm">
-                Latest recorded expenses, invoices, and payments.
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {entries.length === 0 ? (
-                <div className="rounded-[20px] border border-white/10 bg-black/20 px-4 py-5 text-sm text-zinc-400">
-                  No financial entries yet.
+          <div className="flex flex-col gap-6">
+            <section className="glass-panel-soft rounded-[28px] p-4 md:p-5">
+              <div className="mb-4">
+                <div className="panel-title">Monthly Summary</div>
+                <div className="panel-subtitle mt-1 text-sm">
+                  Last 6 months of invoices, income, payments, and expenses.
                 </div>
-              ) : (
-                entries.map((entry) => (
-                  <div
-                    key={entry.id}
-                    className="rounded-[22px] border border-white/10 bg-black/20 px-4 py-4"
-                  >
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                      <div className="min-w-0">
-                        <div className="text-lg font-bold text-white">
-                          {entry.title}
-                        </div>
+              </div>
 
-                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm text-zinc-400">
-                          <span>{entry.category || "Uncategorized"}</span>
-                          {entry.vendor && <span>• {entry.vendor}</span>}
-                          <span>• {formatDate(entry.entry_date)}</span>
-                        </div>
-
-                        {entry.description && (
-                          <div className="mt-3 text-sm leading-7 text-zinc-300">
-                            {entry.description}
-                          </div>
-                        )}
+              <div className="space-y-3">
+                {monthlySummary.length === 0 ? (
+                  <div className="rounded-[20px] border border-white/10 bg-black/20 px-4 py-5 text-sm text-zinc-400">
+                    No monthly data yet.
+                  </div>
+                ) : (
+                  monthlySummary.map((month) => (
+                    <div
+                      key={month.key}
+                      className="rounded-[22px] border border-white/10 bg-black/20 px-4 py-4"
+                    >
+                      <div className="mb-3 text-lg font-bold text-white">
+                        {month.label}
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={`ui-chip ${
-                            entry.entry_type === "expense"
-                              ? ""
-                              : entry.entry_type === "invoice"
-                              ? "ui-chip-cyan"
-                              : "ui-chip-lime"
-                          }`}
-                        >
-                          {entry.entry_type}
-                        </span>
-
-                        <span
-                          className={`ui-chip ${
-                            entry.entry_type === "expense"
-                              ? ""
-                              : "ui-chip-lime"
-                          }`}
-                        >
-                          ${Number(entry.amount || 0).toLocaleString()}
-                        </span>
+                      <div className="grid gap-3 md:grid-cols-4">
+                        <MiniMetric title="Income" value={month.income} tone="cyan" />
+                        <MiniMetric title="Expenses" value={month.expenses} />
+                        <MiniMetric title="Invoices" value={month.invoices} />
+                        <MiniMetric title="Payments" value={month.payments} tone="lime" />
                       </div>
                     </div>
+                  ))
+                )}
+              </div>
+            </section>
 
-                    {entry.receipt_url && (
-                      <div className="mt-4">
-                        <a
-                          href={entry.receipt_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-sm font-semibold text-cyan-300 hover:text-cyan-200"
-                        >
-                          View Receipt
-                        </a>
-                      </div>
-                    )}
+            <section className="glass-panel-soft rounded-[28px] p-4 md:p-5">
+              <div className="mb-4">
+                <div className="panel-title">Job Profitability</div>
+                <div className="panel-subtitle mt-1 text-sm">
+                  Estimated profit by project using tracked expenses and available revenue.
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {jobProfitability.length === 0 ? (
+                  <div className="rounded-[20px] border border-white/10 bg-black/20 px-4 py-5 text-sm text-zinc-400">
+                    No job-linked financial data yet.
                   </div>
-                ))
-              )}
-            </div>
-          </section>
+                ) : (
+                  jobProfitability.map((row) => (
+                    <div
+                      key={row.jobId}
+                      className="rounded-[22px] border border-white/10 bg-black/20 px-4 py-4"
+                    >
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                          <div className="text-lg font-bold text-white">
+                            {row.jobName}
+                          </div>
+                          <div className="mt-1 text-sm text-zinc-400">
+                            {row.customer}
+                          </div>
+                        </div>
+
+                        <div
+                          className={`ui-chip ${
+                            row.estimatedProfit >= 0 ? "ui-chip-lime" : ""
+                          }`}
+                        >
+                          Profit: ${row.estimatedProfit.toLocaleString()}
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid gap-3 md:grid-cols-5">
+                        <MiniMetric title="Quoted" value={row.quotedRevenue} />
+                        <MiniMetric title="Income" value={row.trackedIncome} tone="cyan" />
+                        <MiniMetric title="Expenses" value={row.trackedExpenses} />
+                        <MiniMetric title="Invoices" value={row.invoiceTotal} />
+                        <MiniMetric title="Payments" value={row.paymentTotal} tone="lime" />
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
+
+            <section className="glass-panel-soft rounded-[28px] p-4 md:p-5">
+              <div className="mb-4">
+                <div className="panel-title">Recent Financial Activity</div>
+                <div className="panel-subtitle mt-1 text-sm">
+                  Latest recorded expenses, invoices, and payments.
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {entries.length === 0 ? (
+                  <div className="rounded-[20px] border border-white/10 bg-black/20 px-4 py-5 text-sm text-zinc-400">
+                    No financial entries yet.
+                  </div>
+                ) : (
+                  entries.map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="rounded-[22px] border border-white/10 bg-black/20 px-4 py-4"
+                    >
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0">
+                          <div className="text-lg font-bold text-white">
+                            {entry.title}
+                          </div>
+
+                          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm text-zinc-400">
+                            <span>{entry.category || "Uncategorized"}</span>
+                            {entry.vendor && <span>• {entry.vendor}</span>}
+                            <span>• {formatDate(entry.entry_date)}</span>
+                          </div>
+
+                          {entry.description && (
+                            <div className="mt-3 text-sm leading-7 text-zinc-300">
+                              {entry.description}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`ui-chip ${
+                              entry.entry_type === "expense"
+                                ? ""
+                                : entry.entry_type === "invoice"
+                                ? "ui-chip-cyan"
+                                : "ui-chip-lime"
+                            }`}
+                          >
+                            {entry.entry_type}
+                          </span>
+
+                          <span
+                            className={`ui-chip ${
+                              entry.entry_type === "expense"
+                                ? ""
+                                : "ui-chip-lime"
+                            }`}
+                          >
+                            ${Number(entry.amount || 0).toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+
+                      {entry.receipt_url && (
+                        <div className="mt-4">
+                          <a
+                            href={entry.receipt_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-sm font-semibold text-cyan-300 hover:text-cyan-200"
+                          >
+                            View Receipt
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
+          </div>
         </div>
       </div>
     </div>
@@ -446,6 +655,35 @@ function MetricCard({
         }`}
       >
         {value}
+      </div>
+    </div>
+  );
+}
+
+function MiniMetric({
+  title,
+  value,
+  tone = "default",
+}: {
+  title: string;
+  value: number;
+  tone?: "default" | "cyan" | "lime";
+}) {
+  return (
+    <div className="rounded-[16px] border border-white/10 bg-white/[0.04] p-3">
+      <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">
+        {title}
+      </div>
+      <div
+        className={`mt-2 text-sm font-bold ${
+          tone === "cyan"
+            ? "text-cyan-300"
+            : tone === "lime"
+            ? "text-lime-300"
+            : "text-white"
+        }`}
+      >
+        ${value.toLocaleString()}
       </div>
     </div>
   );

@@ -5,9 +5,9 @@ export const metadata: Metadata = {
   title: "ArtiPoxi",
   description: "Premium epoxy systems and operations platform",
   icons: {
-    icon: "/branding/logo-icon.png",
-    shortcut: "/branding/logo-icon.png",
-    apple: "/branding/logo-icon.png",
+    icon: "/branding/app-icon.png",
+    shortcut: "/branding/app-icon.png",
+    apple: "/branding/app-icon.png",
   },
 };
 
@@ -18,7 +18,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-black text-white antialiased">{children}</body>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#05070b" />
+      </head>
+      <body className="bg-black text-white antialiased">
+        {children}
+      </body>
     </html>
   );
 }

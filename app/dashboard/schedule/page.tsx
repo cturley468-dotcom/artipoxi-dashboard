@@ -23,11 +23,11 @@ type Job = {
   assigned_installer_name?: string | null;
 };
 
-type CalendarDay = {
+type CalendarCell = {
   key: string;
-  label: string;
-  shortLabel: string;
   date: Date;
+  inMonth: boolean;
+  isToday: boolean;
   jobs: Job[];
 };
 
@@ -37,7 +37,12 @@ export default function SchedulePage() {
   const [loading, setLoading] = useState(true);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [message, setMessage] = useState("");
-  const [view, setView] = useState<"week" | "list">("week");
+
+  const today = new Date();
+  const [currentMonth, setCurrentMonth] = useState(
+    new Date(today.getFullYear(), today.getMonth(), 1)
+  );
+  const [selectedDateKey, setSelectedDateKey] = useState(formatDateKey(today));
 
   useEffect(() => {
     async function load() {
@@ -73,46 +78,58 @@ export default function SchedulePage() {
     load();
   }, [router]);
 
-  const weekDays = useMemo(() => {
-    const now = new Date();
-    const start = new Date(now);
-    const weekday = start.getDay();
-    const diff = weekday === 0 ? -6 : 1 - weekday;
-    start.setDate(start.getDate() + diff);
-    start.setHours(0, 0, 0, 0);
+  const monthLabel = currentMonth.toLocaleDateString(undefined, {
+    month: "long",
+    year: "numeric",
+  });
 
-    const days: CalendarDay[] = [];
+  const calendarCells = useMemo(() => {
+    const firstDay = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth(),
+      1
+    );
+    const lastDay = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth() + 1,
+      0
+    );
 
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(start);
-      date.setDate(start.getDate() + i);
+    const start = new Date(firstDay);
+    const startWeekday = start.getDay();
+    start.setDate(start.getDate() - startWeekday);
 
-      const key = formatDateKey(date);
+    const end = new Date(lastDay);
+    const endWeekday = end.getDay();
+    end.setDate(end.getDate() + (6 - endWeekday));
 
-      const jobsForDay = jobs.filter((job) => {
+    const cells: CalendarCell[] = [];
+    const cursor = new Date(start);
+
+    while (cursor <= end) {
+      const key = formatDateKey(cursor);
+      const dayJobs = jobs.filter((job) => {
         if (!job.scheduled_start) return false;
         return formatDateKey(new Date(job.scheduled_start)) === key;
       });
 
-      days.push({
+      cells.push({
         key,
-        date,
-        label: date.toLocaleDateString(undefined, {
-          weekday: "long",
-          month: "short",
-          day: "numeric",
-        }),
-        shortLabel: date.toLocaleDateString(undefined, {
-          weekday: "short",
-          month: "short",
-          day: "numeric",
-        }),
-        jobs: jobsForDay,
+        date: new Date(cursor),
+        inMonth: cursor.getMonth() === currentMonth.getMonth(),
+        isToday: key === formatDateKey(today),
+        jobs: dayJobs,
       });
+
+      cursor.setDate(cursor.getDate() + 1);
     }
 
-    return days;
-  }, [jobs]);
+    return cells;
+  }, [currentMonth, jobs]);
+
+  const selectedJobs = useMemo(() => {
+    return calendarCells.find((c) => c.key === selectedDateKey)?.jobs || [];
+  }, [calendarCells, selectedDateKey]);
 
   const upcomingJobs = useMemo(() => {
     return [...jobs]
@@ -122,8 +139,14 @@ export default function SchedulePage() {
         const bTime = b.scheduled_start ? new Date(b.scheduled_start).getTime() : 0;
         return aTime - bTime;
       })
-      .slice(0, 12);
+      .slice(0, 8);
   }, [jobs]);
+
+  function changeMonth(direction: -1 | 1) {
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + direction, 1)
+    );
+  }
 
   if (loading) {
     return (
@@ -145,32 +168,18 @@ export default function SchedulePage() {
                 Project Calendar
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-7 text-zinc-400 md:text-base">
-                View scheduled jobs by week or switch to a simplified list view
-                for easier mobile use.
+                View scheduled jobs in a real calendar layout and tap any day to
+                see assigned work.
               </p>
             </div>
 
-            <div className="flex gap-2">
-              <button
-                onClick={() => setView("week")}
-                className={`rounded-[14px] border px-4 py-2 text-sm font-semibold transition ${
-                  view === "week"
-                    ? "border-cyan-400/30 bg-cyan-400/12 text-cyan-300"
-                    : "border-white/10 bg-black/20 text-zinc-300"
-                }`}
-              >
-                Week View
+            <div className="flex items-center gap-2">
+              <button onClick={() => changeMonth(-1)} className="ui-btn">
+                Prev
               </button>
-
-              <button
-                onClick={() => setView("list")}
-                className={`rounded-[14px] border px-4 py-2 text-sm font-semibold transition ${
-                  view === "list"
-                    ? "border-cyan-400/30 bg-cyan-400/12 text-cyan-300"
-                    : "border-white/10 bg-black/20 text-zinc-300"
-                }`}
-              >
-                List View
+              <div className="ui-chip">{monthLabel}</div>
+              <button onClick={() => changeMonth(1)} className="ui-btn">
+                Next
               </button>
             </div>
           </div>
@@ -182,149 +191,158 @@ export default function SchedulePage() {
           </div>
         )}
 
-        {view === "week" ? (
-          <>
-            <section className="hidden gap-4 xl:grid xl:grid-cols-7">
-              {weekDays.map((day) => (
-                <div
-                  key={day.key}
-                  className="glass-panel-soft min-h-[460px] rounded-[24px] p-4"
-                >
-                  <div className="border-b border-white/10 pb-3">
-                    <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">
-                      {day.date.toLocaleDateString(undefined, { weekday: "short" })}
-                    </div>
-                    <div className="mt-2 text-lg font-bold text-white">
-                      {day.date.toLocaleDateString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="mt-4 space-y-3">
-                    {day.jobs.length === 0 ? (
-                      <div className="rounded-[18px] border border-white/10 bg-black/20 p-4 text-sm text-zinc-500">
-                        No jobs scheduled
-                      </div>
-                    ) : (
-                      day.jobs.map((job) => (
-                        <ScheduleCard key={job.id} job={job} compact />
-                      ))
-                    )}
-                  </div>
-                </div>
-              ))}
-            </section>
-
-            <section className="space-y-4 xl:hidden">
-              {weekDays.map((day) => (
-                <div
-                  key={day.key}
-                  className="glass-panel-soft rounded-[24px] p-4"
-                >
-                  <div className="mb-4 flex items-center justify-between">
-                    <div>
-                      <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">
-                        {day.date.toLocaleDateString(undefined, { weekday: "long" })}
-                      </div>
-                      <div className="mt-1 text-lg font-bold text-white">
-                        {day.shortLabel}
-                      </div>
-                    </div>
-
-                    <span className="ui-chip">
-                      {day.jobs.length} Job{day.jobs.length === 1 ? "" : "s"}
-                    </span>
-                  </div>
-
-                  <div className="space-y-3">
-                    {day.jobs.length === 0 ? (
-                      <div className="rounded-[18px] border border-white/10 bg-black/20 p-4 text-sm text-zinc-500">
-                        No jobs scheduled
-                      </div>
-                    ) : (
-                      day.jobs.map((job) => <ScheduleCard key={job.id} job={job} />)
-                    )}
-                  </div>
-                </div>
-              ))}
-            </section>
-          </>
-        ) : (
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
           <section className="glass-panel-soft rounded-[28px] p-4 md:p-5">
-            <div className="mb-4">
-              <div className="panel-title">Upcoming Scheduled Jobs</div>
-              <div className="panel-subtitle mt-1 text-sm">
-                Simplified layout for faster scrolling and phone use.
-              </div>
+            <div className="mb-3 grid grid-cols-7 gap-2">
+              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                <div
+                  key={day}
+                  className="rounded-[12px] border border-white/10 bg-white/[0.03] px-2 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 md:text-xs"
+                >
+                  {day}
+                </div>
+              ))}
             </div>
 
-            <div className="space-y-3">
-              {upcomingJobs.length === 0 ? (
-                <div className="rounded-[20px] border border-white/10 bg-black/20 px-4 py-5 text-sm text-zinc-400">
-                  No scheduled jobs found.
-                </div>
-              ) : (
-                upcomingJobs.map((job) => <ScheduleCard key={job.id} job={job} />)
-              )}
+            <div className="grid grid-cols-7 gap-2">
+              {calendarCells.map((cell) => {
+                const isSelected = cell.key === selectedDateKey;
+
+                return (
+                  <button
+                    key={cell.key}
+                    onClick={() => setSelectedDateKey(cell.key)}
+                    className={`min-h-[82px] rounded-[16px] border p-2 text-left transition md:min-h-[110px] md:p-3 ${
+                      isSelected
+                        ? "border-cyan-400/30 bg-cyan-400/12 shadow-[0_0_20px_rgba(73,230,255,0.08)]"
+                        : "border-white/10 bg-black/20 hover:border-cyan-400/18"
+                    } ${!cell.inMonth ? "opacity-40" : ""}`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span
+                        className={`text-sm font-bold ${
+                          cell.isToday ? "text-cyan-300" : "text-white"
+                        }`}
+                      >
+                        {cell.date.getDate()}
+                      </span>
+
+                      {cell.jobs.length > 0 && (
+                        <span className="rounded-full bg-cyan-400/15 px-2 py-0.5 text-[10px] font-bold text-cyan-300 md:text-xs">
+                          {cell.jobs.length}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="mt-2 space-y-1">
+                      {cell.jobs.slice(0, 2).map((job) => (
+                        <div
+                          key={job.id}
+                          className="truncate rounded-full bg-white/[0.05] px-2 py-1 text-[10px] text-zinc-300 md:text-xs"
+                        >
+                          {job.name || "Job"}
+                        </div>
+                      ))}
+
+                      {cell.jobs.length > 2 && (
+                        <div className="text-[10px] text-zinc-500 md:text-xs">
+                          +{cell.jobs.length - 2} more
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </section>
-        )}
-      </div>
-    </div>
-  );
-}
 
-function ScheduleCard({
-  job,
-  compact = false,
-}: {
-  job: Job;
-  compact?: boolean;
-}) {
-  return (
-    <div
-      className={`rounded-[18px] border border-white/10 bg-black/20 ${
-        compact ? "p-3" : "p-4"
-      }`}
-    >
-      <div className="flex flex-col gap-3">
-        <div>
-          <div className={`${compact ? "text-sm" : "text-base"} font-bold text-white`}>
-            {job.name || "Untitled Job"}
-          </div>
-          <div className="mt-1 text-sm text-zinc-400">
-            {job.customer || "No customer"}
-          </div>
-        </div>
+          <aside className="glass-panel-soft rounded-[28px] p-4 md:p-5 xl:sticky xl:top-6 xl:self-start">
+            <div className="section-kicker">Selected Day</div>
+            <div className="mt-3 panel-title">
+              {new Date(selectedDateKey + "T00:00:00").toLocaleDateString(undefined, {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+              })}
+            </div>
 
-        <div className="flex flex-wrap gap-2">
-          <span className="ui-chip">{job.status || "No status"}</span>
-          {job.assigned_installer_name && (
-            <span className="ui-chip ui-chip-cyan">
-              {job.assigned_installer_name}
-            </span>
-          )}
-        </div>
+            <div className="mt-5 space-y-3">
+              {selectedJobs.length === 0 ? (
+                <div className="rounded-[18px] border border-white/10 bg-black/20 p-4 text-sm text-zinc-500">
+                  No jobs scheduled for this day.
+                </div>
+              ) : (
+                selectedJobs.map((job) => (
+                  <div
+                    key={job.id}
+                    className="rounded-[18px] border border-white/10 bg-black/20 p-4"
+                  >
+                    <div className="text-base font-bold text-white">
+                      {job.name || "Untitled Job"}
+                    </div>
+                    <div className="mt-1 text-sm text-zinc-400">
+                      {job.customer || "No customer"}
+                    </div>
 
-        <div className="grid gap-2 sm:grid-cols-2">
-          <InfoMini
-            title="Start"
-            value={
-              job.scheduled_start
-                ? new Date(job.scheduled_start).toLocaleDateString()
-                : "Not set"
-            }
-          />
-          <InfoMini
-            title="End"
-            value={
-              job.scheduled_end
-                ? new Date(job.scheduled_end).toLocaleDateString()
-                : "Not set"
-            }
-          />
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <span className="ui-chip">{job.status || "No status"}</span>
+                      {job.assigned_installer_name && (
+                        <span className="ui-chip ui-chip-cyan">
+                          {job.assigned_installer_name}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="mt-3 grid gap-2">
+                      <InfoMini
+                        title="Start"
+                        value={
+                          job.scheduled_start
+                            ? new Date(job.scheduled_start).toLocaleDateString()
+                            : "Not set"
+                        }
+                      />
+                      <InfoMini
+                        title="End"
+                        value={
+                          job.scheduled_end
+                            ? new Date(job.scheduled_end).toLocaleDateString()
+                            : "Not set"
+                        }
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="mt-6">
+              <div className="panel-title text-lg">Upcoming Jobs</div>
+              <div className="mt-3 space-y-2">
+                {upcomingJobs.length === 0 ? (
+                  <div className="rounded-[18px] border border-white/10 bg-black/20 p-4 text-sm text-zinc-500">
+                    No upcoming jobs.
+                  </div>
+                ) : (
+                  upcomingJobs.map((job) => (
+                    <div
+                      key={job.id}
+                      className="rounded-[16px] border border-white/10 bg-black/20 p-3"
+                    >
+                      <div className="text-sm font-semibold text-white">
+                        {job.name || "Untitled Job"}
+                      </div>
+                      <div className="mt-1 text-xs text-zinc-500">
+                        {job.scheduled_start
+                          ? new Date(job.scheduled_start).toLocaleDateString()
+                          : "No date"}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </aside>
         </div>
       </div>
     </div>

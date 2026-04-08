@@ -22,15 +22,15 @@ export default function DashboardLayout({
   const pathname = usePathname();
 
   return (
-    <main className="min-h-screen bg-black text-white">
-      <div className="mx-auto flex max-w-[1600px] gap-4 px-3 py-3 md:gap-5 md:px-4 md:py-4">
-        <aside className="sticky top-3 h-[calc(100vh-24px)] w-[210px] shrink-0 rounded-3xl border border-white/10 bg-neutral-950/90 p-4 md:top-4 md:h-[calc(100vh-32px)] md:w-[220px] md:p-5">
+    <main className="app-shell min-h-screen text-white">
+      <div className="mx-auto flex max-w-[1700px] gap-4 px-3 py-3 md:gap-5 md:px-4 md:py-4">
+        <aside className="glass-panel cyber-outline sticky top-3 h-[calc(100vh-24px)] w-[250px] shrink-0 rounded-[28px] p-4 md:top-4 md:h-[calc(100vh-32px)] md:w-[270px] md:p-5">
           <div className="border-b border-white/10 pb-4">
             <BrandMark href="/dashboard" subtitle="Operations Dashboard" size="md" />
           </div>
 
-          <nav className="mt-5 space-y-2">
-            {navItems.map((item) => {
+          <div className="mt-5 space-y-3">
+            {navItems.map((item, index) => {
               const active =
                 pathname === item.href ||
                 (item.href !== "/dashboard" && pathname.startsWith(item.href));
@@ -39,29 +39,47 @@ export default function DashboardLayout({
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`block rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
-                    active
-                      ? "border-cyan-400/30 bg-cyan-400/10 text-cyan-300"
-                      : "border-white/10 bg-white/[0.03] text-zinc-200 hover:border-cyan-400/20 hover:bg-white/[0.05]"
-                  }`}
+                  className={`step-rail-item ${
+                    active ? "step-rail-item-active" : ""
+                  } transition`}
                 >
-                  {item.label}
+                  <div
+                    className={`step-badge ${
+                      active ? "step-badge-active" : ""
+                    }`}
+                  >
+                    {index + 1}
+                  </div>
+
+                  <div>
+                    <div
+                      className={`text-sm font-bold ${
+                        active ? "text-cyan-300" : "text-white"
+                      }`}
+                    >
+                      {item.label}
+                    </div>
+                    <div className="text-xs text-zinc-500">
+                      {item.href.replace("/", "") || "dashboard"}
+                    </div>
+                  </div>
                 </Link>
               );
             })}
-          </nav>
+          </div>
 
-          <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="mt-6 rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
             <div className="text-xs uppercase tracking-[0.22em] text-zinc-500">
               System Status
             </div>
             <div className="mt-3 text-sm font-semibold text-lime-300">
               Dashboard active
             </div>
+            <div className="mt-3 neon-line" />
           </div>
         </aside>
 
-        <section className="min-w-0 flex-1 rounded-3xl border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.05),transparent_20%),radial-gradient(circle_at_bottom_right,rgba(132,204,22,0.04),transparent_18%),#0a0a0a] p-4 md:p-6">
+        <section className="glass-panel cyber-outline min-w-0 flex-1 rounded-[30px] p-4 md:p-6">
           {children}
         </section>
       </div>

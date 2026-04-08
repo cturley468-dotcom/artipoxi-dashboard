@@ -12,6 +12,7 @@ const navItems = [
   { href: "/dashboard/leads", label: "Leads" },
   { href: "/dashboard/inventory", label: "Inventory" },
   { href: "/configurator", label: "Configurator" },
+  { href: "/dashboard/finance", label: "Finance" },
 ];
 
 export default function DashboardLayout({

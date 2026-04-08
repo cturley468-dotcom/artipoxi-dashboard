@@ -1,179 +1,276 @@
 import Link from "next/link";
 import BrandMark from "./components/BrandMark";
 
-const showcaseCards = [
+const systems = [
   {
     title: "Garage / Shop",
-    subtitle: "Decorative flake systems",
-    value: "Premium finish",
+    text: "High-performance decorative epoxy systems built for durability, easy maintenance, and a premium finish.",
   },
   {
     title: "Patio / Outdoor",
-    subtitle: "Slip-resistant coatings",
-    value: "Weather-ready",
+    text: "Slip-resistant exterior coatings designed to handle weather, traffic, and everyday outdoor use.",
   },
   {
     title: "Commercial",
-    subtitle: "Durable traffic systems",
-    value: "Professional grade",
+    text: "Professional-grade surface systems for businesses, workspaces, and clean modern environments.",
   },
 ];
 
-const featuredProjects = [
-  {
-    title: "Midnight Garage Floor",
-    text: "Deep charcoal epoxy system with premium flake texture and a crisp modern finish.",
-  },
-  {
-    title: "Stone Blend Patio",
-    text: "Outdoor decorative coating built for traction, durability, and visual depth.",
-  },
-  {
-    title: "Clean Shop Surface",
-    text: "A performance coating designed to handle daily work while elevating the space.",
-  },
+const highlights = [
+  { value: "500+", label: "Projects" },
+  { value: "5★", label: "Rated" },
+  { value: "10+ YRS", label: "Experience" },
 ];
 
 export default function HomePage() {
   return (
     <main className="min-h-screen text-white">
       <section className="border-b border-white/10">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-          <BrandMark href="/" subtitle="Premium epoxy systems" size="lg" />
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-6 md:py-5">
+          <BrandMark href="/" subtitle="Premium Epoxy Systems" size="md" />
 
-          <div className="flex items-center gap-3">
-            <a href="#projects" className="ui-btn hidden sm:inline-flex">
-              View Projects
+          <div className="hidden items-center gap-3 md:flex">
+            <a href="#projects" className="ui-btn">
+              Projects
+            </a>
+            <a href="#systems" className="ui-btn">
+              Systems
+            </a>
+            <a href="#configurator" className="ui-btn">
+              Configurator
             </a>
             <Link href="/login" className="ui-btn ui-btn-primary">
-              Secure Login
+              Login
+            </Link>
+          </div>
+
+          <div className="md:hidden">
+            <Link href="/login" className="ui-btn ui-btn-primary">
+              Login
             </Link>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-7xl gap-8 px-6 py-14 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
+      <section className="mx-auto grid max-w-7xl gap-8 px-4 py-10 md:px-6 md:py-14 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
         <div>
-          <div className="section-kicker">ArtiPoxi Systems</div>
-          <h1 className="page-title mt-4">
-            Design your floor.
+          <div className="section-kicker">Premium Epoxy Floors</div>
+
+          <h1 className="mt-4 text-4xl font-black leading-[0.95] tracking-tight md:text-6xl">
+            Floors that
             <br />
-            Run your project.
+            perform.
+            <br />
+            Styles that
+            <br />
+            impress.
           </h1>
 
-          <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-300">
-            Explore premium epoxy systems, preview your floor direction, and move
-            from inspiration to quote request with one clean interface.
+          <p className="mt-5 max-w-2xl text-base leading-7 text-zinc-300 md:text-lg md:leading-8">
+            Durable. Beautiful. Built for your space. ArtiPoxi creates premium
+            epoxy systems for garages, patios, shops, and commercial surfaces
+            with a focus on finish quality and long-term performance.
           </p>
 
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/configurator" className="ui-btn ui-btn-primary">
-              Open Configurator
-            </Link>
-
-            <a href="#projects" className="ui-btn">
-              Explore Projects
+          <div className="mt-7 flex flex-wrap gap-3">
+            <a href="#projects" className="ui-btn ui-btn-primary">
+              View Projects
+            </a>
+            <a href="#contact" className="ui-btn">
+              Start Your Quote
             </a>
           </div>
 
-          <div className="mt-10 grid gap-4 sm:grid-cols-3">
-            {showcaseCards.map((card) => (
-              <div key={card.title} className="glass-panel-soft rounded-[24px] p-4">
-                <div className="text-sm uppercase tracking-[0.22em] text-zinc-500">
-                  {card.title}
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            {highlights.map((item) => (
+              <div key={item.label} className="glass-panel-soft rounded-[22px] p-4">
+                <div className="text-2xl font-black text-cyan-300">{item.value}</div>
+                <div className="mt-1 text-xs uppercase tracking-[0.22em] text-zinc-500">
+                  {item.label}
                 </div>
-                <div className="mt-3 text-lg font-bold text-white">{card.value}</div>
-                <div className="mt-2 text-sm text-zinc-400">{card.subtitle}</div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="preview-frame p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="section-kicker">Live Preview</div>
-              <div className="mt-2 text-3xl font-black tracking-tight">
-                Midnight Flake Garage
-              </div>
-            </div>
+        <div className="preview-frame overflow-hidden">
+          <div className="relative min-h-[320px] bg-[radial-gradient(circle_at_20%_30%,rgba(73,230,255,0.14),transparent_18%),linear-gradient(135deg,#070b12_0%,#0a1119_45%,#05070b_100%)] md:min-h-[560px]">
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))]" />
 
-            <div className="ui-chip ui-chip-cyan">Premium look</div>
-          </div>
+            <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/25 to-transparent" />
 
-          <div className="preview-image grid-glow mt-6 rounded-[24px] p-5">
-            <div className="grid h-full min-h-[430px] gap-5 lg:grid-cols-[0.42fr_0.58fr]">
-              <div className="glass-panel-soft rounded-[24px] p-5">
-                <div className="section-kicker">System Type</div>
-                <div className="mt-4 space-y-4">
-                  <PreviewSelector active label="Garage / Shop" />
-                  <PreviewSelector label="Patio / Outdoor" />
-                  <PreviewSelector label="Commercial Surface" />
+            <div className="absolute left-0 top-0 h-full w-full p-5 md:p-8">
+              <div className="flex h-full flex-col justify-between">
+                <div className="flex justify-end">
+                  <div className="ui-chip ui-chip-cyan">Premium showroom look</div>
                 </div>
 
-                <div className="mt-8">
-                  <div className="section-kicker">Configuration</div>
-                  <div className="mt-4 grid gap-3">
-                    <MiniMetric label="Space" value="2-Car Garage" />
-                    <MiniMetric label="Style" value="Decorative Flake" />
-                    <MiniMetric label="Finish" value="High Gloss" />
+                <div className="rounded-[24px] border border-white/10 bg-black/25 p-4 backdrop-blur md:max-w-[320px]">
+                  <div className="text-sm text-zinc-400">Featured system</div>
+                  <div className="mt-2 text-2xl font-black text-white md:text-3xl">
+                    Midnight Garage Finish
+                  </div>
+                  <div className="mt-2 text-sm leading-6 text-zinc-300">
+                    Deep charcoal flake system with a crisp, modern finish and
+                    premium reflective depth.
                   </div>
                 </div>
-              </div>
 
-              <div className="preview-floor flex rounded-[24px] border border-white/10 p-5">
-                <div className="flex w-full flex-col justify-between rounded-[20px] border border-cyan-400/10 bg-black/20 p-5">
-                  <div className="flex items-center justify-between">
-                    <div className="ui-chip ui-chip-lime">Live surface preview</div>
-                    <div className="ui-chip">Garage / Shop</div>
-                  </div>
-
-                  <div className="self-start rounded-[20px] border border-white/10 bg-black/30 px-5 py-4">
-                    <div className="text-sm text-zinc-400">Suggested system</div>
-                    <div className="mt-2 text-3xl font-black text-cyan-300">
-                      Decorative Flake
-                    </div>
-                  </div>
-
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    <MiniStep step="01" text="Choose space type" />
-                    <MiniStep step="02" text="Select coating style" />
-                    <MiniStep step="03" text="Request quote" />
-                  </div>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <MiniCard title="Space" value="Garage / Shop" />
+                  <MiniCard title="Style" value="Decorative Flake" />
+                  <MiniCard title="Finish" value="High Gloss" />
                 </div>
               </div>
             </div>
           </div>
+        </div>
+      </section>
 
-          <div className="mt-5 flex justify-end">
-            <Link href="/configurator" className="ui-btn ui-btn-primary">
-              View Quote Request
-            </Link>
+      <section id="systems" className="border-t border-white/10">
+        <div className="mx-auto max-w-7xl px-4 py-12 md:px-6 md:py-16">
+          <div className="max-w-2xl">
+            <div className="section-kicker">Our Featured Systems</div>
+            <h2 className="mt-4 text-3xl font-black tracking-tight md:text-5xl">
+              Transform your concrete to match your vision.
+            </h2>
+            <p className="mt-4 text-base leading-7 text-zinc-400">
+              Professionally installed, custom epoxy floors built to last.
+            </p>
+          </div>
+
+          <div className="mt-8 grid gap-5 md:grid-cols-3">
+            {systems.map((system) => (
+              <div key={system.title} className="glass-panel-soft rounded-[28px] overflow-hidden">
+                <div className="h-52 bg-[radial-gradient(circle_at_top_left,rgba(73,230,255,0.12),transparent_25%),linear-gradient(135deg,#11161d_0%,#0a0f15_50%,#06080d_100%)]" />
+                <div className="p-5">
+                  <div className="ui-chip ui-chip-cyan mb-4">{system.title}</div>
+                  <div className="text-2xl font-bold text-white">{system.title}</div>
+                  <p className="mt-3 text-sm leading-7 text-zinc-400 md:text-base">
+                    {system.text}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
       <section id="projects" className="border-t border-white/10">
-        <div className="mx-auto max-w-7xl px-6 py-16">
+        <div className="mx-auto max-w-7xl px-4 py-12 md:px-6 md:py-16">
           <div className="max-w-2xl">
-            <div className="section-kicker">Featured Projects</div>
-            <h2 className="mt-4 text-4xl font-black tracking-tight">
-              Finishes built to stand out.
+            <div className="section-kicker">Design Your Floor</div>
+            <h2 className="mt-4 text-3xl font-black tracking-tight md:text-5xl">
+              Preview your space. Request a quote.
             </h2>
-            <p className="mt-4 panel-subtitle">
-              Strong design, premium surface performance, and a modern visual
-              language that gives concrete a custom-built feel.
-            </p>
           </div>
 
-          <div className="mt-10 grid gap-6 md:grid-cols-3">
-            {featuredProjects.map((project) => (
-              <div key={project.title} className="glass-panel-soft rounded-[28px] p-5">
-                <div className="preview-floor h-56 rounded-[22px] border border-white/10" />
-                <div className="mt-5 text-2xl font-bold">{project.title}</div>
-                <div className="mt-3 leading-7 text-zinc-400">{project.text}</div>
+          <div className="mt-8 rounded-[30px] border border-white/10 bg-black/20 p-3 md:p-4">
+            <div className="grid gap-3 md:grid-cols-[1fr_auto_1fr]">
+              <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(135deg,#11151c_0%,#0b0f15_100%)] p-4 md:p-5">
+                <div className="text-xs uppercase tracking-[0.24em] text-zinc-500">
+                  Before
+                </div>
+                <div className="mt-3 h-44 rounded-[18px] border border-white/10 bg-black/20 md:h-64" />
               </div>
-            ))}
+
+              <div className="flex items-center justify-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-cyan-400/20 bg-cyan-400/10 text-2xl text-cyan-300 shadow-[0_0_20px_rgba(73,230,255,0.18)]">
+                  ›
+                </div>
+              </div>
+
+              <div className="rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_30%_30%,rgba(73,230,255,0.12),transparent_18%),linear-gradient(135deg,#11161d_0%,#080c12_100%)] p-4 md:p-5">
+                <div className="text-xs uppercase tracking-[0.24em] text-zinc-500">
+                  After
+                </div>
+                <div className="mt-3 h-44 rounded-[18px] border border-cyan-400/10 bg-black/20 md:h-64" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="configurator" className="border-t border-white/10">
+        <div className="mx-auto max-w-7xl px-4 py-12 md:px-6 md:py-16">
+          <div className="glass-panel-soft rounded-[30px] p-6 md:p-8">
+            <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+              <div>
+                <div className="section-kicker">Configurator</div>
+                <h2 className="mt-4 text-3xl font-black tracking-tight md:text-5xl">
+                  Launch the configurator.
+                </h2>
+                <p className="mt-4 max-w-xl text-base leading-7 text-zinc-400">
+                  Preview your floor direction, compare system styles, and move
+                  toward a cleaner quote request process.
+                </p>
+
+                <div className="mt-7 flex flex-wrap gap-3">
+                  <Link href="/configurator" className="ui-btn ui-btn-primary">
+                    Launch Configurator
+                  </Link>
+                  <Link href="/login" className="ui-btn">
+                    Employee Login
+                  </Link>
+                </div>
+              </div>
+
+              <div className="preview-frame p-4 md:p-5">
+                <div className="preview-image rounded-[24px] p-4 md:p-5">
+                  <div className="flex min-h-[260px] flex-col justify-between rounded-[20px] border border-cyan-400/10 bg-black/20 p-4 md:min-h-[320px]">
+                    <div className="flex flex-wrap gap-2">
+                      <span className="ui-chip">Garage / Shop</span>
+                      <span className="ui-chip ui-chip-cyan">Decorative Flake</span>
+                    </div>
+
+                    <div className="self-start rounded-[18px] border border-white/10 bg-black/30 px-4 py-4">
+                      <div className="text-sm text-zinc-400">Live preview</div>
+                      <div className="mt-2 text-2xl font-black text-cyan-300 md:text-3xl">
+                        Midnight Blend
+                      </div>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <MiniCard title="Color" value="Midnight" />
+                      <MiniCard title="Finish" value="High Gloss" />
+                      <MiniCard title="Feel" value="Premium" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 text-center text-sm text-zinc-500">
+            Integrated with your workflow and built to grow with the business.
+          </div>
+        </div>
+      </section>
+
+      <section id="contact" className="border-t border-white/10">
+        <div className="mx-auto max-w-5xl px-4 py-12 md:px-6 md:py-16">
+          <div className="glass-panel-soft rounded-[30px] p-6 text-center md:p-10">
+            <div className="section-kicker">Request a Quote</div>
+            <h2 className="mt-4 text-3xl font-black tracking-tight md:text-5xl">
+              Ready to build your next floor?
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-zinc-400">
+              Reach out for project pricing, finish recommendations, or secure
+              portal access for an existing job.
+            </p>
+
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <a
+                href="mailto:cameron@camspainting.co"
+                className="ui-btn ui-btn-primary"
+              >
+                Request a Quote
+              </a>
+
+              <Link href="/login" className="ui-btn">
+                Secure Login
+              </Link>
+            </div>
           </div>
         </div>
       </section>
@@ -181,54 +278,19 @@ export default function HomePage() {
   );
 }
 
-function PreviewSelector({
-  label,
-  active = false,
-}: {
-  label: string;
-  active?: boolean;
-}) {
-  return (
-    <div
-      className={`rounded-[20px] border px-4 py-4 ${
-        active
-          ? "border-cyan-400/22 bg-cyan-400/8 text-cyan-300"
-          : "border-white/10 bg-white/[0.03] text-zinc-300"
-      }`}
-    >
-      <div className="font-semibold">{label}</div>
-    </div>
-  );
-}
-
-function MiniMetric({
-  label,
+function MiniCard({
+  title,
   value,
 }: {
-  label: string;
+  title: string;
   value: string;
 }) {
   return (
-    <div className="rounded-[18px] border border-white/10 bg-white/[0.03] p-4">
-      <div className="text-xs uppercase tracking-[0.22em] text-zinc-500">{label}</div>
-      <div className="mt-2 text-lg font-bold text-white">{value}</div>
-    </div>
-  );
-}
-
-function MiniStep({
-  step,
-  text,
-}: {
-  step: string;
-  text: string;
-}) {
-  return (
-    <div className="rounded-[18px] border border-white/10 bg-white/[0.04] p-3">
-      <div className="text-xs uppercase tracking-[0.22em] text-zinc-500">
-        Step {step}
+    <div className="rounded-[16px] border border-white/10 bg-white/[0.04] p-3">
+      <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">
+        {title}
       </div>
-      <div className="mt-2 text-sm font-semibold text-white">{text}</div>
+      <div className="mt-2 text-sm font-semibold text-white">{value}</div>
     </div>
   );
 }

@@ -1,16 +1,15 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import { Playfair_Display } from "next/font/google";
 
 export const metadata: Metadata = {
   title: "ArtiPoxi",
-  description: "Operations Dashboard",
+  description: "Premium epoxy systems and operations platform",
+  icons: {
+    icon: "/branding/logo-icon.png",
+    shortcut: "/branding/logo-icon.png",
+    apple: "/branding/logo-icon.png",
+  },
 };
-
-export const playfair = Playfair_Display({
-  subsets: ["latin"],
-  weight: ["600", "700"],
-});
 
 export default function RootLayout({
   children,
@@ -19,7 +18,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-black text-white">{children}</body>
+      <body className="bg-black text-white antialiased">{children}</body>
     </html>
   );
 }

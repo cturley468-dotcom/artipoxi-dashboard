@@ -25,9 +25,9 @@ export default function DashboardLayout({
   return (
     <main className="min-h-screen bg-[#05070b] text-white">
       <div className="mx-auto max-w-[1600px] px-3 py-3 md:px-4 md:py-4">
-        <div className="grid gap-4 lg:grid-cols-[270px_minmax(0,1fr)]">
+        <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
           <aside className="hidden lg:block">
-            <div className="glass-panel-soft sticky top-4 rounded-[28px] p-5">
+            <div className="glass-panel-soft sticky top-4 rounded-[30px] p-5">
               <div className="border-b border-white/10 pb-5">
                 <BrandMark
                   href="/dashboard"
@@ -89,7 +89,12 @@ export default function DashboardLayout({
           <section className="min-w-0">
             <div className="glass-panel-soft mb-4 rounded-[22px] p-3 lg:hidden">
               <div className="flex items-center justify-between gap-3">
-                <BrandMark href="/dashboard" subtitle="Dashboard" size="sm" />
+                <BrandMark
+                  href="/dashboard"
+                  subtitle="Operations"
+                  size="sm"
+                />
+
                 <Link
                   href="/"
                   className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-semibold text-white"

@@ -6,42 +6,44 @@ import { useRouter } from "next/navigation";
 import { getCurrentProfile } from "../lib/auth";
 import { supabase } from "../lib/supabase";
 
-const STORAGE_KEY = "artipoxi_jobs";
-
-type JobStatus =
-  | "New"
-  | "Quoted"
-  | "Follow Up"
-  | "Scheduled"
-  | "In Progress"
-  | "Completed";
-
 type Job = {
   id: string;
-  name: string;
-  customer: string;
-  status: JobStatus;
-  quotedPrice: number;
-  materialsCost: number;
-  laborCost: number;
-  miscCost: number;
-  beforePhotos?: string[];
-  afterPhotos?: string[];
+  name: string | null;
+  customer: string | null;
+  status: string | null;
+  quotedprice: number | null;
+  created_at: string | null;
+  scheduled_start?: string | null;
 };
 
-export default function DashboardPage() {
-  const router = useRouter();
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [ready, setReady] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
+type Lead = {
+  id: string;
+  name: string | null;
+  service: string | null;
+  status: string | null;
+  created_at: string | null;
+};
 
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    router.replace("/login");
-  }
+type WorkOrder = {
+  id: string;
+  title: string | null;
+  status: string | null;
+  scheduled_date: string | null;
+  assigned_installer_name?: string | null;
+  created_at: string | null;
+};
+
+export default function DashboardOverviewPage() {
+  const router = useRouter();
+
+  const [loading, setLoading] = useState(true);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    async function checkAccess() {
+    async function load() {
       try {
         const profile = await getCurrentProfile();
 
@@ -51,377 +53,342 @@ export default function DashboardPage() {
         }
 
         if (profile.role !== "admin" && profile.role !== "staff") {
-          router.replace("/portal");
+          router.replace("/auth/callback");
           return;
         }
 
-        setAuthChecked(true);
-      } catch {
-        router.replace("/login");
+        const [jobsRes, leadsRes, workOrdersRes] = await Promise.all([
+          supabase
+            .from("jobs")
+            .select("id, name, customer, status, quotedprice, created_at, scheduled_start")
+            .order("created_at", { ascending: false })
+            .limit(6),
+
+          supabase
+            .from("leads")
+            .select("id, name, service, status, created_at")
+            .order("created_at", { ascending: false })
+            .limit(5),
+
+          supabase
+            .from("work_orders")
+            .select("id, title, status, scheduled_date, assigned_installer_name, created_at")
+            .order("created_at", { ascending: false })
+            .limit(5),
+        ]);
+
+        if (jobsRes.error) throw jobsRes.error;
+        if (leadsRes.error) throw leadsRes.error;
+        if (workOrdersRes.error) throw workOrdersRes.error;
+
+        setJobs((jobsRes.data as Job[]) || []);
+        setLeads((leadsRes.data as Lead[]) || []);
+        setWorkOrders((workOrdersRes.data as WorkOrder[]) || []);
+      } catch (error: any) {
+        setMessage(error?.message || "Failed to load dashboard.");
+      } finally {
+        setLoading(false);
       }
     }
 
-    checkAccess();
+    load();
   }, [router]);
 
-  useEffect(() => {
-    if (!authChecked) return;
-
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-
-      if (!raw) {
-        const starterJobs: Job[] = [
-          {
-            id: "smith-garage-floor",
-            name: "Smith Garage Floor",
-            customer: "John Smith",
-            status: "In Progress",
-            quotedPrice: 4200,
-            materialsCost: 1100,
-            laborCost: 1400,
-            miscCost: 200,
-            beforePhotos: [],
-            afterPhotos: [],
-          },
-          {
-            id: "miller-patio-coating",
-            name: "Miller Patio Coating",
-            customer: "Sarah Miller",
-            status: "Scheduled",
-            quotedPrice: 2800,
-            materialsCost: 700,
-            laborCost: 900,
-            miscCost: 150,
-            beforePhotos: [],
-            afterPhotos: [],
-          },
-          {
-            id: "johnson-basement-seal",
-            name: "Johnson Basement Seal",
-            customer: "Mike Johnson",
-            status: "Quoted",
-            quotedPrice: 3600,
-            materialsCost: 900,
-            laborCost: 1200,
-            miscCost: 180,
-            beforePhotos: [],
-            afterPhotos: [],
-          },
-        ];
-
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(starterJobs));
-        setJobs(starterJobs);
-        setReady(true);
-        return;
-      }
-
-      const parsed = JSON.parse(raw) as Job[];
-      setJobs(Array.isArray(parsed) ? parsed : []);
-    } catch {
-      setJobs([]);
-    } finally {
-      setReady(true);
-    }
-  }, [authChecked]);
-
-  useEffect(() => {
-    if (!authChecked || !ready) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(jobs));
-  }, [jobs, ready, authChecked]);
-
-  const stats = useMemo(() => {
-    const totalRevenue = jobs.reduce((sum, job) => sum + job.quotedPrice, 0);
-    const totalCost = jobs.reduce(
-      (sum, job) => sum + job.materialsCost + job.laborCost + job.miscCost,
+  const metrics = useMemo(() => {
+    const totalRevenue = jobs.reduce(
+      (sum, job) => sum + Number(job.quotedprice || 0),
       0
     );
-    const totalProfit = totalRevenue - totalCost;
 
-    const activeJobs = jobs.filter(
-      (job) => job.status === "In Progress" || job.status === "Scheduled"
+    const activeJobs = jobs.filter((job) =>
+      ["Scheduled", "In Progress", "Quoted"].includes(job.status || "")
     ).length;
 
-    const quotedJobs = jobs.filter((job) => job.status === "Quoted").length;
+    const openLeads = leads.filter((lead) =>
+      !["Closed", "Won", "Lost"].includes(lead.status || "")
+    ).length;
+
+    const openWorkOrders = workOrders.filter(
+      (order) => order.status !== "Completed"
+    ).length;
 
     return {
       totalRevenue,
-      totalCost,
-      totalProfit,
-      activeJobs,
-      quotedJobs,
       totalJobs: jobs.length,
+      activeJobs,
+      openLeads,
+      openWorkOrders,
     };
-  }, [jobs]);
+  }, [jobs, leads, workOrders]);
 
-  const recentJobs = useMemo(() => jobs.slice(0, 4), [jobs]);
-
-  if (!authChecked) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-black p-6 text-white">
-        <div className="rounded-2xl border border-white/10 bg-neutral-900 p-6">
-          Checking access...
-        </div>
+      <div className="rounded-[28px] border border-white/10 bg-black/20 p-6 text-white">
+        Loading dashboard...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="mx-auto max-w-7xl p-6">
-        <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-950 via-black to-zinc-900 p-6 shadow-2xl">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <div className="text-white">
+      <div className="flex flex-col gap-6">
+        <section className="glass-panel-soft rounded-[28px] p-5 md:p-6">
+          <div className="section-kicker">Operations Dashboard</div>
+
+          <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-sm uppercase tracking-[0.3em] text-cyan-300">
-                ArtiPoxi Operations
-              </p>
-              <h1 className="mt-3 text-4xl font-bold leading-tight">
-                Run Your Projects.
+              <h1 className="text-3xl font-black tracking-tight md:text-4xl">
+                Run Your Projects
               </h1>
-              <p className="mt-3 max-w-2xl text-zinc-400">
-                Track jobs, monitor scheduling, review financials, and move fast
-                with one clean dashboard.
+              <p className="mt-2 max-w-2xl text-sm leading-7 text-zinc-400 md:text-base">
+                Track jobs, leads, work orders, and business activity from one
+                clean control center.
               </p>
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <Link
-                href="/dashboard/jobs"
-                className="rounded-xl bg-cyan-500 px-5 py-3 font-semibold text-black transition hover:opacity-90"
-              >
+              <Link href="/dashboard/jobs" className="ui-btn ui-btn-primary">
                 Open Jobs
               </Link>
-              <Link
-                href="/dashboard/schedule"
-                className="rounded-xl border border-white/10 bg-white/5 px-5 py-3 font-semibold text-white transition hover:border-cyan-400/40"
-              >
-                View Schedule
+              <Link href="/configurator" className="ui-btn">
+                Open Configurator
               </Link>
-              <button
-                onClick={handleLogout}
-                className="rounded-xl border border-red-400/20 bg-red-500/10 px-5 py-3 font-semibold text-red-300 transition hover:bg-red-500/20"
-              >
-                Logout
-              </button>
             </div>
           </div>
+        </section>
 
-          <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <StatCard
-              title="Total Revenue"
-              value={`$${stats.totalRevenue.toLocaleString()}`}
-              tone="cyan"
-            />
-            <StatCard
-              title="Total Cost"
-              value={`$${stats.totalCost.toLocaleString()}`}
-            />
-            <StatCard
-              title="Estimated Profit"
-              value={`$${stats.totalProfit.toLocaleString()}`}
-              tone="lime"
-            />
-            <StatCard title="Active Jobs" value={`${stats.activeJobs}`} />
+        {message && (
+          <div className="rounded-[20px] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-zinc-300">
+            {message}
+          </div>
+        )}
+
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <MetricCard
+            label="Projected Revenue"
+            value={`$${metrics.totalRevenue.toLocaleString()}`}
+            tone="cyan"
+          />
+          <MetricCard
+            label="Total Jobs"
+            value={String(metrics.totalJobs)}
+          />
+          <MetricCard
+            label="Active Jobs"
+            value={String(metrics.activeJobs)}
+          />
+          <MetricCard
+            label="Open Leads"
+            value={String(metrics.openLeads)}
+          />
+          <MetricCard
+            label="Open Work Orders"
+            value={String(metrics.openWorkOrders)}
+            tone="lime"
+          />
+        </section>
+
+        <div className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
+          <section className="glass-panel-soft rounded-[28px] p-4 md:p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <div className="panel-title">Recent Jobs</div>
+                <div className="panel-subtitle mt-1 text-sm">
+                  Your latest project activity
+                </div>
+              </div>
+
+              <Link href="/dashboard/jobs" className="ui-btn">
+                View All
+              </Link>
+            </div>
+
+            <div className="space-y-3">
+              {jobs.length === 0 ? (
+                <EmptyState text="No jobs yet. Add your first project from the Jobs page." />
+              ) : (
+                jobs.map((job) => (
+                  <Link
+                    key={job.id}
+                    href={`/dashboard/jobs/${job.id}`}
+                    className="block rounded-[22px] border border-white/10 bg-black/20 px-4 py-4 transition hover:border-cyan-400/20 hover:bg-white/[0.03]"
+                  >
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="min-w-0">
+                        <div className="truncate text-lg font-bold text-white">
+                          {job.name || "Untitled Job"}
+                        </div>
+
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm text-zinc-400">
+                          <span>{job.customer || "No customer"}</span>
+                          {job.scheduled_start && (
+                            <span>• {formatDate(job.scheduled_start)}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="ui-chip">
+                          {job.status || "No status"}
+                        </span>
+                        <span className="ui-chip ui-chip-cyan">
+                          {job.quotedprice != null
+                            ? `$${Number(job.quotedprice).toLocaleString()}`
+                            : "No quote"}
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                ))
+              )}
+            </div>
           </section>
 
-          <section className="mt-8 grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
-            <div className="rounded-2xl border border-white/10 bg-black/25 p-5">
-              <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-6">
+            <section className="glass-panel-soft rounded-[28px] p-4 md:p-5">
+              <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-bold">Recent Jobs</h2>
-                  <p className="mt-1 text-sm text-zinc-400">
-                    Latest projects in your system
-                  </p>
+                  <div className="panel-title">Lead Pipeline</div>
+                  <div className="panel-subtitle mt-1 text-sm">
+                    Recent incoming opportunities
+                  </div>
                 </div>
 
-                <Link
-                  href="/dashboard/jobs"
-                  className="text-sm font-medium text-cyan-300 hover:text-cyan-200"
-                >
-                  View all
+                <Link href="/dashboard/leads" className="ui-btn">
+                  Leads
                 </Link>
               </div>
 
-              <div className="mt-5 space-y-4">
-                {recentJobs.length === 0 ? (
-                  <div className="rounded-2xl border border-white/10 bg-black/20 p-5 text-zinc-400">
-                    No jobs yet.
-                  </div>
+              <div className="space-y-3">
+                {leads.length === 0 ? (
+                  <EmptyState text="No leads yet." />
                 ) : (
-                  recentJobs.map((job) => (
+                  leads.map((lead) => (
                     <div
-                      key={job.id}
-                      className="rounded-2xl border border-white/10 bg-black/20 p-5"
+                      key={lead.id}
+                      className="rounded-[20px] border border-white/10 bg-black/20 px-4 py-4"
                     >
-                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                        <div>
-                          <div className="text-lg font-bold text-white">
-                            {job.name}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="truncate text-base font-bold text-white">
+                            {lead.name || "Unnamed Lead"}
                           </div>
                           <div className="mt-1 text-sm text-zinc-400">
-                            {job.customer}
+                            {lead.service || "No service listed"}
                           </div>
-                          <StatusBadge status={job.status} />
                         </div>
 
-                        <div className="grid gap-2 text-sm text-zinc-300 sm:grid-cols-3 lg:min-w-[320px]">
-                          <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                            <div className="text-zinc-500">Quoted</div>
-                            <div className="mt-1 font-semibold text-white">
-                              ${job.quotedPrice.toLocaleString()}
-                            </div>
-                          </div>
-                          <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                            <div className="text-zinc-500">Cost</div>
-                            <div className="mt-1 font-semibold text-white">
-                              $
-                              {(
-                                job.materialsCost +
-                                job.laborCost +
-                                job.miscCost
-                              ).toLocaleString()}
-                            </div>
-                          </div>
-                          <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                            <div className="text-zinc-500">Profit</div>
-                            <div className="mt-1 font-semibold text-lime-300">
-                              $
-                              {(
-                                job.quotedPrice -
-                                (job.materialsCost +
-                                  job.laborCost +
-                                  job.miscCost)
-                              ).toLocaleString()}
-                            </div>
-                          </div>
-                        </div>
+                        <span className="ui-chip">
+                          {lead.status || "New"}
+                        </span>
                       </div>
                     </div>
                   ))
                 )}
               </div>
-            </div>
+            </section>
 
-            <div className="space-y-6">
-              <section className="rounded-2xl border border-white/10 bg-black/25 p-5">
-                <h2 className="text-xl font-bold">Pipeline</h2>
-                <p className="mt-1 text-sm text-zinc-400">
-                  Snapshot of current activity
-                </p>
-
-                <div className="mt-5 grid gap-3">
-                  <MiniStat
-                    label="Total Jobs"
-                    value={`${stats.totalJobs}`}
-                    classes="text-white"
-                  />
-                  <MiniStat
-                    label="Quoted Jobs"
-                    value={`${stats.quotedJobs}`}
-                    classes="text-yellow-300"
-                  />
-                  <MiniStat
-                    label="Active Jobs"
-                    value={`${stats.activeJobs}`}
-                    classes="text-cyan-300"
-                  />
+            <section className="glass-panel-soft rounded-[28px] p-4 md:p-5">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <div className="panel-title">Work Orders</div>
+                  <div className="panel-subtitle mt-1 text-sm">
+                    Installer-facing execution
+                  </div>
                 </div>
-              </section>
+              </div>
 
-              <section className="rounded-2xl border border-white/10 bg-black/25 p-5">
-                <h2 className="text-xl font-bold">Quick Links</h2>
-                <p className="mt-1 text-sm text-zinc-400">
-                  Jump straight into the tools you use most
-                </p>
+              <div className="space-y-3">
+                {workOrders.length === 0 ? (
+                  <EmptyState text="No work orders yet." />
+                ) : (
+                  workOrders.map((order) => (
+                    <div
+                      key={order.id}
+                      className="rounded-[20px] border border-white/10 bg-black/20 px-4 py-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="truncate text-base font-bold text-white">
+                            {order.title || "Untitled Work Order"}
+                          </div>
+                          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm text-zinc-400">
+                            {order.assigned_installer_name && (
+                              <span>{order.assigned_installer_name}</span>
+                            )}
+                            {order.scheduled_date && (
+                              <span>• {formatDate(order.scheduled_date)}</span>
+                            )}
+                          </div>
+                        </div>
 
-                <div className="mt-5 grid gap-4">
-                  <QuickLink
-                    href="/dashboard/jobs"
-                    title="Manage Jobs"
-                    text="Open job list, create projects, and update project details."
-                  />
-                  <QuickLink
-                    href="/dashboard/schedule"
-                    title="Schedule Calendar"
-                    text="Review scheduled work and manage project timing."
-                  />
-                  <QuickLink
-                    href="/dashboard/leads"
-                    title="View Leads"
-                    text="Track incoming leads and move them toward active projects."
-                  />
-                  <QuickLink
-                    href="/dashboard/inventory"
-                    title="Track Inventory"
-                    text="Monitor stock, cost, and low inventory alerts."
-                  />
-                  <QuickLink
-                    href="/configurator"
-                    title="Open Configurator"
-                    text="Build a quote and feed new leads into the system."
-                  />
-                </div>
-              </section>
-            </div>
-          </section>
+                        <span
+                          className={`ui-chip ${
+                            order.status === "Completed"
+                              ? "ui-chip-lime"
+                              : "ui-chip-cyan"
+                          }`}
+                        >
+                          {order.status || "Open"}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
+          </div>
         </div>
+
+        <section className="glass-panel-soft rounded-[28px] p-5 md:p-6">
+          <div className="grid gap-4 md:grid-cols-3">
+            <QuickLink
+              href="/dashboard/jobs"
+              title="Manage Jobs"
+              text="Create, quote, schedule, and update project status."
+            />
+            <QuickLink
+              href="/dashboard/schedule"
+              title="View Schedule"
+              text="See project timing and installation flow."
+            />
+            <QuickLink
+              href="/dashboard/inventory"
+              title="Track Inventory"
+              text="Monitor materials, supplies, and system usage."
+            />
+          </div>
+        </section>
       </div>
     </div>
   );
 }
 
-function StatCard({
-  title,
+function MetricCard({
+  label,
   value,
   tone = "default",
 }: {
-  title: string;
+  label: string;
   value: string;
   tone?: "default" | "cyan" | "lime";
 }) {
-  const toneClass =
-    tone === "cyan"
-      ? "text-cyan-300"
-      : tone === "lime"
-      ? "text-lime-300"
-      : "text-white";
-
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/25 p-5">
-      <div className="text-sm text-zinc-400">{title}</div>
-      <div className={`mt-3 text-3xl font-bold ${toneClass}`}>{value}</div>
+    <div className="metric-card">
+      <div className="metric-label">{label}</div>
+      <div
+        className={`metric-value ${
+          tone === "cyan"
+            ? "text-cyan-300"
+            : tone === "lime"
+            ? "text-lime-300"
+            : "text-white"
+        }`}
+      >
+        {value}
+      </div>
     </div>
   );
-}
-
-function MiniStat({
-  label,
-  value,
-  classes,
-}: {
-  label: string;
-  value: string;
-  classes: string;
-}) {
-  return (
-    <div className="flex items-center justify-between rounded-xl border border-white/10 bg-black/20 p-4">
-      <div className="text-zinc-400">{label}</div>
-      <div className={`font-semibold ${classes}`}>{value}</div>
-    </div>
-  );
-}
-
-function StatusBadge({ status }: { status: JobStatus }) {
-  const classes =
-    status === "Completed"
-      ? "mt-3 inline-flex rounded-full border border-lime-400/20 bg-lime-400/10 px-3 py-1 text-xs font-medium text-lime-300"
-      : status === "In Progress"
-      ? "mt-3 inline-flex rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs font-medium text-cyan-300"
-      : status === "Quoted"
-      ? "mt-3 inline-flex rounded-full border border-yellow-400/20 bg-yellow-400/10 px-3 py-1 text-xs font-medium text-yellow-300"
-      : "mt-3 inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-zinc-200";
-
-  return <div className={classes}>{status}</div>;
 }
 
 function QuickLink({
@@ -436,10 +403,26 @@ function QuickLink({
   return (
     <Link
       href={href}
-      className="block rounded-2xl border border-white/10 bg-black/20 p-4 transition hover:border-cyan-400/30"
+      className="rounded-[22px] border border-white/10 bg-black/20 p-5 transition hover:border-cyan-400/20 hover:bg-white/[0.03]"
     >
-      <div className="font-semibold text-white">{title}</div>
-      <div className="mt-1 text-sm text-zinc-400">{text}</div>
+      <div className="text-lg font-bold text-white">{title}</div>
+      <div className="mt-2 text-sm leading-7 text-zinc-400">{text}</div>
     </Link>
   );
+}
+
+function EmptyState({ text }: { text: string }) {
+  return (
+    <div className="rounded-[20px] border border-white/10 bg-black/20 px-4 py-5 text-sm text-zinc-400">
+      {text}
+    </div>
+  );
+}
+
+function formatDate(value: string) {
+  try {
+    return new Date(value).toLocaleDateString();
+  } catch {
+    return value;
+  }
 }

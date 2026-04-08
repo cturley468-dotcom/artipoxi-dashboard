@@ -11,7 +11,7 @@ type Job = {
   name: string | null;
   customer: string | null;
   status: string | null;
-  quotedprice: number | null;
+  quoted_price: number | null;
   created_at: string | null;
   scheduled_start?: string | null;
 };
@@ -60,7 +60,7 @@ export default function DashboardOverviewPage() {
         const [jobsRes, leadsRes, workOrdersRes] = await Promise.all([
           supabase
             .from("jobs")
-            .select("id, name, customer, status, quotedprice, created_at, scheduled_start")
+            .select("id, name, customer, status, quoted_price, created_at, scheduled_start")
             .order("created_at", { ascending: false })
             .limit(6),
 
@@ -68,13 +68,13 @@ export default function DashboardOverviewPage() {
             .from("leads")
             .select("id, name, service, status, created_at")
             .order("created_at", { ascending: false })
-            .limit(5),
+            .limit(4),
 
           supabase
             .from("work_orders")
             .select("id, title, status, scheduled_date, assigned_installer_name, created_at")
             .order("created_at", { ascending: false })
-            .limit(5),
+            .limit(4),
         ]);
 
         if (jobsRes.error) throw jobsRes.error;
@@ -95,17 +95,17 @@ export default function DashboardOverviewPage() {
   }, [router]);
 
   const metrics = useMemo(() => {
-    const totalRevenue = jobs.reduce(
-      (sum, job) => sum + Number(job.quotedprice || 0),
+    const projectedRevenue = jobs.reduce(
+      (sum, job) => sum + Number(job.quoted_price || 0),
       0
     );
 
     const activeJobs = jobs.filter((job) =>
-      ["Scheduled", "In Progress", "Quoted"].includes(job.status || "")
+      ["Quoted", "Scheduled", "In Progress"].includes(job.status || "")
     ).length;
 
     const openLeads = leads.filter((lead) =>
-      !["Closed", "Won", "Lost"].includes(lead.status || "")
+      !["Won", "Lost", "Closed"].includes(lead.status || "")
     ).length;
 
     const openWorkOrders = workOrders.filter(
@@ -113,7 +113,7 @@ export default function DashboardOverviewPage() {
     ).length;
 
     return {
-      totalRevenue,
+      projectedRevenue,
       totalJobs: jobs.length,
       activeJobs,
       openLeads,
@@ -132,27 +132,54 @@ export default function DashboardOverviewPage() {
   return (
     <div className="text-white">
       <div className="flex flex-col gap-6">
-        <section className="glass-panel-soft rounded-[28px] p-5 md:p-6">
+        <section className="rounded-[30px] border border-cyan-400/10 bg-[radial-gradient(circle_at_top_left,rgba(73,230,255,0.10),transparent_22%),linear-gradient(135deg,#0d141d_0%,#090d14_50%,#06080d_100%)] p-5 md:p-7">
           <div className="section-kicker">Operations Dashboard</div>
 
-          <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="mt-4 grid gap-6 xl:grid-cols-[1.05fr_0.95fr] xl:items-end">
             <div>
-              <h1 className="text-3xl font-black tracking-tight md:text-4xl">
-                Run Your Projects
+              <h1 className="text-4xl font-black leading-[0.95] tracking-tight md:text-6xl">
+                Run Your
+                <br />
+                Projects.
               </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-7 text-zinc-400 md:text-base">
-                Track jobs, leads, work orders, and business activity from one
-                clean control center.
+
+              <p className="mt-5 max-w-2xl text-base leading-8 text-zinc-300">
+                Track jobs, scheduling, work orders, leads, and finances from one
+                clean control center built for fast daily use.
               </p>
+
+              <div className="mt-7 flex flex-wrap gap-3">
+                <Link href="/dashboard/jobs" className="ui-btn ui-btn-primary">
+                  Open Jobs
+                </Link>
+                <Link href="/dashboard/schedule" className="ui-btn">
+                  View Schedule
+                </Link>
+                <Link href="/dashboard/finance" className="ui-btn">
+                  Finance Hub
+                </Link>
+              </div>
             </div>
 
-            <div className="flex flex-wrap gap-3">
-              <Link href="/dashboard/jobs" className="ui-btn ui-btn-primary">
-                Open Jobs
-              </Link>
-              <Link href="/configurator" className="ui-btn">
-                Open Configurator
-              </Link>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <HeroStat
+                label="Projected Revenue"
+                value={`$${metrics.projectedRevenue.toLocaleString()}`}
+                tone="cyan"
+              />
+              <HeroStat
+                label="Active Jobs"
+                value={String(metrics.activeJobs)}
+              />
+              <HeroStat
+                label="Open Leads"
+                value={String(metrics.openLeads)}
+              />
+              <HeroStat
+                label="Open Work Orders"
+                value={String(metrics.openWorkOrders)}
+                tone="lime"
+              />
             </div>
           </div>
         </section>
@@ -163,38 +190,13 @@ export default function DashboardOverviewPage() {
           </div>
         )}
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          <MetricCard
-            label="Projected Revenue"
-            value={`$${metrics.totalRevenue.toLocaleString()}`}
-            tone="cyan"
-          />
-          <MetricCard
-            label="Total Jobs"
-            value={String(metrics.totalJobs)}
-          />
-          <MetricCard
-            label="Active Jobs"
-            value={String(metrics.activeJobs)}
-          />
-          <MetricCard
-            label="Open Leads"
-            value={String(metrics.openLeads)}
-          />
-          <MetricCard
-            label="Open Work Orders"
-            value={String(metrics.openWorkOrders)}
-            tone="lime"
-          />
-        </section>
-
-        <div className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
+        <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
           <section className="glass-panel-soft rounded-[28px] p-4 md:p-5">
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <div className="panel-title">Recent Jobs</div>
                 <div className="panel-subtitle mt-1 text-sm">
-                  Your latest project activity
+                  Latest project activity
                 </div>
               </div>
 
@@ -205,7 +207,7 @@ export default function DashboardOverviewPage() {
 
             <div className="space-y-3">
               {jobs.length === 0 ? (
-                <EmptyState text="No jobs yet. Add your first project from the Jobs page." />
+                <EmptyState text="No jobs yet." />
               ) : (
                 jobs.map((job) => (
                   <Link
@@ -218,7 +220,6 @@ export default function DashboardOverviewPage() {
                         <div className="truncate text-lg font-bold text-white">
                           {job.name || "Untitled Job"}
                         </div>
-
                         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm text-zinc-400">
                           <span>{job.customer || "No customer"}</span>
                           {job.scheduled_start && (
@@ -232,8 +233,8 @@ export default function DashboardOverviewPage() {
                           {job.status || "No status"}
                         </span>
                         <span className="ui-chip ui-chip-cyan">
-                          {job.quotedprice != null
-                            ? `$${Number(job.quotedprice).toLocaleString()}`
+                          {job.quoted_price != null
+                            ? `$${Number(job.quoted_price).toLocaleString()}`
                             : "No quote"}
                         </span>
                       </div>
@@ -250,7 +251,7 @@ export default function DashboardOverviewPage() {
                 <div>
                   <div className="panel-title">Lead Pipeline</div>
                   <div className="panel-subtitle mt-1 text-sm">
-                    Recent incoming opportunities
+                    New opportunities
                   </div>
                 </div>
 
@@ -293,9 +294,13 @@ export default function DashboardOverviewPage() {
                 <div>
                   <div className="panel-title">Work Orders</div>
                   <div className="panel-subtitle mt-1 text-sm">
-                    Installer-facing execution
+                    Installer-facing tasks
                   </div>
                 </div>
+
+                <Link href="/dashboard/jobs" className="ui-btn">
+                  Jobs
+                </Link>
               </div>
 
               <div className="space-y-3">
@@ -340,31 +345,29 @@ export default function DashboardOverviewPage() {
           </div>
         </div>
 
-        <section className="glass-panel-soft rounded-[28px] p-5 md:p-6">
-          <div className="grid gap-4 md:grid-cols-3">
-            <QuickLink
-              href="/dashboard/jobs"
-              title="Manage Jobs"
-              text="Create, quote, schedule, and update project status."
-            />
-            <QuickLink
-              href="/dashboard/schedule"
-              title="View Schedule"
-              text="See project timing and installation flow."
-            />
-            <QuickLink
-              href="/dashboard/inventory"
-              title="Track Inventory"
-              text="Monitor materials, supplies, and system usage."
-            />
-          </div>
+        <section className="grid gap-4 md:grid-cols-3">
+          <QuickAction
+            href="/dashboard/jobs"
+            title="Manage Jobs"
+            text="Create, quote, assign, and update project status."
+          />
+          <QuickAction
+            href="/dashboard/schedule"
+            title="Project Calendar"
+            text="Review scheduled jobs in calendar view."
+          />
+          <QuickAction
+            href="/dashboard/finance"
+            title="Owner Finance Hub"
+            text="Track receipts, payments, and profitability."
+          />
         </section>
       </div>
     </div>
   );
 }
 
-function MetricCard({
+function HeroStat({
   label,
   value,
   tone = "default",
@@ -374,10 +377,10 @@ function MetricCard({
   tone?: "default" | "cyan" | "lime";
 }) {
   return (
-    <div className="metric-card">
-      <div className="metric-label">{label}</div>
+    <div className="rounded-[24px] border border-white/10 bg-black/20 p-4 md:p-5">
+      <div className="text-sm text-zinc-400">{label}</div>
       <div
-        className={`metric-value ${
+        className={`mt-3 text-3xl font-black tracking-tight ${
           tone === "cyan"
             ? "text-cyan-300"
             : tone === "lime"
@@ -391,7 +394,7 @@ function MetricCard({
   );
 }
 
-function QuickLink({
+function QuickAction({
   href,
   title,
   text,
@@ -403,7 +406,7 @@ function QuickLink({
   return (
     <Link
       href={href}
-      className="rounded-[22px] border border-white/10 bg-black/20 p-5 transition hover:border-cyan-400/20 hover:bg-white/[0.03]"
+      className="rounded-[24px] border border-white/10 bg-black/20 p-5 transition hover:border-cyan-400/20 hover:bg-white/[0.03]"
     >
       <div className="text-lg font-bold text-white">{title}</div>
       <div className="mt-2 text-sm leading-7 text-zinc-400">{text}</div>

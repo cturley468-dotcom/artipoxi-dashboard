@@ -52,6 +52,7 @@ export default function FinancePage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const [entries, setEntries] = useState<FinancialEntry[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [message, setMessage] = useState("");
@@ -164,14 +165,14 @@ export default function FinancePage() {
       }
 
       const bucket = buckets.get(key)!;
-      const amount = Number(entry.amount || 0);
+      const amt = Number(entry.amount || 0);
 
-      if (entry.entry_type === "expense") bucket.expenses += amount;
-      if (entry.entry_type === "income") bucket.income += amount;
-      if (entry.entry_type === "invoice") bucket.invoices += amount;
+      if (entry.entry_type === "expense") bucket.expenses += amt;
+      if (entry.entry_type === "income") bucket.income += amt;
+      if (entry.entry_type === "invoice") bucket.invoices += amt;
       if (entry.entry_type === "payment") {
-        bucket.payments += amount;
-        bucket.income += amount;
+        bucket.payments += amt;
+        bucket.income += amt;
       }
     }
 
@@ -228,6 +229,44 @@ export default function FinancePage() {
       )
       .sort((a, b) => b.estimatedProfit - a.estimatedProfit);
   }, [entries, jobs]);
+
+  async function handleReceiptUpload(file: File) {
+    try {
+      setUploadingReceipt(true);
+      setMessage("");
+
+      const profile = await getCurrentProfile();
+      if (!profile || profile.role !== "admin") {
+        router.replace("/dashboard");
+        return;
+      }
+
+      const ext = file.name.split(".").pop() || "file";
+      const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+      const path = `${profile.id}/${Date.now()}_${safeName}.${ext}`.replace(/\.(\w+)\.(\w+)$/, ".$2");
+
+      const { error: uploadError } = await supabase.storage
+        .from("receipts")
+        .upload(path, file, {
+          upsert: false,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: signedData, error: signedError } = await supabase.storage
+        .from("receipts")
+        .createSignedUrl(path, 60 * 60 * 24 * 365);
+
+      if (signedError) throw signedError;
+
+      setReceiptUrl(signedData.signedUrl);
+      setMessage("Receipt uploaded.");
+    } catch (error: any) {
+      setMessage(error?.message || "Failed to upload receipt.");
+    } finally {
+      setUploadingReceipt(false);
+    }
+  }
 
   async function handleAddEntry(e: React.FormEvent) {
     e.preventDefault();
@@ -298,18 +337,16 @@ export default function FinancePage() {
       <div className="flex flex-col gap-6">
         <section className="glass-panel-soft rounded-[28px] p-5 md:p-6">
           <div className="section-kicker">Owner Finance Hub</div>
-
           <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="text-3xl font-black tracking-tight md:text-4xl">
                 Financial Control Center
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-7 text-zinc-400 md:text-base">
-                Track expenses, invoices, payments, monthly activity, and job-level
-                profitability in one private admin-only space.
+                Track expenses, invoices, payments, monthly activity, receipts,
+                and job-level profitability in one private admin-only space.
               </p>
             </div>
-
             <div className="ui-chip ui-chip-lime">Admin Only</div>
           </div>
         </section>
@@ -321,28 +358,11 @@ export default function FinancePage() {
         )}
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          <MetricCard
-            label="Income / Payments"
-            value={`$${metrics.income.toLocaleString()}`}
-            tone="cyan"
-          />
-          <MetricCard
-            label="Expenses"
-            value={`$${metrics.expenses.toLocaleString()}`}
-          />
-          <MetricCard
-            label="Invoices"
-            value={`$${metrics.invoices.toLocaleString()}`}
-          />
-          <MetricCard
-            label="Payments"
-            value={`$${metrics.payments.toLocaleString()}`}
-          />
-          <MetricCard
-            label="Profit Snapshot"
-            value={`$${metrics.profit.toLocaleString()}`}
-            tone="lime"
-          />
+          <MetricCard label="Income / Payments" value={`$${metrics.income.toLocaleString()}`} tone="cyan" />
+          <MetricCard label="Expenses" value={`$${metrics.expenses.toLocaleString()}`} />
+          <MetricCard label="Invoices" value={`$${metrics.invoices.toLocaleString()}`} />
+          <MetricCard label="Payments" value={`$${metrics.payments.toLocaleString()}`} />
+          <MetricCard label="Profit Snapshot" value={`$${metrics.profit.toLocaleString()}`} tone="lime" />
         </section>
 
         <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
@@ -422,14 +442,30 @@ export default function FinancePage() {
                 />
               </Field>
 
-              <Field label="Receipt URL (optional)">
+              <Field label="Receipt Upload">
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  className="ui-input"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) void handleReceiptUpload(file);
+                  }}
+                />
+              </Field>
+
+              <Field label="Receipt URL">
                 <input
                   value={receiptUrl}
                   onChange={(e) => setReceiptUrl(e.target.value)}
                   className="ui-input"
-                  placeholder="Paste uploaded receipt link"
+                  placeholder="Uploaded receipt link will appear here"
                 />
               </Field>
+
+              <div className="text-xs text-zinc-500">
+                {uploadingReceipt ? "Uploading receipt..." : "Upload a receipt or paste a receipt link."}
+              </div>
 
               <Field label="Date">
                 <input
@@ -451,7 +487,7 @@ export default function FinancePage() {
 
               <button
                 type="submit"
-                disabled={saving}
+                disabled={saving || uploadingReceipt}
                 className="ui-btn ui-btn-primary w-full disabled:opacity-50"
               >
                 {saving ? "Saving..." : "Add Entry"}

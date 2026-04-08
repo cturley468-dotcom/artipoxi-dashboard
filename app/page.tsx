@@ -24,40 +24,56 @@ const highlights = [
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen text-white">
+    <main className="min-h-screen overflow-x-hidden text-white">
       <section className="border-b border-white/10">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-6 md:py-5">
-          <BrandMark href="/" subtitle="Premium Epoxy Systems" size="md" />
+        <div className="mx-auto max-w-7xl px-4 py-4 md:px-6 md:py-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <BrandMark href="/" subtitle="Premium Epoxy Systems" size="md" />
+            </div>
 
-          <div className="hidden items-center gap-3 md:flex">
-            <a href="#projects" className="ui-btn">
-              Projects
-            </a>
-            <a href="#systems" className="ui-btn">
-              Systems
-            </a>
-            <a href="#configurator" className="ui-btn">
-              Configurator
-            </a>
-            <Link href="/login" className="ui-btn ui-btn-primary">
-              Secure Login
-            </Link>
+            <div className="hidden items-center gap-3 md:flex">
+              <a href="#projects" className="ui-btn">
+                Projects
+              </a>
+              <a href="#systems" className="ui-btn">
+                Systems
+              </a>
+              <a href="#configurator" className="ui-btn">
+                Configurator
+              </a>
+              <Link href="/login" className="ui-btn ui-btn-primary">
+                Login
+              </Link>
+            </div>
+
+            <div className="shrink-0 md:hidden">
+              <Link href="/login" className="ui-btn ui-btn-primary">
+                Login
+              </Link>
+            </div>
           </div>
 
-          <div className="md:hidden">
-            <Link href="/login" className="ui-btn ui-btn-primary">
-              Login
-            </Link>
+          <div className="mt-4 flex gap-2 overflow-x-auto pb-1 md:hidden">
+            <a href="#projects" className="ui-btn whitespace-nowrap">
+              Projects
+            </a>
+            <a href="#systems" className="ui-btn whitespace-nowrap">
+              Systems
+            </a>
+            <a href="#configurator" className="ui-btn whitespace-nowrap">
+              Configurator
+            </a>
           </div>
         </div>
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-10 md:px-6 md:py-14">
         <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
-          <div>
+          <div className="min-w-0">
             <div className="section-kicker">ArtiPoxi Surfaces</div>
 
-            <h1 className="mt-4 text-4xl font-black leading-[0.95] tracking-[-0.04em] md:text-6xl xl:text-7xl">
+            <h1 className="mt-4 max-w-[10ch] text-4xl font-black leading-[0.95] tracking-[-0.04em] md:max-w-none md:text-6xl xl:text-7xl">
               Premium floors
               <br />
               built to
@@ -65,28 +81,28 @@ export default function HomePage() {
               stand out.
             </h1>
 
-            <p className="mt-5 max-w-2xl text-base leading-7 text-zinc-300 md:text-lg md:leading-8">
+            <p className="mt-5 max-w-2xl text-base leading-8 text-zinc-300 md:text-lg">
               ArtiPoxi designs and installs premium epoxy systems for garages,
               patios, shops, and commercial spaces with a focus on clean design,
               durability, and finish quality.
             </p>
 
-            <div className="mt-7 flex flex-wrap gap-3">
-              <a href="#projects" className="ui-btn ui-btn-primary">
+            <div className="mt-7 grid gap-3 sm:flex sm:flex-wrap">
+              <a href="#projects" className="ui-btn ui-btn-primary justify-center">
                 View Projects
               </a>
-              <a href="#contact" className="ui-btn">
+              <a href="#contact" className="ui-btn justify-center">
                 Start Your Quote
               </a>
             </div>
 
-            <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            <div className="mt-8 grid gap-3">
               {highlights.map((item) => (
                 <div
                   key={item.label}
                   className="glass-panel-soft rounded-[22px] p-4"
                 >
-                  <div className="text-2xl font-black text-cyan-300">
+                  <div className="text-2xl font-black text-cyan-300 md:text-3xl">
                     {item.value}
                   </div>
                   <div className="mt-1 text-xs uppercase tracking-[0.22em] text-zinc-500">
@@ -98,21 +114,19 @@ export default function HomePage() {
           </div>
 
           <div className="preview-frame overflow-hidden">
-            <div className="relative min-h-[340px] bg-[radial-gradient(circle_at_18%_20%,rgba(73,230,255,0.14),transparent_18%),radial-gradient(circle_at_82%_78%,rgba(73,230,255,0.08),transparent_16%),linear-gradient(135deg,#070b12_0%,#0a1119_45%,#05070b_100%)] md:min-h-[580px]">
+            <div className="relative min-h-[320px] bg-[radial-gradient(circle_at_18%_20%,rgba(73,230,255,0.14),transparent_18%),radial-gradient(circle_at_82%_78%,rgba(73,230,255,0.08),transparent_16%),linear-gradient(135deg,#070b12_0%,#0a1119_45%,#05070b_100%)] md:min-h-[580px]">
               <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))]" />
 
-              <div className="absolute inset-0 p-5 md:p-8">
+              <div className="absolute inset-0 p-4 md:p-8">
                 <div className="flex h-full flex-col justify-between">
                   <div className="flex items-start justify-between gap-4">
-                    <div className="glass-panel-soft rounded-[22px] px-4 py-3">
-                      <BrandMark
-                        href="/"
-                        subtitle="Featured Project"
-                        size="sm"
-                      />
+                    <div className="glass-panel-soft rounded-[20px] px-3 py-3">
+                      <BrandMark href="/" subtitle="Featured Project" size="sm" />
                     </div>
 
-                    <div className="ui-chip ui-chip-cyan">Premium showroom look</div>
+                    <div className="ui-chip ui-chip-cyan hidden sm:inline-flex">
+                      Premium showroom look
+                    </div>
                   </div>
 
                   <div className="self-start rounded-[24px] border border-white/10 bg-black/30 p-4 backdrop-blur md:max-w-[360px] md:p-5">

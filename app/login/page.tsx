@@ -17,10 +17,7 @@ export default function LoginPage() {
     setLoading(true);
     setMessage("");
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     setLoading(false);
 
@@ -81,30 +78,11 @@ export default function LoginPage() {
                 </Link>
               </div>
             </div>
-
-            <div className="grid gap-3 sm:grid-cols-3">
-              <MiniCard title="Access" value="Secure Login" />
-              <MiniCard title="Workflow" value="Jobs & Schedule" />
-              <MiniCard title="Portal" value="Installer Ready" />
-            </div>
           </div>
         </section>
 
         <section className="glass-panel-strong rounded-[30px] p-5 md:p-7">
-          <div className="mb-6 flex items-center justify-between gap-3">
-            <div>
-              <div className="panel-title">
-                {mode === "login" ? "Sign in" : "Reset password"}
-              </div>
-              <div className="panel-subtitle mt-2 text-sm">
-                {mode === "login"
-                  ? "Use your company login to access the system."
-                  : "Enter your email to receive a reset link."}
-              </div>
-            </div>
-          </div>
-
-          <div className="mb-5 flex gap-2">
+          <div className="mb-6 flex gap-2">
             <button
               type="button"
               onClick={() => {
@@ -128,65 +106,58 @@ export default function LoginPage() {
             </button>
           </div>
 
+          <div className="panel-title">
+            {mode === "login" ? "Sign in" : "Reset password"}
+          </div>
+
+          <div className="panel-subtitle mt-2 text-sm">
+            {mode === "login"
+              ? "Use your company login to access the system."
+              : "Enter your email to receive a reset link."}
+          </div>
+
           {mode === "login" ? (
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleLogin} className="mt-6 space-y-4">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-zinc-300">
-                  Email
-                </label>
+                <label className="mb-2 block text-sm font-semibold text-zinc-300">Email</label>
                 <input
                   type="email"
+                  className="field"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="field"
-                  placeholder="you@company.com"
                   required
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-zinc-300">
-                  Password
-                </label>
+                <label className="mb-2 block text-sm font-semibold text-zinc-300">Password</label>
                 <input
                   type="password"
+                  className="field"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="field"
-                  placeholder="Enter password"
                   required
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="ui-btn ui-btn-primary w-full"
-              >
+              <button type="submit" disabled={loading} className="ui-btn ui-btn-primary w-full">
                 {loading ? "Signing in..." : "Sign In"}
               </button>
             </form>
           ) : (
-            <form onSubmit={handleReset} className="space-y-4">
+            <form onSubmit={handleReset} className="mt-6 space-y-4">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-zinc-300">
-                  Email
-                </label>
+                <label className="mb-2 block text-sm font-semibold text-zinc-300">Email</label>
                 <input
                   type="email"
+                  className="field"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="field"
-                  placeholder="you@company.com"
                   required
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="ui-btn ui-btn-primary w-full"
-              >
+              <button type="submit" disabled={loading} className="ui-btn ui-btn-primary w-full">
                 {loading ? "Sending..." : "Send Reset Link"}
               </button>
             </form>
@@ -197,30 +168,8 @@ export default function LoginPage() {
               {message}
             </div>
           ) : null}
-
-          <div className="mt-6 rounded-[22px] border border-white/10 bg-black/25 p-4 text-sm leading-7 text-zinc-400">
-            Authorized access only. Contact admin if you need help with login,
-            installer access, or password recovery.
-          </div>
         </section>
       </div>
     </main>
-  );
-}
-
-function MiniCard({
-  title,
-  value,
-}: {
-  title: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-[16px] border border-white/10 bg-black/35 p-3 backdrop-blur">
-      <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">
-        {title}
-      </div>
-      <div className="mt-2 text-sm font-semibold text-white">{value}</div>
-    </div>
   );
 }

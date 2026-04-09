@@ -51,15 +51,9 @@ export default function DashboardOverviewPage() {
                 <div className="panel-title">Recent Jobs</div>
                 <div className="panel-subtitle mt-1 text-sm">Latest project activity</div>
               </div>
-
-              <Link href="/dashboard/jobs" className="ui-btn">
-                View All
-              </Link>
+              <Link href="/dashboard/jobs" className="ui-btn">View All</Link>
             </div>
-
-            <div className="space-y-3">
-              <EmptyState text="No jobs yet." />
-            </div>
+            <EmptyState text="No jobs yet." />
           </section>
 
           <div className="flex flex-col gap-6">
@@ -69,11 +63,8 @@ export default function DashboardOverviewPage() {
                   <div className="panel-title">Lead Pipeline</div>
                   <div className="panel-subtitle mt-1 text-sm">New opportunities</div>
                 </div>
-                <Link href="/dashboard/leads" className="ui-btn">
-                  Leads
-                </Link>
+                <Link href="/dashboard/leads" className="ui-btn">Leads</Link>
               </div>
-
               <EmptyState text="No leads yet." />
             </section>
 
@@ -83,11 +74,8 @@ export default function DashboardOverviewPage() {
                   <div className="panel-title">Work Orders</div>
                   <div className="panel-subtitle mt-1 text-sm">Installer-facing tasks</div>
                 </div>
-                <Link href="/dashboard/jobs" className="ui-btn">
-                  Jobs
-                </Link>
+                <Link href="/dashboard/jobs" className="ui-btn">Jobs</Link>
               </div>
-
               <EmptyState text="No work orders yet." />
             </section>
           </div>
@@ -97,13 +85,7 @@ export default function DashboardOverviewPage() {
   );
 }
 
-function StatCard({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
+function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[24px] border border-white/10 bg-black/35 p-4 backdrop-blur md:p-5">
       <div className="text-sm text-zinc-400">{label}</div>

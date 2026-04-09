@@ -92,7 +92,6 @@ const topcoatOptions = [
 
 export default function ConfiguratorPage() {
   const [step, setStep] = useState(0);
-
   const [space, setSpace] = useState(spaceOptions[0]);
   const [system, setSystem] = useState(systemOptions[0]);
   const [color, setColor] = useState(colorOptions[0]);
@@ -107,14 +106,6 @@ export default function ConfiguratorPage() {
     ],
     [space, system, color, topcoat]
   );
-
-  function nextStep() {
-    setStep((prev) => Math.min(prev + 1, steps.length - 1));
-  }
-
-  function prevStep() {
-    setStep((prev) => Math.max(prev - 1, 0));
-  }
 
   return (
     <main className="page-shell min-h-screen text-white">
@@ -145,19 +136,6 @@ export default function ConfiguratorPage() {
                     Choose your space, system style, color direction, and finish.
                     Preview a premium garage-style direction as you build.
                   </p>
-
-                  <div className="mt-7 flex flex-wrap gap-3">
-                    <button onClick={prevStep} className="ui-btn" disabled={step === 0}>
-                      Back
-                    </button>
-                    <button
-                      onClick={nextStep}
-                      className="ui-btn ui-btn-primary"
-                      disabled={step === steps.length - 1}
-                    >
-                      {step === steps.length - 1 ? "Complete" : "Next Step"}
-                    </button>
-                  </div>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -175,8 +153,6 @@ export default function ConfiguratorPage() {
               <div className="mt-4 space-y-3">
                 {steps.map((item, index) => {
                   const active = index === step;
-                  const complete = index < step;
-
                   return (
                     <button
                       key={item}
@@ -184,13 +160,10 @@ export default function ConfiguratorPage() {
                       className={`step-rail-item ${active ? "step-rail-item-active" : ""}`}
                     >
                       <div className={`step-badge ${active ? "step-badge-active" : ""}`}>
-                        {complete ? "✓" : index + 1}
+                        {index + 1}
                       </div>
-
                       <div className="min-w-0 text-left">
-                        <div className="truncate text-base font-bold text-white">
-                          {item}
-                        </div>
+                        <div className="truncate text-base font-bold text-white">{item}</div>
                         <div className="mt-1 text-sm text-zinc-500">Step {index + 1}</div>
                       </div>
                     </button>
@@ -256,112 +229,63 @@ export default function ConfiguratorPage() {
                   </div>
                 </section>
 
-                {step === 0 && (
-                  <OptionSection
-                    title="Choose your space"
-                    subtitle="Start with the environment you want to transform."
-                    options={spaceOptions}
-                    activeId={space.id}
-                    onSelect={(id) =>
-                      setSpace(spaceOptions.find((option) => option.id === id) || spaceOptions[0])
-                    }
-                  />
-                )}
+                <OptionSection
+                  title={`Choose your ${steps[step].toLowerCase()}`}
+                  subtitle="Select the option that best matches your intended floor direction."
+                  options={
+                    step === 0
+                      ? spaceOptions
+                      : step === 1
+                      ? systemOptions
+                      : step === 2
+                      ? colorOptions
+                      : topcoatOptions
+                  }
+                  activeId={
+                    step === 0
+                      ? space.id
+                      : step === 1
+                      ? system.id
+                      : step === 2
+                      ? color.id
+                      : topcoat.id
+                  }
+                  onSelect={(id) => {
+                    if (step === 0) setSpace(spaceOptions.find((o) => o.id === id) || spaceOptions[0]);
+                    if (step === 1) setSystem(systemOptions.find((o) => o.id === id) || systemOptions[0]);
+                    if (step === 2) setColor(colorOptions.find((o) => o.id === id) || colorOptions[0]);
+                    if (step === 3) setTopcoat(topcoatOptions.find((o) => o.id === id) || topcoatOptions[0]);
+                  }}
+                />
 
-                {step === 1 && (
-                  <OptionSection
-                    title="Choose your system"
-                    subtitle="Select the overall finish style and surface character."
-                    options={systemOptions}
-                    activeId={system.id}
-                    onSelect={(id) =>
-                      setSystem(systemOptions.find((option) => option.id === id) || systemOptions[0])
-                    }
-                  />
-                )}
-
-                {step === 2 && (
-                  <OptionSection
-                    title="Choose your color direction"
-                    subtitle="Set the tone and movement of the finished floor."
-                    options={colorOptions}
-                    activeId={color.id}
-                    onSelect={(id) =>
-                      setColor(colorOptions.find((option) => option.id === id) || colorOptions[0])
-                    }
-                  />
-                )}
-
-                {step === 3 && (
-                  <OptionSection
-                    title="Choose your topcoat"
-                    subtitle="Control the final surface feel and protection level."
-                    options={topcoatOptions}
-                    activeId={topcoat.id}
-                    onSelect={(id) =>
-                      setTopcoat(topcoatOptions.find((option) => option.id === id) || topcoatOptions[0])
-                    }
-                  />
-                )}
-
-                {step === 4 && (
+                {step === 4 ? (
                   <section className="glass-panel-strong rounded-[28px] p-5 md:p-6">
                     <div className="section-kicker">Summary</div>
                     <h2 className="mt-4 text-3xl font-black tracking-tight md:text-4xl">
                       Your configured floor
                     </h2>
-                    <p className="mt-3 max-w-2xl text-base leading-8 text-zinc-400">
-                      Review your selections, then move into quote request when ready.
-                    </p>
-
                     <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                       {summary.map((item) => (
-                        <div
-                          key={item.label}
-                          className="rounded-[20px] border border-white/10 bg-black/30 p-4"
-                        >
+                        <div key={item.label} className="rounded-[20px] border border-white/10 bg-black/30 p-4">
                           <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">
                             {item.label}
                           </div>
-                          <div className="mt-3 text-lg font-bold text-white">
-                            {item.value}
-                          </div>
+                          <div className="mt-3 text-lg font-bold text-white">{item.value}</div>
                         </div>
                       ))}
                     </div>
 
                     <div className="mt-6 flex flex-wrap gap-3">
-                      <Link href="/login" className="ui-btn">
-                        Save For Later
-                      </Link>
+                      <Link href="/login" className="ui-btn">Save For Later</Link>
                       <a href="mailto:cameron@camspainting.co" className="ui-btn ui-btn-primary">
                         Request Quote
                       </a>
                     </div>
                   </section>
-                )}
+                ) : null}
               </div>
             </section>
           </div>
-
-          <div className="glass-panel-strong fixed bottom-3 left-3 right-3 z-40 rounded-[20px] p-3 xl:hidden">
-            <div className="flex gap-3">
-              <button onClick={prevStep} className="ui-btn flex-1" disabled={step === 0}>
-                Back
-              </button>
-              {step < steps.length - 1 ? (
-                <button onClick={nextStep} className="ui-btn ui-btn-primary flex-1">
-                  Next
-                </button>
-              ) : (
-                <a href="mailto:cameron@camspainting.co" className="ui-btn ui-btn-primary flex-1">
-                  Quote
-                </a>
-              )}
-            </div>
-          </div>
-
-          <div className="h-24 xl:hidden" />
         </div>
       </div>
     </main>
@@ -377,29 +301,19 @@ function OptionSection({
 }: {
   title: string;
   subtitle: string;
-  options: {
-    id: string;
-    title: string;
-    subtitle: string;
-    description: string;
-  }[];
+  options: { id: string; title: string; subtitle: string; description: string }[];
   activeId: string;
   onSelect: (id: string) => void;
 }) {
   return (
     <section className="glass-panel-strong rounded-[28px] p-5 md:p-6">
       <div className="section-kicker">Configurator Step</div>
-      <h2 className="mt-4 text-3xl font-black tracking-tight md:text-4xl">
-        {title}
-      </h2>
-      <p className="mt-3 max-w-2xl text-base leading-8 text-zinc-400">
-        {subtitle}
-      </p>
+      <h2 className="mt-4 text-3xl font-black tracking-tight md:text-4xl">{title}</h2>
+      <p className="mt-3 max-w-2xl text-base leading-8 text-zinc-400">{subtitle}</p>
 
       <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {options.map((option) => {
           const active = option.id === activeId;
-
           return (
             <button
               key={option.id}
@@ -414,14 +328,8 @@ function OptionSection({
                 <div className="text-lg font-bold text-white">{option.title}</div>
                 {active ? <span className="ui-chip ui-chip-silver">Selected</span> : null}
               </div>
-
-              <div className="mt-2 text-sm font-semibold text-zinc-300">
-                {option.subtitle}
-              </div>
-
-              <div className="mt-3 text-sm leading-7 text-zinc-400">
-                {option.description}
-              </div>
+              <div className="mt-2 text-sm font-semibold text-zinc-300">{option.subtitle}</div>
+              <div className="mt-3 text-sm leading-7 text-zinc-400">{option.description}</div>
             </button>
           );
         })}
@@ -430,18 +338,10 @@ function OptionSection({
   );
 }
 
-function MiniCard({
-  title,
-  value,
-}: {
-  title: string;
-  value: string;
-}) {
+function MiniCard({ title, value }: { title: string; value: string }) {
   return (
     <div className="rounded-[16px] border border-white/10 bg-black/30 p-3">
-      <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">
-        {title}
-      </div>
+      <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">{title}</div>
       <div className="mt-2 text-sm font-semibold text-white">{value}</div>
     </div>
   );

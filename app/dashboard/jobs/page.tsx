@@ -18,28 +18,43 @@ type Job = {
   id: string;
   name: string | null;
   customer: string | null;
+  customer_address: string | null;
   status: JobStatus | null;
-  quotedprice: number | null;
+  quoted_price: number | null;
   notes?: string | null;
   assigned_installer_name?: string | null;
   scheduled_start?: string | null;
-  scheduled_end?: string | null;
-  created_at?: string | null;
+};
+
+type EditingState = {
+  id: string;
+  name: string;
+  customer: string;
+  customer_address: string;
+  status: JobStatus;
+  quoted_price: string;
+  notes: string;
 };
 
 export default function JobsPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [savingNew, setSavingNew] = useState(false);
+  const [savingEditId, setSavingEditId] = useState<string | null>(null);
+
   const [jobs, setJobs] = useState<Job[]>([]);
   const [search, setSearch] = useState("");
   const [message, setMessage] = useState("");
 
+  const [editing, setEditing] = useState<EditingState | null>(null);
+
   const [jobName, setJobName] = useState("");
   const [customer, setCustomer] = useState("");
+  const [customerAddress, setCustomerAddress] = useState("");
   const [quotedPrice, setQuotedPrice] = useState("");
   const [status, setStatus] = useState<JobStatus>("New");
+  const [notes, setNotes] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -48,11 +63,6 @@ export default function JobsPage() {
 
         if (!profile) {
           router.replace("/login");
-          return;
-        }
-
-        if (profile.role !== "admin" && profile.role !== "staff") {
-          router.replace("/auth/callback");
           return;
         }
 
@@ -76,34 +86,69 @@ export default function JobsPage() {
 
   const filteredJobs = useMemo(() => {
     const term = search.trim().toLowerCase();
-
     if (!term) return jobs;
 
-    return jobs.filter((job) => {
-      const name = job.name?.toLowerCase() || "";
-      const cust = job.customer?.toLowerCase() || "";
-      const installer = job.assigned_installer_name?.toLowerCase() || "";
-      const stat = job.status?.toLowerCase() || "";
-
-      return (
-        name.includes(term) ||
-        cust.includes(term) ||
-        installer.includes(term) ||
-        stat.includes(term)
-      );
-    });
+    return jobs.filter((job) =>
+      [job.name, job.customer, job.customer_address, job.status, job.notes]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(term)
+    );
   }, [jobs, search]);
+
+  function startEdit(job: Job) {
+    setEditing({
+      id: job.id,
+      name: job.name || "",
+      customer: job.customer || "",
+      customer_address: job.customer_address || "",
+      status: (job.status || "New") as JobStatus,
+      quoted_price: job.quoted_price != null ? String(job.quoted_price) : "",
+      notes: job.notes || "",
+    });
+  }
+
+  async function saveEdit() {
+    if (!editing) return;
+
+    try {
+      setSavingEditId(editing.id);
+      setMessage("");
+
+      const { data, error } = await supabase
+        .from("jobs")
+        .update({
+          name: editing.name.trim(),
+          customer: editing.customer.trim() || null,
+          customer_address: editing.customer_address.trim() || null,
+          status: editing.status,
+          quoted_price: editing.quoted_price ? Number(editing.quoted_price) : null,
+          notes: editing.notes.trim() || null,
+        })
+        .eq("id", editing.id)
+        .select("*")
+        .single();
+
+      if (error) throw error;
+
+      setJobs((prev) =>
+        prev.map((job) => (job.id === editing.id ? (data as Job) : job))
+      );
+      setEditing(null);
+      setMessage("Job updated.");
+    } catch (error: any) {
+      setMessage(error?.message || "Failed to update job.");
+    } finally {
+      setSavingEditId(null);
+    }
+  }
 
   async function handleAddJob(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!jobName.trim()) {
-      setMessage("Please enter a job name.");
-      return;
-    }
-
     try {
-      setSaving(true);
+      setSavingNew(true);
       setMessage("");
 
       const { data, error } = await supabase
@@ -111,8 +156,10 @@ export default function JobsPage() {
         .insert({
           name: jobName.trim(),
           customer: customer.trim() || null,
-          quotedprice: quotedPrice ? Number(quotedPrice) : null,
+          customer_address: customerAddress.trim() || null,
           status,
+          quoted_price: quotedPrice ? Number(quotedPrice) : null,
+          notes: notes.trim() || null,
         })
         .select("*")
         .single();
@@ -122,192 +169,271 @@ export default function JobsPage() {
       setJobs((prev) => [data as Job, ...prev]);
       setJobName("");
       setCustomer("");
+      setCustomerAddress("");
       setQuotedPrice("");
       setStatus("New");
+      setNotes("");
       setMessage("Job added.");
     } catch (error: any) {
       setMessage(error?.message || "Failed to add job.");
     } finally {
-      setSaving(false);
+      setSavingNew(false);
     }
   }
 
   if (loading) {
-    return (
-      <div className="rounded-[28px] border border-white/10 bg-black/20 p-6 text-white">
-        Loading jobs...
-      </div>
-    );
+    return <div className="text-white">Loading jobs...</div>;
   }
 
   return (
     <div className="text-white">
       <div className="flex flex-col gap-6">
-        <section className="glass-panel-soft rounded-[28px] p-5 md:p-6">
+        <section className="hero-garage p-5 md:p-7">
           <div className="section-kicker">Jobs</div>
-          <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="mt-4 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
             <div>
-              <h1 className="text-3xl font-black tracking-tight md:text-4xl">
-                Job Management
+              <h1 className="text-4xl font-black leading-[0.95] tracking-tight md:text-6xl">
+                Job
+                <br />
+                Management.
               </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-7 text-zinc-400 md:text-base">
-                Search projects, manage active work, and create new jobs without
-                leaving the dashboard.
+              <p className="mt-5 max-w-2xl text-base leading-8 text-zinc-300">
+                Search projects, edit cards, and create new jobs without leaving the dashboard.
               </p>
             </div>
 
-            <div className="w-full lg:max-w-md">
-              <label className="mb-2 block text-xs uppercase tracking-[0.22em] text-zinc-500">
+            <div className="w-full xl:max-w-md">
+              <label className="mb-2 block text-sm font-semibold text-zinc-300">
                 Quick Search
               </label>
               <input
                 type="text"
-                placeholder="Search jobs, customers, installer, status..."
+                className="field"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="ui-input"
+                placeholder="Search jobs, customers, address..."
               />
             </div>
           </div>
         </section>
 
-        {message && (
-          <div className="rounded-[20px] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-zinc-300">
+        {message ? (
+          <div className="rounded-[18px] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-zinc-300">
             {message}
           </div>
-        )}
+        ) : null}
 
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-          <section className="glass-panel-soft rounded-[28px] p-4 md:p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <div className="panel-title">Jobs</div>
-                <div className="panel-subtitle mt-1 text-sm">
-                  {filteredJobs.length} result{filteredJobs.length === 1 ? "" : "s"}
-                </div>
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <section className="space-y-4">
+            {filteredJobs.length === 0 ? (
+              <div className="glass-panel-strong rounded-[28px] p-6 text-zinc-400">
+                No jobs found.
               </div>
-            </div>
+            ) : (
+              filteredJobs.map((job) => {
+                const isEditing = editing?.id === job.id;
 
-            <div className="space-y-3">
-              {filteredJobs.length === 0 ? (
-                <div className="rounded-[22px] border border-white/10 bg-black/20 px-4 py-5 text-sm text-zinc-400">
-                  No jobs found.
-                </div>
-              ) : (
-                filteredJobs.map((job) => (
-                  <Link
-                    key={job.id}
-                    href={`/dashboard/jobs/${job.id}`}
-                    className="block rounded-[22px] border border-white/10 bg-black/20 px-4 py-4 transition hover:border-cyan-400/20 hover:bg-white/[0.03]"
-                  >
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                      <div className="min-w-0">
-                        <div className="truncate text-lg font-bold text-white">
-                          {job.name || "Untitled Job"}
+                return (
+                  <div key={job.id} className="glass-panel-strong rounded-[28px] p-5 md:p-6">
+                    {isEditing ? (
+                      <div className="space-y-4">
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <Field label="Job Name">
+                            <input
+                              className="field"
+                              value={editing.name}
+                              onChange={(e) =>
+                                setEditing((prev) => (prev ? { ...prev, name: e.target.value } : prev))
+                              }
+                            />
+                          </Field>
+
+                          <Field label="Customer">
+                            <input
+                              className="field"
+                              value={editing.customer}
+                              onChange={(e) =>
+                                setEditing((prev) => (prev ? { ...prev, customer: e.target.value } : prev))
+                              }
+                            />
+                          </Field>
                         </div>
 
-                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-zinc-400">
-                          <span>{job.customer || "No customer"}</span>
-                          {job.assigned_installer_name && (
-                            <span>• Installer: {job.assigned_installer_name}</span>
-                          )}
-                          {job.scheduled_start && (
-                            <span>• {formatDate(job.scheduled_start)}</span>
-                          )}
+                        <Field label="Customer Address">
+                          <input
+                            className="field"
+                            value={editing.customer_address}
+                            onChange={(e) =>
+                              setEditing((prev) =>
+                                prev ? { ...prev, customer_address: e.target.value } : prev
+                              )
+                            }
+                          />
+                        </Field>
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <Field label="Status">
+                            <select
+                              className="field"
+                              value={editing.status}
+                              onChange={(e) =>
+                                setEditing((prev) =>
+                                  prev ? { ...prev, status: e.target.value as JobStatus } : prev
+                                )
+                              }
+                            >
+                              <option value="New">New</option>
+                              <option value="Quoted">Quoted</option>
+                              <option value="Follow Up">Follow Up</option>
+                              <option value="Scheduled">Scheduled</option>
+                              <option value="In Progress">In Progress</option>
+                              <option value="Completed">Completed</option>
+                            </select>
+                          </Field>
+
+                          <Field label="Quoted Price">
+                            <input
+                              type="number"
+                              className="field"
+                              value={editing.quoted_price}
+                              onChange={(e) =>
+                                setEditing((prev) =>
+                                  prev ? { ...prev, quoted_price: e.target.value } : prev
+                                )
+                              }
+                            />
+                          </Field>
+                        </div>
+
+                        <Field label="Notes">
+                          <textarea
+                            className="field-area"
+                            value={editing.notes}
+                            onChange={(e) =>
+                              setEditing((prev) => (prev ? { ...prev, notes: e.target.value } : prev))
+                            }
+                          />
+                        </Field>
+
+                        <div className="flex flex-wrap gap-3">
+                          <button
+                            onClick={saveEdit}
+                            disabled={savingEditId === job.id}
+                            className="ui-btn ui-btn-primary"
+                          >
+                            {savingEditId === job.id ? "Saving..." : "Save Changes"}
+                          </button>
+
+                          <button onClick={() => setEditing(null)} className="ui-btn">
+                            Cancel
+                          </button>
+
+                          <Link href={`/dashboard/jobs/${job.id}`} className="ui-btn">
+                            Open Full Job
+                          </Link>
                         </div>
                       </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="min-w-0">
+                            <div className="text-2xl font-black tracking-tight text-white md:text-3xl">
+                              {job.name || "Untitled Job"}
+                            </div>
 
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="ui-chip">
-                          {job.status || "No status"}
-                        </span>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              <span className="ui-chip">{job.status || "No status"}</span>
+                              <span className="ui-chip ui-chip-silver">
+                                {job.quoted_price != null
+                                  ? `$${Number(job.quoted_price).toLocaleString()}`
+                                  : "No quote"}
+                              </span>
+                            </div>
+                          </div>
 
-                        <span className="ui-chip ui-chip-cyan">
-                          {job.quotedprice != null
-                            ? `$${Number(job.quotedprice).toLocaleString()}`
-                            : "No quote"}
-                        </span>
+                          <div className="flex flex-wrap gap-3">
+                            <button onClick={() => startEdit(job)} className="ui-btn">
+                              Edit Card
+                            </button>
+
+                            <Link href={`/dashboard/jobs/${job.id}`} className="ui-btn ui-btn-primary">
+                              Open Full Job
+                            </Link>
+                          </div>
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                          <InfoCard title="Customer" value={job.customer || "Not set"} />
+                          <InfoCard title="Address" value={job.customer_address || "Not set"} />
+                          <InfoCard
+                            title="Installer"
+                            value={job.assigned_installer_name || "Unassigned"}
+                          />
+                          <InfoCard
+                            title="Schedule"
+                            value={job.scheduled_start ? new Date(job.scheduled_start).toLocaleDateString() : "Not scheduled"}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  </Link>
-                ))
-              )}
-            </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
           </section>
 
-          <aside className="glass-panel-soft rounded-[28px] p-4 md:p-5 xl:sticky xl:top-6 xl:self-start">
-            <div className="section-kicker">Create</div>
-            <div className="mt-3 panel-title">Add New Job</div>
-            <div className="panel-subtitle mt-2 text-sm">
-              Start a new project entry for estimating, scheduling, and work
-              order flow.
-            </div>
+          <aside className="glass-panel-strong rounded-[28px] p-5 md:p-6 xl:sticky xl:top-6 xl:self-start">
+            <div className="section-kicker">Add Job</div>
+            <h2 className="mt-4 text-3xl font-black tracking-tight">New Project</h2>
+            <p className="mt-3 text-base leading-8 text-zinc-400">
+              Create a job with address, quote, status, and notes.
+            </p>
 
-            <form onSubmit={handleAddJob} className="mt-5 space-y-3">
-              <div>
-                <label className="mb-2 block text-xs uppercase tracking-[0.22em] text-zinc-500">
-                  Job Name
-                </label>
+            <form onSubmit={handleAddJob} className="mt-6 space-y-4">
+              <Field label="Job Name">
+                <input className="field" value={jobName} onChange={(e) => setJobName(e.target.value)} required />
+              </Field>
+
+              <Field label="Customer">
+                <input className="field" value={customer} onChange={(e) => setCustomer(e.target.value)} />
+              </Field>
+
+              <Field label="Customer Address">
                 <input
-                  type="text"
-                  placeholder="Example: Smith Garage"
-                  value={jobName}
-                  onChange={(e) => setJobName(e.target.value)}
-                  className="ui-input"
-                  required
+                  className="field"
+                  value={customerAddress}
+                  onChange={(e) => setCustomerAddress(e.target.value)}
                 />
+              </Field>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="Status">
+                  <select className="field" value={status} onChange={(e) => setStatus(e.target.value as JobStatus)}>
+                    <option value="New">New</option>
+                    <option value="Quoted">Quoted</option>
+                    <option value="Follow Up">Follow Up</option>
+                    <option value="Scheduled">Scheduled</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Completed">Completed</option>
+                  </select>
+                </Field>
+
+                <Field label="Quoted Price">
+                  <input
+                    type="number"
+                    className="field"
+                    value={quotedPrice}
+                    onChange={(e) => setQuotedPrice(e.target.value)}
+                  />
+                </Field>
               </div>
 
-              <div>
-                <label className="mb-2 block text-xs uppercase tracking-[0.22em] text-zinc-500">
-                  Customer
-                </label>
-                <input
-                  type="text"
-                  placeholder="Customer name"
-                  value={customer}
-                  onChange={(e) => setCustomer(e.target.value)}
-                  className="ui-input"
-                />
-              </div>
+              <Field label="Notes">
+                <textarea className="field-area" value={notes} onChange={(e) => setNotes(e.target.value)} />
+              </Field>
 
-              <div>
-                <label className="mb-2 block text-xs uppercase tracking-[0.22em] text-zinc-500">
-                  Quoted Price
-                </label>
-                <input
-                  type="number"
-                  placeholder="0"
-                  value={quotedPrice}
-                  onChange={(e) => setQuotedPrice(e.target.value)}
-                  className="ui-input"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-xs uppercase tracking-[0.22em] text-zinc-500">
-                  Status
-                </label>
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as JobStatus)}
-                  className="ui-select"
-                >
-                  <option value="New">New</option>
-                  <option value="Quoted">Quoted</option>
-                  <option value="Follow Up">Follow Up</option>
-                  <option value="Scheduled">Scheduled</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Completed">Completed</option>
-                </select>
-              </div>
-
-              <button
-                type="submit"
-                disabled={saving}
-                className="ui-btn ui-btn-primary w-full"
-              >
-                {saving ? "Adding..." : "Add Job"}
+              <button type="submit" disabled={savingNew} className="ui-btn ui-btn-primary w-full">
+                {savingNew ? "Adding..." : "Add Job"}
               </button>
             </form>
           </aside>
@@ -317,10 +443,20 @@ export default function JobsPage() {
   );
 }
 
-function formatDate(value: string) {
-  try {
-    return new Date(value).toLocaleDateString();
-  } catch {
-    return value;
-  }
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <div className="mb-2 text-sm font-semibold text-zinc-300">{label}</div>
+      {children}
+    </label>
+  );
+}
+
+function InfoCard({ title, value }: { title: string; value: string }) {
+  return (
+    <div className="rounded-[20px] border border-white/10 bg-black/25 p-4">
+      <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">{title}</div>
+      <div className="mt-3 text-sm font-semibold leading-7 text-white">{value}</div>
+    </div>
+  );
 }

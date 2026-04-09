@@ -29,11 +29,7 @@ export default function DashboardLayout({
           <aside className="hidden lg:block">
             <div className="glass-panel-soft sticky top-4 rounded-[30px] p-5">
               <div className="border-b border-white/10 pb-5">
-                <BrandMark
-                  href="/dashboard"
-                  subtitle="Operations Dashboard"
-                  size="md"
-                />
+                <BrandMark href="/dashboard" subtitle="Operations Dashboard" size="md" />
               </div>
 
               <nav className="mt-5 space-y-3">

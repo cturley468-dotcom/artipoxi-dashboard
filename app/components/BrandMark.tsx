@@ -3,7 +3,6 @@
 import Link from "next/link";
 import Image from "next/image";
 
-
 export default function BrandMark({
   href = "/",
   subtitle,
@@ -13,30 +12,29 @@ export default function BrandMark({
   subtitle?: string;
   size?: "sm" | "md" | "lg";
 }) {
-  const iconSize = size === "sm" ? 28 : size === "lg" ? 42 : 34;
-  const boxSize = size === "sm" ? "h-12 w-12" : size === "lg" ? "h-16 w-16" : "h-14 w-14";
+  const wrap =
+    size === "sm"
+      ? "h-11 w-11 rounded-[14px]"
+      : size === "lg"
+      ? "h-16 w-16 rounded-[20px]"
+      : "h-14 w-14 rounded-[18px]";
+
   const titleClass =
     size === "sm" ? "text-lg" : size === "lg" ? "text-2xl" : "text-xl";
 
   return (
     <Link href={href} className="flex min-w-0 items-center gap-3">
       <div
-        className={`relative ${boxSize} shrink-0 rounded-[18px] border border-cyan-400/20 bg-[linear-gradient(180deg,rgba(10,18,30,0.96),rgba(6,10,18,0.96))] shadow-[0_0_22px_rgba(73,230,255,0.10)]`}
+        className={`glass-panel-soft ${wrap} relative flex shrink-0 items-center justify-center overflow-hidden border border-white/10 bg-black/40`}
       >
-        <div className="absolute inset-0 rounded-[18px] bg-cyan-400/10 blur-xl" />
-        <div className="relative flex h-full w-full items-center justify-center">
-            <img src="/branding/logo-icon.png" alt="AP" />
-            <img src="/branding/logo-primary.png" alt="ArtiPoxi" />
-          <Image
-            src="/branding/logo-icon.png"
-            alt="ArtiPoxi"
-            width={iconSize}
-            height={iconSize}
-            className="object-contain"
-            priority
-            unoptimized
-          />
-        </div>
+        <Image
+          src="/branding/logo-icon.png"
+          alt="ArtiPoxi"
+          width={64}
+          height={64}
+          className="h-full w-full object-cover"
+          priority
+        />
       </div>
 
       <div className="min-w-0">
@@ -45,7 +43,7 @@ export default function BrandMark({
         </div>
 
         {subtitle ? (
-          <div className="hidden truncate text-[11px] uppercase tracking-[0.22em] text-zinc-500 sm:block">
+          <div className="mt-0.5 truncate text-[11px] uppercase tracking-[0.22em] text-zinc-500">
             {subtitle}
           </div>
         ) : null}

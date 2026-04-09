@@ -35,11 +35,11 @@ export default function DashboardOverviewPage() {
     <div className="text-white">
       <div className="flex flex-col gap-6">
         <section className="hero-garage p-5 md:p-7 lg:p-8">
-          <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr] xl:items-end">
+          <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr] xl:items-end">
             <div>
               <div className="section-kicker">Operations Dashboard</div>
 
-              <h1 className="mt-4 text-4xl font-black leading-[0.92] tracking-tight md:text-6xl">
+              <h1 className="mt-4 max-w-3xl text-4xl font-black leading-[0.92] tracking-tight md:text-6xl">
                 Run the business.
                 <br />
                 Control the workflow.
@@ -63,8 +63,8 @@ export default function DashboardOverviewPage() {
               </div>
             </div>
 
-            <div className="glass-panel-strong rounded-[28px] p-5 md:p-6">
-              <div className="text-sm font-semibold uppercase tracking-[0.22em] text-zinc-500">
+            <div className="sleek-card p-5 md:p-6">
+              <div className="text-sm font-semibold uppercase tracking-[0.22em] text-zinc-400">
                 Owner View
               </div>
 
@@ -72,7 +72,7 @@ export default function DashboardOverviewPage() {
                 Daily Snapshot
               </div>
 
-              <div className="mt-4 space-y-3">
+              <div className="mt-5 space-y-3">
                 <MiniMetric label="Jobs ready to start" value="0" />
                 <MiniMetric label="Quotes pending" value="0" />
                 <MiniMetric label="Follow-ups due" value="0" />
@@ -89,10 +89,7 @@ export default function DashboardOverviewPage() {
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {stats.map((stat) => (
-            <div
-              key={stat.label}
-              className="glass-panel-soft rounded-[24px] p-5"
-            >
+            <div key={stat.label} className="metric-card">
               <div className="text-sm text-zinc-400">{stat.label}</div>
               <div className="mt-3 text-4xl font-black tracking-tight text-white">
                 {stat.value}
@@ -102,14 +99,12 @@ export default function DashboardOverviewPage() {
           ))}
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
           <div className="glass-panel-strong rounded-[28px] p-5 md:p-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="panel-title">Quick Actions</div>
-                <div className="panel-subtitle mt-2 text-sm">
-                  Jump into the most important parts of the business.
-                </div>
+            <div>
+              <div className="panel-title">Quick Actions</div>
+              <div className="panel-subtitle mt-2 text-sm">
+                Jump into the most important areas of the business.
               </div>
             </div>
 
@@ -117,11 +112,9 @@ export default function DashboardOverviewPage() {
               {quickActions.map((action) => (
                 <div
                   key={action.title}
-                  className="rounded-[22px] border border-white/10 bg-black/25 p-4"
+                  className="rounded-[22px] border border-white/10 bg-black/20 p-4"
                 >
-                  <div className="text-lg font-bold text-white">
-                    {action.title}
-                  </div>
+                  <div className="text-lg font-bold text-white">{action.title}</div>
                   <div className="mt-3 text-sm leading-7 text-zinc-400">
                     {action.text}
                   </div>
@@ -141,7 +134,7 @@ export default function DashboardOverviewPage() {
               High-level workflow health.
             </div>
 
-            <div className="mt-6 space-y-4">
+            <div className="mt-6 space-y-3">
               <StatusRow label="Dashboard" value="Active" />
               <StatusRow label="Job Tracking" value="Ready" />
               <StatusRow label="Scheduling" value="Ready" />

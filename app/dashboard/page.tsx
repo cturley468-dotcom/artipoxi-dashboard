@@ -2,91 +2,88 @@
 
 import Link from "next/link";
 
-export default function Dashboard() {
+export default function DashboardOverviewPage() {
   return (
-    <div className="p-6 space-y-6">
-
-      {/* TOP NAV */}
-      <div className="top-nav">
-        {["Overview","Jobs","Schedule","Leads","Inventory","Configurator","Finance"].map((item,i)=>(
-          <div
-            key={item}
-            className={`top-nav-item ${i===0 ? "top-nav-item-active" : ""}`}
-          >
-            {item}
-          </div>
-        ))}
-      </div>
-
-      {/* HERO */}
-      <div className="hero">
-        <h1 className="text-5xl font-black leading-tight max-w-3xl">
-          Run the business.
-          <br />
-          Control the workflow.
+    <div className="flex flex-col gap-6">
+      <section className="app-card-soft app-section">
+        <div className="app-kicker">ArtiPoxi</div>
+        <h1 className="app-title mt-4">
+          Dashboard
         </h1>
-
-        <p className="mt-4 text-zinc-300 max-w-xl">
-          Manage jobs, scheduling, customer flow, and finances from one control center.
+        <p className="app-subtitle mt-4 max-w-2xl">
+          Track jobs, scheduling, customer flow, and business activity from one
+          clean control center.
         </p>
 
-        <div className="mt-6 flex gap-3">
+        <div className="mt-6 flex flex-wrap gap-3">
           <Link href="/dashboard/jobs" className="ui-btn ui-btn-primary">
             Open Jobs
           </Link>
           <Link href="/dashboard/schedule" className="ui-btn ui-btn-secondary">
-            Schedule
+            View Schedule
           </Link>
           <Link href="/configurator" className="ui-btn ui-btn-secondary">
             Configurator
           </Link>
         </div>
-      </div>
+      </section>
 
-      {/* STATS */}
-      <div className="grid md:grid-cols-4 gap-4">
-        {[
-          "Projected Revenue",
-          "Active Jobs",
-          "Open Leads",
-          "Work Orders"
-        ].map(label => (
-          <div key={label} className="card">
-            <div className="text-sm text-zinc-400">{label}</div>
-            <div className="text-3xl font-bold mt-2">0</div>
-          </div>
-        ))}
-      </div>
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="ui-stat">
+          <div className="ui-stat-label">Projected Revenue</div>
+          <div className="ui-stat-value">$0</div>
+        </div>
 
-      {/* LOWER SECTION */}
-      <div className="grid md:grid-cols-2 gap-6">
+        <div className="ui-stat">
+          <div className="ui-stat-label">Active Jobs</div>
+          <div className="ui-stat-value">0</div>
+        </div>
 
-        <div className="card">
-          <div className="text-xl font-bold">Quick Actions</div>
-          <div className="mt-4 space-y-3">
+        <div className="ui-stat">
+          <div className="ui-stat-label">Open Leads</div>
+          <div className="ui-stat-value">0</div>
+        </div>
+
+        <div className="ui-stat">
+          <div className="ui-stat-label">Work Orders</div>
+          <div className="ui-stat-value">0</div>
+        </div>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-2">
+        <div className="app-card-soft app-section">
+          <div className="text-2xl font-black">Quick Actions</div>
+          <div className="mt-5 grid gap-3">
             <Link href="/dashboard/jobs" className="ui-btn ui-btn-secondary w-full">
               Create Job
             </Link>
             <Link href="/dashboard/schedule" className="ui-btn ui-btn-secondary w-full">
-              View Schedule
+              Open Schedule
             </Link>
             <Link href="/dashboard/finance" className="ui-btn ui-btn-secondary w-full">
-              Finance
+              Finance Hub
             </Link>
           </div>
         </div>
 
-        <div className="card">
-          <div className="text-xl font-bold">System Status</div>
-          <div className="mt-4 space-y-2 text-sm text-zinc-400">
-            <div>Dashboard: Active</div>
-            <div>Jobs: Ready</div>
-            <div>Schedule: Ready</div>
-            <div>Finance: Ready</div>
+        <div className="app-card-soft app-section">
+          <div className="text-2xl font-black">System Status</div>
+          <div className="mt-5 grid gap-3">
+            <div className="ui-list-card flex items-center justify-between">
+              <span className="text-zinc-300">Dashboard</span>
+              <span className="text-cyan-400 font-bold">Active</span>
+            </div>
+            <div className="ui-list-card flex items-center justify-between">
+              <span className="text-zinc-300">Jobs</span>
+              <span className="text-cyan-400 font-bold">Ready</span>
+            </div>
+            <div className="ui-list-card flex items-center justify-between">
+              <span className="text-zinc-300">Schedule</span>
+              <span className="text-cyan-400 font-bold">Ready</span>
+            </div>
           </div>
         </div>
-
-      </div>
+      </section>
     </div>
   );
 }

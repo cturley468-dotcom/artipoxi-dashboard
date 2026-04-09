@@ -20,11 +20,9 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#05070b" />
+        <meta name="theme-color" content="#060708" />
       </head>
-      <body className="bg-black text-white antialiased">
-        {children}
-      </body>
+      <body className="bg-black text-white antialiased">{children}</body>
     </html>
   );
 }

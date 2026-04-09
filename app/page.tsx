@@ -1,110 +1,90 @@
 import Link from "next/link";
 import BrandMark from "./components/BrandMark";
 
-const systems = [
-  {
-    title: "Garage / Shop",
-    text: "High-performance decorative epoxy systems built for durability, easy maintenance, and a premium finish.",
-  },
-  {
-    title: "Patio / Outdoor",
-    text: "Slip-resistant exterior coatings designed to handle weather, traffic, and everyday outdoor use.",
-  },
-  {
-    title: "Commercial",
-    text: "Professional-grade surface systems for businesses, workspaces, and clean modern environments.",
-  },
+const highlights = [
+  { value: "Premium", label: "Finish Quality" },
+  { value: "Custom", label: "Epoxy Systems" },
+  { value: "Built", label: "To Last" },
 ];
 
-const highlights = [
-  { value: "500+", label: "Projects" },
-  { value: "5★", label: "Rated" },
-  { value: "10+ YRS", label: "Experience" },
+const systems = [
+  {
+    title: "Garage Floors",
+    text: "Clean, durable, high-end epoxy systems designed to transform garages into premium finished spaces.",
+  },
+  {
+    title: "Shops & Workspaces",
+    text: "Tough surfaces made for real use, with a polished look that still feels professional and durable.",
+  },
+  {
+    title: "Custom Finishes",
+    text: "Distinctive color, texture, and movement options that give each floor a more custom visual identity.",
+  },
 ];
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen overflow-x-hidden text-white">
+    <main className="page-shell min-h-screen text-white">
       <section className="border-b border-white/10">
-        <div className="mx-auto max-w-7xl px-4 py-4 md:px-6 md:py-5">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <BrandMark href="/" subtitle="Premium Epoxy Systems" size="md" />
-            </div>
-
-            <div className="hidden items-center gap-3 md:flex">
-              <a href="#projects" className="ui-btn">
-                Projects
-              </a>
-              <a href="#systems" className="ui-btn">
-                Systems
-              </a>
-              <a href="#configurator" className="ui-btn">
-                Configurator
-              </a>
-              <Link href="/login" className="ui-btn ui-btn-primary">
-                Login
-              </Link>
-            </div>
-
-            <div className="shrink-0 md:hidden">
-              <Link href="/login" className="ui-btn ui-btn-primary">
-                Login
-              </Link>
-            </div>
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 md:px-6 md:py-5">
+          <div className="min-w-0 flex-1">
+            <BrandMark href="/" subtitle="Premium Epoxy Systems" size="md" />
           </div>
 
-          <div className="mt-4 flex gap-2 overflow-x-auto pb-1 md:hidden">
-            <a href="#projects" className="ui-btn whitespace-nowrap">
-              Projects
-            </a>
-            <a href="#systems" className="ui-btn whitespace-nowrap">
+          <div className="hidden items-center gap-3 md:flex">
+            <a href="#systems" className="ui-btn">
               Systems
             </a>
-            <a href="#configurator" className="ui-btn whitespace-nowrap">
-              Configurator
+            <a href="#projects" className="ui-btn">
+              Projects
             </a>
+            <Link href="/configurator" className="ui-btn">
+              Configurator
+            </Link>
+            <Link href="/login" className="ui-btn ui-btn-primary">
+              Login
+            </Link>
+          </div>
+
+          <div className="md:hidden">
+            <Link href="/login" className="ui-btn ui-btn-primary">
+              Login
+            </Link>
           </div>
         </div>
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-10 md:px-6 md:py-14">
         <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
-          <div className="min-w-0">
+          <div>
             <div className="section-kicker">ArtiPoxi Surfaces</div>
 
-            <h1 className="mt-4 max-w-[10ch] text-4xl font-black leading-[0.95] tracking-[-0.04em] md:max-w-none md:text-6xl xl:text-7xl">
-              Premium floors
+            <h1 className="mt-4 text-4xl font-black leading-[0.95] tracking-[-0.04em] md:text-6xl xl:text-7xl">
+              Premium floors.
               <br />
-              built to
+              Contractor strong.
               <br />
-              stand out.
+              Built to last.
             </h1>
 
             <p className="mt-5 max-w-2xl text-base leading-8 text-zinc-300 md:text-lg">
-              ArtiPoxi designs and installs premium epoxy systems for garages,
-              patios, shops, and commercial spaces with a focus on clean design,
-              durability, and finish quality.
+              ArtiPoxi creates premium epoxy systems for garages, shops, and
+              custom spaces with a clean luxury finish and real-world durability.
             </p>
 
-            <div className="mt-7 grid gap-3 sm:flex sm:flex-wrap">
-              <a href="#projects" className="ui-btn ui-btn-primary justify-center">
+            <div className="mt-7 flex flex-wrap gap-3">
+              <a href="#projects" className="ui-btn ui-btn-primary">
                 View Projects
               </a>
-              <a href="#contact" className="ui-btn justify-center">
+              <a href="#contact" className="ui-btn">
                 Start Your Quote
               </a>
             </div>
 
-            <div className="mt-8 grid gap-3">
+            <div className="mt-8 grid gap-3 sm:grid-cols-3">
               {highlights.map((item) => (
-                <div
-                  key={item.label}
-                  className="glass-panel-soft rounded-[22px] p-4"
-                >
-                  <div className="text-2xl font-black text-cyan-300 md:text-3xl">
-                    {item.value}
-                  </div>
+                <div key={item.label} className="glass-panel-soft rounded-[22px] p-4">
+                  <div className="text-2xl font-black text-slate-100">{item.value}</div>
                   <div className="mt-1 text-xs uppercase tracking-[0.22em] text-zinc-500">
                     {item.label}
                   </div>
@@ -113,39 +93,33 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="preview-frame overflow-hidden">
-            <div className="relative min-h-[320px] bg-[radial-gradient(circle_at_18%_20%,rgba(73,230,255,0.14),transparent_18%),radial-gradient(circle_at_82%_78%,rgba(73,230,255,0.08),transparent_16%),linear-gradient(135deg,#070b12_0%,#0a1119_45%,#05070b_100%)] md:min-h-[580px]">
-              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))]" />
-
-              <div className="absolute inset-0 p-4 md:p-8">
-                <div className="flex h-full flex-col justify-between">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="glass-panel-soft rounded-[20px] px-3 py-3">
-                      <BrandMark href="/" subtitle="Featured Project" size="sm" />
-                    </div>
-
-                    <div className="ui-chip ui-chip-cyan hidden sm:inline-flex">
-                      Premium showroom look
-                    </div>
-                  </div>
-
-                  <div className="self-start rounded-[24px] border border-white/10 bg-black/30 p-4 backdrop-blur md:max-w-[360px] md:p-5">
-                    <div className="text-sm text-zinc-400">Featured system</div>
-                    <div className="mt-2 text-2xl font-black text-white md:text-3xl">
-                      Midnight Garage Finish
-                    </div>
-                    <div className="mt-2 text-sm leading-6 text-zinc-300">
-                      Deep charcoal flake system with a crisp reflective finish
-                      and a modern premium look.
-                    </div>
-                  </div>
-
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    <MiniCard title="Space" value="Garage / Shop" />
-                    <MiniCard title="Style" value="Decorative Flake" />
-                    <MiniCard title="Finish" value="High Gloss" />
-                  </div>
+          <div className="hero-garage min-h-[340px] md:min-h-[580px]">
+            <div className="flex h-full flex-col justify-between p-5 md:p-8">
+              <div className="flex items-start justify-between gap-4">
+                <div className="glass-panel-soft rounded-[22px] px-4 py-3">
+                  <BrandMark href="/" subtitle="Featured Finish" size="sm" />
                 </div>
+
+                <div className="ui-chip ui-chip-silver hidden sm:inline-flex">
+                  Garage transformation
+                </div>
+              </div>
+
+              <div className="self-start rounded-[24px] border border-white/10 bg-black/40 p-4 backdrop-blur md:max-w-[380px] md:p-5">
+                <div className="text-sm text-zinc-400">Featured system</div>
+                <div className="mt-2 text-2xl font-black text-white md:text-3xl">
+                  Black Resin Garage Finish
+                </div>
+                <div className="mt-2 text-sm leading-6 text-zinc-300">
+                  Deep resin movement, strong contrast, and a premium modern finish
+                  that feels custom without losing durability.
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <MiniCard title="Space" value="Garage" />
+                <MiniCard title="Style" value="Premium Epoxy" />
+                <MiniCard title="Tone" value="Black / Silver" />
               </div>
             </div>
           </div>
@@ -155,27 +129,22 @@ export default function HomePage() {
       <section id="systems" className="border-t border-white/10">
         <div className="mx-auto max-w-7xl px-4 py-12 md:px-6 md:py-16">
           <div className="max-w-2xl">
-            <div className="section-kicker">Our Systems</div>
+            <div className="section-kicker">Systems</div>
             <h2 className="mt-4 text-3xl font-black tracking-tight md:text-5xl">
-              Surface systems for real spaces.
+              Built for real spaces.
             </h2>
             <p className="mt-4 text-base leading-7 text-zinc-400">
-              Professionally installed, design-forward coatings made to perform.
+              Professional systems for garages, work areas, and custom interior surfaces.
             </p>
           </div>
 
           <div className="mt-8 grid gap-5 md:grid-cols-3">
             {systems.map((system) => (
-              <div
-                key={system.title}
-                className="glass-panel-soft overflow-hidden rounded-[28px]"
-              >
-                <div className="h-52 bg-[radial-gradient(circle_at_top_left,rgba(73,230,255,0.12),transparent_25%),linear-gradient(135deg,#11161d_0%,#0a0f15_50%,#06080d_100%)]" />
+              <div key={system.title} className="preview-frame">
+                <div className="preview-image h-52" />
                 <div className="p-5">
-                  <div className="ui-chip ui-chip-cyan mb-4">{system.title}</div>
-                  <div className="text-2xl font-bold text-white">
-                    {system.title}
-                  </div>
+                  <div className="ui-chip mb-4">{system.title}</div>
+                  <div className="text-2xl font-bold text-white">{system.title}</div>
                   <p className="mt-3 text-sm leading-7 text-zinc-400 md:text-base">
                     {system.text}
                   </p>
@@ -189,116 +158,41 @@ export default function HomePage() {
       <section id="projects" className="border-t border-white/10">
         <div className="mx-auto max-w-7xl px-4 py-12 md:px-6 md:py-16">
           <div className="max-w-2xl">
-            <div className="section-kicker">Project Transformation</div>
+            <div className="section-kicker">Project Work</div>
             <h2 className="mt-4 text-3xl font-black tracking-tight md:text-5xl">
-              Before and after, reimagined.
+              Clean before-and-after impact.
             </h2>
           </div>
 
-          <div className="mt-8 rounded-[30px] border border-white/10 bg-black/20 p-3 md:p-4">
-            <div className="grid gap-3 md:grid-cols-[1fr_auto_1fr]">
-              <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(135deg,#11151c_0%,#0b0f15_100%)] p-4 md:p-5">
-                <div className="text-xs uppercase tracking-[0.24em] text-zinc-500">
-                  Before
-                </div>
-                <div className="mt-3 h-44 rounded-[18px] border border-white/10 bg-black/20 md:h-64" />
-              </div>
-
-              <div className="flex items-center justify-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-cyan-400/20 bg-cyan-400/10 text-2xl text-cyan-300 shadow-[0_0_20px_rgba(73,230,255,0.18)]">
-                  ›
-                </div>
-              </div>
-
-              <div className="rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_30%_30%,rgba(73,230,255,0.12),transparent_18%),linear-gradient(135deg,#11161d_0%,#080c12_100%)] p-4 md:p-5">
-                <div className="text-xs uppercase tracking-[0.24em] text-zinc-500">
-                  After
-                </div>
-                <div className="mt-3 h-44 rounded-[18px] border border-cyan-400/10 bg-black/20 md:h-64" />
-              </div>
+          <div className="mt-8 grid gap-4 md:grid-cols-2">
+            <div className="preview-frame p-4">
+              <div className="text-xs uppercase tracking-[0.24em] text-zinc-500">Before</div>
+              <div className="preview-image mt-3 h-56 rounded-[20px]" />
             </div>
-          </div>
-        </div>
-      </section>
 
-      <section id="configurator" className="border-t border-white/10">
-        <div className="mx-auto max-w-7xl px-4 py-12 md:px-6 md:py-16">
-          <div className="glass-panel-soft rounded-[30px] p-6 md:p-8">
-            <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-              <div>
-                <div className="section-kicker">Configurator</div>
-                <h2 className="mt-4 text-3xl font-black tracking-tight md:text-5xl">
-                  Preview your floor system.
-                </h2>
-                <p className="mt-4 max-w-xl text-base leading-7 text-zinc-400">
-                  Compare system styles, color direction, and finish options
-                  before moving into quote request.
-                </p>
-
-                <div className="mt-7 flex flex-wrap gap-3">
-                  <Link href="/configurator" className="ui-btn ui-btn-primary">
-                    Launch Configurator
-                  </Link>
-                  <Link href="/login" className="ui-btn">
-                    Secure Login
-                  </Link>
-                </div>
-              </div>
-
-              <div className="preview-frame p-4 md:p-5">
-                <div className="preview-image rounded-[24px] p-4 md:p-5">
-                  <div className="flex min-h-[260px] flex-col justify-between rounded-[20px] border border-cyan-400/10 bg-black/20 p-4 md:min-h-[320px]">
-                    <div className="flex flex-wrap gap-2">
-                      <span className="ui-chip">Garage / Shop</span>
-                      <span className="ui-chip ui-chip-cyan">
-                        Decorative Flake
-                      </span>
-                    </div>
-
-                    <div className="self-start rounded-[18px] border border-white/10 bg-black/30 px-4 py-4">
-                      <div className="text-sm text-zinc-400">Live preview</div>
-                      <div className="mt-2 text-2xl font-black text-cyan-300 md:text-3xl">
-                        Midnight Blend
-                      </div>
-                    </div>
-
-                    <div className="grid gap-3 sm:grid-cols-3">
-                      <MiniCard title="Color" value="Midnight" />
-                      <MiniCard title="Finish" value="High Gloss" />
-                      <MiniCard title="Feel" value="Premium" />
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div className="preview-frame p-4">
+              <div className="text-xs uppercase tracking-[0.24em] text-zinc-500">After</div>
+              <div className="hero-garage mt-3 h-56 rounded-[20px]" />
             </div>
-          </div>
-
-          <div className="mt-6 text-center text-sm text-zinc-500">
-            Customer-facing design outside. Secure operations system inside.
           </div>
         </div>
       </section>
 
       <section id="contact" className="border-t border-white/10">
         <div className="mx-auto max-w-5xl px-4 py-12 md:px-6 md:py-16">
-          <div className="glass-panel-soft rounded-[30px] p-6 text-center md:p-10">
+          <div className="glass-panel-strong rounded-[30px] p-6 text-center md:p-10">
             <div className="section-kicker">Request a Quote</div>
             <h2 className="mt-4 text-3xl font-black tracking-tight md:text-5xl">
-              Ready to start your next floor?
+              Ready to transform your floor?
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-zinc-400">
-              Reach out for pricing, finish recommendations, or secure portal
-              access for an existing project.
+              Reach out for pricing, finish recommendations, or secure project access.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <a
-                href="mailto:cameron@camspainting.co"
-                className="ui-btn ui-btn-primary"
-              >
+              <a href="mailto:cameron@camspainting.co" className="ui-btn ui-btn-primary">
                 Request a Quote
               </a>
-
               <Link href="/login" className="ui-btn">
                 Secure Login
               </Link>
@@ -318,7 +212,7 @@ function MiniCard({
   value: string;
 }) {
   return (
-    <div className="rounded-[16px] border border-white/10 bg-white/[0.04] p-3">
+    <div className="rounded-[16px] border border-white/10 bg-black/35 p-3 backdrop-blur">
       <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">
         {title}
       </div>

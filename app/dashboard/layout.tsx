@@ -23,9 +23,9 @@ export default function DashboardLayout({
   const pathname = usePathname();
 
   return (
-    <main className="min-h-screen bg-[#05070b] text-white">
+    <main className="page-shell min-h-screen text-white">
       <div className="mx-auto max-w-[1600px] px-3 py-3 md:px-4 md:py-4">
-        <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <div className="grid gap-4 lg:grid-cols-[290px_minmax(0,1fr)]">
           <aside className="hidden lg:block">
             <div className="glass-panel-soft sticky top-4 rounded-[30px] p-5">
               <div className="border-b border-white/10 pb-5">
@@ -46,27 +46,17 @@ export default function DashboardLayout({
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`step-rail-item ${
-                        active ? "step-rail-item-active" : ""
-                      }`}
+                      className={`step-rail-item ${active ? "step-rail-item-active" : ""}`}
                     >
-                      <div
-                        className={`step-badge ${
-                          active ? "step-badge-active" : ""
-                        }`}
-                      >
+                      <div className={`step-badge ${active ? "step-badge-active" : ""}`}>
                         {index + 1}
                       </div>
 
                       <div className="min-w-0">
-                        <div
-                          className={`text-base font-bold ${
-                            active ? "text-cyan-300" : "text-white"
-                          }`}
-                        >
+                        <div className={`truncate text-base font-bold ${active ? "text-white" : "text-zinc-100"}`}>
                           {item.label}
                         </div>
-                        <div className="mt-1 text-sm text-zinc-500">
+                        <div className="mt-1 truncate text-sm text-zinc-500">
                           {item.href.replace("/", "") || "dashboard"}
                         </div>
                       </div>
@@ -79,7 +69,7 @@ export default function DashboardLayout({
                 <div className="text-xs uppercase tracking-[0.22em] text-zinc-500">
                   System Status
                 </div>
-                <div className="mt-3 text-sm font-semibold text-lime-300">
+                <div className="mt-3 text-sm font-semibold text-slate-200">
                   Dashboard active
                 </div>
               </div>
@@ -89,16 +79,11 @@ export default function DashboardLayout({
           <section className="min-w-0">
             <div className="glass-panel-soft mb-4 rounded-[22px] p-3 lg:hidden">
               <div className="flex items-center justify-between gap-3">
-                <BrandMark
-                  href="/dashboard"
-                  subtitle="Operations"
-                  size="sm"
-                />
+                <div className="min-w-0 flex-1">
+                  <BrandMark href="/dashboard" subtitle="Operations" size="sm" />
+                </div>
 
-                <Link
-                  href="/"
-                  className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-semibold text-white"
-                >
+                <Link href="/" className="ui-btn shrink-0">
                   Home
                 </Link>
               </div>
@@ -115,7 +100,7 @@ export default function DashboardLayout({
                       href={item.href}
                       className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition ${
                         active
-                          ? "border-cyan-400/30 bg-cyan-400/12 text-cyan-300"
+                          ? "border-white/20 bg-white/10 text-white"
                           : "border-white/10 bg-white/[0.03] text-zinc-300"
                       }`}
                     >

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 
+
 export default function BrandMark({
   href = "/",
   subtitle,
@@ -24,6 +25,8 @@ export default function BrandMark({
       >
         <div className="absolute inset-0 rounded-[18px] bg-cyan-400/10 blur-xl" />
         <div className="relative flex h-full w-full items-center justify-center">
+            <img src="/branding/logo-icon.png" alt="AP" />
+            <img src="/branding/logo-primary.png" alt="ArtiPoxi" />
           <Image
             src="/branding/logo-icon.png"
             alt="ArtiPoxi"

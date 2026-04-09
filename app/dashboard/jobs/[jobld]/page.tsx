@@ -1,131 +1,294 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
+import { getCurrentProfile } from "../../../lib/auth";
+
+type JobStatus =
+  | "New"
+  | "Quoted"
+  | "Follow Up"
+  | "Scheduled"
+  | "In Progress"
+  | "Completed";
 
 type Job = {
   id: string;
   name: string | null;
   customer: string | null;
-  status: string | null;
+  customer_address: string | null;
+  status: JobStatus | null;
+  quoted_price: number | null;
   notes: string | null;
+  assigned_installer_name?: string | null;
+  scheduled_start?: string | null;
+};
+
+type WorkOrder = {
+  id: string;
+  title: string | null;
+  description: string | null;
+  status: string;
+  scheduled_date: string | null;
 };
 
 export default function JobDetailsPage() {
+  const params = useParams();
   const router = useRouter();
 
-  const [jobId, setJobId] = useState("");
-  const [job, setJob] = useState<Job | null>(null);
+  const jobId = Array.isArray(params?.jobId)
+    ? params.jobId[0]
+    : params?.jobId;
+
   const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  // 🔥 GET JOB ID FROM URL (this fixes your issue permanently)
+  const [job, setJob] = useState<Job | null>(null);
+  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
+
+  const [name, setName] = useState("");
+  const [customer, setCustomer] = useState("");
+  const [customerAddress, setCustomerAddress] = useState("");
+  const [status, setStatus] = useState<JobStatus>("New");
+  const [price, setPrice] = useState("");
+  const [notes, setNotes] = useState("");
+
+  const [message, setMessage] = useState("");
+
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    async function load() {
+      const profile = await getCurrentProfile();
 
-    const parts = window.location.pathname.split("/").filter(Boolean);
-    const lastPart = parts[parts.length - 1] || "";
-
-    console.log("URL PATH:", window.location.pathname);
-    console.log("JOB ID DETECTED:", lastPart);
-
-    setJobId(lastPart);
-  }, []);
-
-  // 🔥 LOAD JOB
-  useEffect(() => {
-    async function loadJob() {
-      if (!jobId) return;
-
-      try {
-        setLoading(true);
-        setErrorMessage("");
-
-        const { data, error } = await supabase
-          .from("jobs")
-          .select("*")
-          .eq("id", jobId)
-          .maybeSingle();
-
-        if (error) throw error;
-
-        if (!data) {
-          setErrorMessage("Job not found.");
-          setJob(null);
-        } else {
-          setJob(data);
-        }
-      } catch (err: any) {
-        setErrorMessage(err.message || "Failed to load job.");
-      } finally {
-        setLoading(false);
+      if (!profile) {
+        router.replace("/login");
+        return;
       }
+
+      const { data, error } = await supabase
+        .from("jobs")
+        .select("*")
+        .eq("id", jobId)
+        .single();
+
+      if (error) {
+        setMessage(error.message);
+        return;
+      }
+
+      setJob(data);
+
+      setName(data.name || "");
+      setCustomer(data.customer || "");
+      setCustomerAddress(data.customer_address || "");
+      setStatus((data.status || "New") as JobStatus);
+      setPrice(data.quoted_price ? String(data.quoted_price) : "");
+      setNotes(data.notes || "");
+
+      const { data: wo } = await supabase
+        .from("work_orders")
+        .select("*")
+        .eq("job_id", jobId)
+        .order("created_at", { ascending: false });
+
+      setWorkOrders(wo || []);
+
+      setLoading(false);
     }
 
-    loadJob();
-  }, [jobId]);
+    if (jobId) load();
+  }, [jobId, router]);
 
-  // 🔥 LOADING STATE
+  async function saveJob() {
+    setSaving(true);
+    setMessage("");
+
+    const { error } = await supabase
+      .from("jobs")
+      .update({
+        name,
+        customer,
+        customer_address: customerAddress,
+        status,
+        quoted_price: price ? Number(price) : null,
+        notes,
+      })
+      .eq("id", jobId);
+
+    setSaving(false);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    setMessage("Saved successfully.");
+  }
+
   if (loading) {
-    return (
-      <div className="min-h-screen bg-black p-6 text-white">
-        <div className="mx-auto max-w-5xl rounded-2xl border border-white/10 bg-neutral-900 p-6">
-          {jobId ? `Loading job ${jobId}...` : "Reading job URL..."}
-        </div>
-      </div>
-    );
+    return <div className="text-white">Loading...</div>;
   }
 
-  // 🔴 ERROR STATE
-  if (errorMessage) {
-    return (
-      <div className="min-h-screen bg-black p-6 text-white">
-        <div className="mx-auto max-w-5xl">
-          <Link href="/dashboard/jobs" className="mb-4 inline-block">
-            ← Back to Jobs
-          </Link>
-
-          <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-400">
-            {errorMessage}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ❌ SAFETY
-  if (!job) {
-    return null;
-  }
-
-  // ✅ SUCCESS UI
   return (
-    <div className="min-h-screen bg-black p-6 text-white">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <Link href="/dashboard/jobs" className="inline-block">
-          ← Back to Jobs
-        </Link>
+    <div className="text-white">
+      <div className="flex flex-col gap-6">
+        
+        {/* HERO */}
+        <section className="hero-garage p-6 md:p-8">
+          <div className="section-kicker">Job Details</div>
 
-        <div className="rounded-2xl border border-white/10 bg-neutral-900 p-6">
-          <h1 className="text-2xl font-bold text-white">
-            {job.name || "Untitled Job"}
+          <h1 className="mt-4 text-4xl font-black md:text-6xl">
+            {name || "Untitled Job"}
           </h1>
 
-          <p className="mt-2 text-zinc-400">
-            Customer: {job.customer || "N/A"}
-          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <span className="ui-chip">{status}</span>
 
-          <p className="mt-2 text-zinc-400">
-            Status: {job.status || "N/A"}
-          </p>
+            <span className="ui-chip ui-chip-silver">
+              {price ? `$${Number(price).toLocaleString()}` : "No Quote"}
+            </span>
+          </div>
 
-          <p className="mt-4 text-zinc-300">
-            {job.notes || "No notes available."}
-          </p>
-        </div>
+          <div className="mt-6 flex gap-3">
+            <Link href="/dashboard/jobs" className="ui-btn">
+              Back
+            </Link>
+
+            <button
+              onClick={saveJob}
+              className="ui-btn ui-btn-primary"
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </section>
+
+        {/* EDIT PANEL */}
+        <section className="glass-panel-strong rounded-[28px] p-6">
+          <h2 className="panel-title">Edit Job</h2>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <Field label="Job Name">
+              <input
+                className="field"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </Field>
+
+            <Field label="Customer">
+              <input
+                className="field"
+                value={customer}
+                onChange={(e) => setCustomer(e.target.value)}
+              />
+            </Field>
+          </div>
+
+          <Field label="Customer Address">
+            <input
+              className="field"
+              value={customerAddress}
+              onChange={(e) => setCustomerAddress(e.target.value)}
+              placeholder="Street, city, state..."
+            />
+          </Field>
+
+          <div className="grid gap-4 md:grid-cols-2 mt-4">
+            <Field label="Status">
+              <select
+                className="field"
+                value={status}
+                onChange={(e) => setStatus(e.target.value as JobStatus)}
+              >
+                <option>New</option>
+                <option>Quoted</option>
+                <option>Follow Up</option>
+                <option>Scheduled</option>
+                <option>In Progress</option>
+                <option>Completed</option>
+              </select>
+            </Field>
+
+            <Field label="Quoted Price">
+              <input
+                type="number"
+                className="field"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+              />
+            </Field>
+          </div>
+
+          <Field label="Notes">
+            <textarea
+              className="field-area"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </Field>
+
+          {message && (
+            <div className="mt-4 text-sm text-zinc-400">{message}</div>
+          )}
+        </section>
+
+        {/* WORK ORDERS */}
+        <section className="glass-panel-soft rounded-[28px] p-6">
+          <div className="flex justify-between items-center">
+            <h2 className="panel-title">Work Orders</h2>
+
+            <button className="ui-btn">+ Add</button>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {workOrders.length === 0 ? (
+              <div className="text-zinc-400">No work orders yet.</div>
+            ) : (
+              workOrders.map((wo) => (
+                <div
+                  key={wo.id}
+                  className="rounded-[20px] border border-white/10 bg-black/30 p-4"
+                >
+                  <div className="text-lg font-bold">
+                    {wo.title || "Untitled"}
+                  </div>
+
+                  <div className="text-sm text-zinc-400 mt-2">
+                    {wo.description}
+                  </div>
+
+                  <div className="mt-3 flex gap-2">
+                    <span className="ui-chip">{wo.status}</span>
+                    {wo.scheduled_date && (
+                      <span className="ui-chip">
+                        {new Date(wo.scheduled_date).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
       </div>
     </div>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block mt-4">
+      <div className="mb-2 text-sm text-zinc-400">{label}</div>
+      {children}
+    </label>
   );
 }

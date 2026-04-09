@@ -53,7 +53,7 @@ export default function DashboardLayout({
                       </div>
 
                       <div className="min-w-0">
-                        <div className={`truncate text-base font-bold ${active ? "text-white" : "text-zinc-100"}`}>
+                        <div className="truncate text-base font-bold text-white">
                           {item.label}
                         </div>
                         <div className="mt-1 truncate text-sm text-zinc-500">

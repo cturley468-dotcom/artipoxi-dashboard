@@ -10,15 +10,15 @@ const highlights = [
 const systems = [
   {
     title: "Garage Floors",
-    text: "Clean, durable, high-end epoxy systems designed to transform garages into premium finished spaces.",
+    text: "Premium epoxy floor systems designed to transform garages into clean, durable, high-end finished spaces.",
   },
   {
-    title: "Shops & Workspaces",
-    text: "Tough surfaces made for real use, with a polished look that still feels professional and durable.",
+    title: "Workshops",
+    text: "Strong enough for daily use while still delivering a polished, premium surface clients notice immediately.",
   },
   {
     title: "Custom Finishes",
-    text: "Distinctive color, texture, and movement options that give each floor a more custom visual identity.",
+    text: "Distinct color and movement options that give each project a more custom, elevated visual identity.",
   },
 ];
 
@@ -105,7 +105,7 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className="self-start rounded-[24px] border border-white/10 bg-black/40 p-4 backdrop-blur md:max-w-[380px] md:p-5">
+              <div className="self-start rounded-[24px] border border-white/10 bg-black/45 p-4 backdrop-blur md:max-w-[380px] md:p-5">
                 <div className="text-sm text-zinc-400">Featured system</div>
                 <div className="mt-2 text-2xl font-black text-white md:text-3xl">
                   Black Resin Garage Finish

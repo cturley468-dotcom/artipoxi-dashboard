@@ -4,13 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import BrandMark from "../components/BrandMark";
 
-const steps = [
-  "Space",
-  "System",
-  "Color",
-  "Topcoat",
-  "Summary",
-] as const;
+const steps = ["Space", "System", "Color", "Topcoat", "Summary"] as const;
 
 const spaceOptions = [
   {
@@ -149,7 +143,7 @@ export default function ConfiguratorPage() {
 
                   <p className="mt-5 max-w-2xl text-base leading-8 text-zinc-300">
                     Choose your space, system style, color direction, and finish.
-                    Preview a premium garage-style layout as you build.
+                    Preview a premium garage-style direction as you build.
                   </p>
 
                   <div className="mt-7 flex flex-wrap gap-3">
@@ -197,26 +191,11 @@ export default function ConfiguratorPage() {
                         <div className="truncate text-base font-bold text-white">
                           {item}
                         </div>
-                        <div className="mt-1 text-sm text-zinc-500">
-                          Step {index + 1}
-                        </div>
+                        <div className="mt-1 text-sm text-zinc-500">Step {index + 1}</div>
                       </div>
                     </button>
                   );
                 })}
-              </div>
-
-              <div className="mt-6 rounded-[24px] border border-white/10 bg-black/25 p-4">
-                <div className="text-xs uppercase tracking-[0.22em] text-zinc-500">
-                  Current Selection
-                </div>
-                <div className="mt-3 text-lg font-bold text-white">
-                  {steps[step]}
-                </div>
-                <div className="mt-2 text-sm leading-7 text-zinc-400">
-                  Move step by step and refine the floor direction before
-                  requesting a quote.
-                </div>
               </div>
             </aside>
 
@@ -296,9 +275,7 @@ export default function ConfiguratorPage() {
                     options={systemOptions}
                     activeId={system.id}
                     onSelect={(id) =>
-                      setSystem(
-                        systemOptions.find((option) => option.id === id) || systemOptions[0]
-                      )
+                      setSystem(systemOptions.find((option) => option.id === id) || systemOptions[0])
                     }
                   />
                 )}
@@ -322,9 +299,7 @@ export default function ConfiguratorPage() {
                     options={topcoatOptions}
                     activeId={topcoat.id}
                     onSelect={(id) =>
-                      setTopcoat(
-                        topcoatOptions.find((option) => option.id === id) || topcoatOptions[0]
-                      )
+                      setTopcoat(topcoatOptions.find((option) => option.id === id) || topcoatOptions[0])
                     }
                   />
                 )}
@@ -336,8 +311,7 @@ export default function ConfiguratorPage() {
                       Your configured floor
                     </h2>
                     <p className="mt-3 max-w-2xl text-base leading-8 text-zinc-400">
-                      Review your floor direction, then move into quote request
-                      when you are ready.
+                      Review your selections, then move into quote request when ready.
                     </p>
 
                     <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -380,10 +354,7 @@ export default function ConfiguratorPage() {
                   Next
                 </button>
               ) : (
-                <a
-                  href="mailto:cameron@camspainting.co"
-                  className="ui-btn ui-btn-primary flex-1"
-                >
+                <a href="mailto:cameron@camspainting.co" className="ui-btn ui-btn-primary flex-1">
                   Quote
                 </a>
               )}

@@ -1,222 +1,228 @@
-import Link from "next/link";
-import BrandMark from "./components/BrandMark";
+'use client';
 
-const highlights = [
-  { value: "Premium", label: "Finish Quality" },
-  { value: "Custom", label: "Epoxy Systems" },
-  { value: "Built", label: "To Last" },
+import { useEffect, useMemo, useState } from 'react';
+import styles from './page.module.css';
+
+type BackgroundOption = {
+  id: string;
+  label: string;
+  type: 'image' | 'gradient';
+  value: string;
+};
+
+const backgroundOptions: BackgroundOption[] = [
+  {
+    id: 'resin-blue',
+    label: 'Deep Resin Blue',
+    type: 'image',
+    value: '/backgrounds/artipoxi-blue-resin.jpg',
+  },
+  {
+    id: 'dark-luxury',
+    label: 'Dark Luxury',
+    type: 'image',
+    value: '/backgrounds/dark-luxury-texture.jpg',
+  },
+  {
+    id: 'blue-glow',
+    label: 'Blue Glow Gradient',
+    type: 'gradient',
+    value:
+      'radial-gradient(circle at 20% 20%, rgba(0, 180, 255, 0.16), transparent 25%), radial-gradient(circle at 80% 10%, rgba(255,255,255,0.06), transparent 18%), linear-gradient(180deg, #030712 0%, #071120 45%, #02050c 100%)',
+  },
 ];
 
-const systems = [
+const featuredProducts = [
   {
-    title: "Garage Floors",
-    text: "Premium epoxy floor systems designed to transform garages into clean, durable, high-end finished spaces.",
+    id: 1,
+    name: 'Ocean Resin Cross',
+    description: 'Deep ocean blue resin with natural wood grain and a luxury handcrafted finish.',
+    tag: 'Featured',
   },
   {
-    title: "Workshops",
-    text: "Strong enough for daily use while still delivering a polished, premium surface clients notice immediately.",
+    id: 2,
+    name: 'Epoxy Jewelry',
+    description: 'Wearable art inspired by nature, resin flow, and rich organic textures.',
+    tag: 'Popular',
   },
   {
-    title: "Custom Finishes",
-    text: "Distinct color and movement options that give each project a more custom, elevated visual identity.",
+    id: 3,
+    name: 'Custom Art Pieces',
+    description: 'One-of-a-kind resin and wood creations designed around your vision.',
+    tag: 'Custom',
   },
 ];
 
 export default function HomePage() {
+  const [selectedBgId, setSelectedBgId] = useState('blue-glow');
+  const [showBgEditor, setShowBgEditor] = useState(false);
+
+  useEffect(() => {
+    const savedBg = localStorage.getItem('artipoxi-home-bg');
+    if (savedBg) setSelectedBgId(savedBg);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('artipoxi-home-bg', selectedBgId);
+  }, [selectedBgId]);
+
+  const selectedBg =
+    backgroundOptions.find((bg) => bg.id === selectedBgId) ?? backgroundOptions[0];
+
+  const heroStyle = useMemo(() => {
+    if (selectedBg.type === 'image') {
+      return {
+        backgroundImage: `
+          linear-gradient(180deg, rgba(2, 5, 12, 0.56) 0%, rgba(3, 7, 15, 0.74) 45%, rgba(2, 4, 10, 0.94) 100%),
+          url(${selectedBg.value})
+        `,
+      };
+    }
+
+    return {
+      backgroundImage: selectedBg.value,
+    };
+  }, [selectedBg]);
+
   return (
-    <main className="page-shell min-h-screen text-white">
-      <section className="border-b border-white/10">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 md:px-6 md:py-5">
-          <div className="min-w-0 flex-1">
-            <BrandMark href="/" subtitle="Premium Epoxy Systems" size="md" />
+    <main className={styles.page}>
+      <section className={styles.hero} style={heroStyle}>
+        <div className={styles.overlayGlow} />
+        <div className={styles.overlayGrid} />
+
+        <header className={styles.header}>
+          <div className={styles.brand}>
+            <div className={styles.logo}>A</div>
+
+            <div>
+              <p className={styles.brandLabel}>ARTIPOXI</p>
+              <h2 className={styles.brandTitle}>The Art of Nature, Reinvented</h2>
+            </div>
           </div>
 
-          <div className="hidden items-center gap-3 md:flex">
-            <a href="#systems" className="ui-btn">
-              Systems
-            </a>
-            <a href="#projects" className="ui-btn">
-              Projects
-            </a>
-            <Link href="/configurator" className="ui-btn">
-              Configurator
-            </Link>
-            <Link href="/login" className="ui-btn ui-btn-primary">
-              Login
-            </Link>
-          </div>
+          <nav className={styles.nav}>
+            <button className={styles.navBtn}>Home</button>
+            <button className={styles.navBtn}>Shop</button>
+            <button className={styles.navBtn}>Collections</button>
+            <button className={styles.navBtn}>Custom</button>
+            <button className={styles.navBtn}>About</button>
+          </nav>
+        </header>
 
-          <div className="md:hidden">
-            <Link href="/login" className="ui-btn ui-btn-primary">
-              Login
-            </Link>
-          </div>
-        </div>
-      </section>
+        <div className={styles.heroContent}>
+          <div className={styles.left}>
+            <p className={styles.eyebrow}>HANDCRAFTED EPOXY ART</p>
 
-      <section className="mx-auto max-w-7xl px-4 py-10 md:px-6 md:py-14">
-        <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
-          <div>
-            <div className="section-kicker">ArtiPoxi Surfaces</div>
-
-            <h1 className="mt-4 text-4xl font-black leading-[0.95] tracking-[-0.04em] md:text-6xl xl:text-7xl">
-              Premium floors.
-              <br />
-              Contractor strong.
-              <br />
-              Built to last.
+            <h1 className={styles.heading}>
+              Nature-inspired resin art
+              <span className={styles.headingAccent}> crafted with a luxury modern edge.</span>
             </h1>
 
-            <p className="mt-5 max-w-2xl text-base leading-8 text-zinc-300 md:text-lg">
-              ArtiPoxi creates premium epoxy systems for garages, shops, and
-              custom spaces with a clean luxury finish and real-world durability.
+            <p className={styles.subtext}>
+              Discover handcrafted epoxy creations designed to blend natural wood,
+              deep color, premium detail, and bold visual presence.
             </p>
 
-            <div className="mt-7 flex flex-wrap gap-3">
-              <a href="#projects" className="ui-btn ui-btn-primary">
-                View Projects
-              </a>
-              <a href="#contact" className="ui-btn">
-                Start Your Quote
-              </a>
+            <div className={styles.buttonRow}>
+              <button className={styles.primaryBtn}>Explore Collection</button>
+              <button className={styles.secondaryBtn}>View Featured</button>
             </div>
 
-            <div className="mt-8 grid gap-3 sm:grid-cols-3">
-              {highlights.map((item) => (
-                <div key={item.label} className="glass-panel-soft rounded-[22px] p-4">
-                  <div className="text-2xl font-black text-slate-100">{item.value}</div>
-                  <div className="mt-1 text-xs uppercase tracking-[0.22em] text-zinc-500">
-                    {item.label}
-                  </div>
-                </div>
-              ))}
+            <div className={styles.statRow}>
+              <div className={styles.statCard}>
+                <span className={styles.statLabel}>Material</span>
+                <span className={styles.statValue}>Wood + Resin</span>
+              </div>
+
+              <div className={styles.statCard}>
+                <span className={styles.statLabel}>Style</span>
+                <span className={styles.statValue}>Luxury Modern</span>
+              </div>
+
+              <div className={styles.statCard}>
+                <span className={styles.statLabel}>Finish</span>
+                <span className={styles.statValue}>Handcrafted</span>
+              </div>
             </div>
           </div>
 
-          <div className="hero-garage min-h-[340px] md:min-h-[580px]">
-            <div className="flex h-full flex-col justify-between p-5 md:p-8">
-              <div className="flex items-start justify-between gap-4">
-                <div className="glass-panel-soft rounded-[22px] px-4 py-3">
-                  <BrandMark href="/" subtitle="Featured Finish" size="sm" />
-                </div>
-
-                <div className="ui-chip ui-chip-silver hidden sm:inline-flex">
-                  Garage transformation
-                </div>
+          <div className={styles.right}>
+            <div className={styles.showcaseCard}>
+              <div className={styles.showcaseTop}>
+                <span className={styles.showcaseBadge}>Featured Piece</span>
               </div>
 
-              <div className="self-start rounded-[24px] border border-white/10 bg-black/45 p-4 backdrop-blur md:max-w-[380px] md:p-5">
-                <div className="text-sm text-zinc-400">Featured system</div>
-                <div className="mt-2 text-2xl font-black text-white md:text-3xl">
-                  Black Resin Garage Finish
-                </div>
-                <div className="mt-2 text-sm leading-6 text-zinc-300">
-                  Deep resin movement, strong contrast, and a premium modern finish
-                  that feels custom without losing durability.
-                </div>
+              <div className={styles.showcaseImageArea}>
+                <div className={styles.showcaseGlow} />
+                <div className={styles.showcaseMock}>ART DISPLAY</div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-3">
-                <MiniCard title="Space" value="Garage" />
-                <MiniCard title="Style" value="Premium Epoxy" />
-                <MiniCard title="Tone" value="Black / Silver" />
+              <div className={styles.showcaseBottom}>
+                <h3 className={styles.showcaseTitle}>Ocean Resin Cross</h3>
+                <p className={styles.showcaseText}>
+                  A bold resin-and-wood statement piece with deep ocean tones and a
+                  premium display look.
+                </p>
+
+                <button className={styles.cardBtn}>Shop This Piece</button>
               </div>
             </div>
           </div>
         </div>
-      </section>
 
-      <section id="systems" className="border-t border-white/10">
-        <div className="mx-auto max-w-7xl px-4 py-12 md:px-6 md:py-16">
-          <div className="max-w-2xl">
-            <div className="section-kicker">Systems</div>
-            <h2 className="mt-4 text-3xl font-black tracking-tight md:text-5xl">
-              Built for real spaces.
-            </h2>
-            <p className="mt-4 text-base leading-7 text-zinc-400">
-              Professional systems for garages, work areas, and custom interior surfaces.
-            </p>
-          </div>
+        <div className={styles.editorSection}>
+          <button
+            className={styles.editorToggle}
+            onClick={() => setShowBgEditor((prev) => !prev)}
+          >
+            {showBgEditor ? 'Close Background Options' : 'Edit Homepage Background'}
+          </button>
 
-          <div className="mt-8 grid gap-5 md:grid-cols-3">
-            {systems.map((system) => (
-              <div key={system.title} className="preview-frame">
-                <div className="preview-image h-52" />
-                <div className="p-5">
-                  <div className="ui-chip mb-4">{system.title}</div>
-                  <div className="text-2xl font-bold text-white">{system.title}</div>
-                  <p className="mt-3 text-sm leading-7 text-zinc-400 md:text-base">
-                    {system.text}
-                  </p>
-                </div>
+          {showBgEditor && (
+            <div className={styles.bgEditor}>
+              <div className={styles.editorHeader}>
+                <h3>Background Options</h3>
+                <p>Select the homepage background style.</p>
               </div>
-            ))}
-          </div>
+
+              <div className={styles.bgGrid}>
+                {backgroundOptions.map((bg) => (
+                  <button
+                    key={bg.id}
+                    className={`${styles.bgChoice} ${
+                      selectedBgId === bg.id ? styles.bgChoiceActive : ''
+                    }`}
+                    onClick={() => setSelectedBgId(bg.id)}
+                  >
+                    {bg.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
-      <section id="projects" className="border-t border-white/10">
-        <div className="mx-auto max-w-7xl px-4 py-12 md:px-6 md:py-16">
-          <div className="max-w-2xl">
-            <div className="section-kicker">Project Work</div>
-            <h2 className="mt-4 text-3xl font-black tracking-tight md:text-5xl">
-              Clean before-and-after impact.
-            </h2>
-          </div>
-
-          <div className="mt-8 grid gap-4 md:grid-cols-2">
-            <div className="preview-frame p-4">
-              <div className="text-xs uppercase tracking-[0.24em] text-zinc-500">Before</div>
-              <div className="preview-image mt-3 h-56 rounded-[20px]" />
-            </div>
-
-            <div className="preview-frame p-4">
-              <div className="text-xs uppercase tracking-[0.24em] text-zinc-500">After</div>
-              <div className="hero-garage mt-3 h-56 rounded-[20px]" />
-            </div>
-          </div>
+      <section className={styles.section}>
+        <div className={styles.sectionIntro}>
+          <p className={styles.sectionEyebrow}>CURATED COLLECTIONS</p>
+          <h2 className={styles.sectionTitle}>Featured categories</h2>
+          <p className={styles.sectionText}>
+            Explore handcrafted pieces designed to feel bold, artistic, and premium.
+          </p>
         </div>
-      </section>
 
-      <section id="contact" className="border-t border-white/10">
-        <div className="mx-auto max-w-5xl px-4 py-12 md:px-6 md:py-16">
-          <div className="glass-panel-strong rounded-[30px] p-6 text-center md:p-10">
-            <div className="section-kicker">Request a Quote</div>
-            <h2 className="mt-4 text-3xl font-black tracking-tight md:text-5xl">
-              Ready to transform your floor?
-            </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-zinc-400">
-              Reach out for pricing, finish recommendations, or secure project access.
-            </p>
-
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <a href="mailto:cameron@camspainting.co" className="ui-btn ui-btn-primary">
-                Request a Quote
-              </a>
-              <Link href="/login" className="ui-btn">
-                Secure Login
-              </Link>
-            </div>
-          </div>
+        <div className={styles.cardGrid}>
+          {featuredProducts.map((item) => (
+            <article key={item.id} className={styles.productCard}>
+              <span className={styles.productTag}>{item.tag}</span>
+              <h3 className={styles.productTitle}>{item.name}</h3>
+              <p className={styles.productDescription}>{item.description}</p>
+              <button className={styles.productBtn}>View More</button>
+            </article>
+          ))}
         </div>
       </section>
     </main>
-  );
-}
-
-function MiniCard({
-  title,
-  value,
-}: {
-  title: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-[16px] border border-white/10 bg-black/35 p-3 backdrop-blur">
-      <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">
-        {title}
-      </div>
-      <div className="mt-2 text-sm font-semibold text-white">{value}</div>
-    </div>
   );
 }

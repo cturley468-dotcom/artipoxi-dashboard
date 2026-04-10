@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
+import { getCurrentProfile, isInstaller, type Profile } from "../../lib/auth";
 import styles from "./page.module.css";
 
 type WorkOrder = {
@@ -50,7 +51,7 @@ export default function InstallerWorkOrdersPage() {
   const router = useRouter();
 
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const [userEmail, setUserEmail] = useState("");
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>(demoWorkOrders);
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [search, setSearch] = useState("");
@@ -58,21 +59,26 @@ export default function InstallerWorkOrdersPage() {
   useEffect(() => {
     let mounted = true;
 
-    async function checkSession() {
-      const { data } = await supabase.auth.getSession();
+    async function checkAccess() {
+      const installerProfile = await getCurrentProfile();
 
       if (!mounted) return;
 
-      if (!data.session) {
+      if (!installerProfile) {
         router.replace("/login");
         return;
       }
 
-      setUserEmail(data.session.user.email ?? "");
+      if (!isInstaller(installerProfile.role)) {
+        router.replace("/dashboard");
+        return;
+      }
+
+      setProfile(installerProfile);
       setCheckingAuth(false);
     }
 
-    checkSession();
+    checkAccess();
 
     return () => {
       mounted = false;
@@ -88,7 +94,8 @@ export default function InstallerWorkOrdersPage() {
   const filteredOrders = useMemo(() => {
     return workOrders.filter((order) => {
       const matchesStatus =
-        selectedStatus === "All" || (order.status ?? "").toLowerCase() === selectedStatus.toLowerCase();
+        selectedStatus === "All" ||
+        (order.status ?? "").toLowerCase() === selectedStatus.toLowerCase();
 
       const haystack = [
         order.id,
@@ -100,9 +107,7 @@ export default function InstallerWorkOrdersPage() {
         .join(" ")
         .toLowerCase();
 
-      const matchesSearch = haystack.includes(search.toLowerCase());
-
-      return matchesStatus && matchesSearch;
+      return matchesStatus && haystack.includes(search.toLowerCase());
     });
   }, [workOrders, selectedStatus, search]);
 
@@ -129,25 +134,16 @@ export default function InstallerWorkOrdersPage() {
           </div>
 
           <nav className={styles.sideNav}>
-            <Link href="/" className={styles.sideLink}>
-              Home
-            </Link>
-            <Link href="/dashboard" className={styles.sideLink}>
-              Dashboard
-            </Link>
-            <Link href="/jobs" className={styles.sideLink}>
-              Jobs
-            </Link>
             <Link href="/installer/work-orders" className={styles.sideLinkActive}>
               Work Orders
             </Link>
-            <Link href="/configurator" className={styles.sideLink}>
-              Configurator
+            <Link href="/installer/schedule" className={styles.sideLink}>
+              Schedule
             </Link>
           </nav>
 
           <div className={styles.sideFooter}>
-            {userEmail ? <p className={styles.userEmail}>{userEmail}</p> : null}
+            {profile?.email ? <p className={styles.userEmail}>{profile.email}</p> : null}
             <button className={styles.logoutBtn} onClick={handleLogout}>
               Logout
             </button>
@@ -160,17 +156,8 @@ export default function InstallerWorkOrdersPage() {
               <p className={styles.eyebrow}>INSTALLER WORKFLOW</p>
               <h1 className={styles.title}>Work Orders</h1>
               <p className={styles.subtitle}>
-                Review upcoming installs, track status, and keep the crew aligned on active jobs.
+                Review assigned installs, track status, and stay focused on active field work.
               </p>
-            </div>
-
-            <div className={styles.topActions}>
-              <Link href="/jobs" className={styles.primaryBtn}>
-                Open Jobs
-              </Link>
-              <Link href="/dashboard" className={styles.secondaryBtn}>
-                Dashboard
-              </Link>
             </div>
           </header>
 

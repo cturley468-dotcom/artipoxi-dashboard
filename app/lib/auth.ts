@@ -1,4 +1,4 @@
-import { supabase } from "../lib/supabase";
+import { supabase } from "./supabase";
 
 export type UserRole = "admin" | "staff" | "installer" | "customer";
 
@@ -21,18 +21,30 @@ export async function getCurrentUser() {
   return data.user;
 }
 
-export async function getCurrentProfile() {
-  const user = await getCurrentUser();
+export async function getCurrentProfile(): Promise<Profile | null> {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
 
-  if (!user) return null;
+  if (userError) throw userError;
+  if (!userData.user) return null;
 
   const { data, error } = await supabase
     .from("profiles")
     .select("id, email, full_name, role")
-    .eq("id", user.id)
-    .maybeSingle();
+    .eq("id", userData.user.id)
+    .single();
 
-  if (error) throw error;
+  if (error) {
+    console.error("Profile fetch error:", error.message);
+    return null;
+  }
 
-  return data as Profile | null;
+  return data as Profile;
+}
+
+export function isInstaller(role?: string | null) {
+  return role === "installer";
+}
+
+export function isAdmin(role?: string | null) {
+  return role === "admin";
 }

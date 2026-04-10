@@ -4,40 +4,60 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
+import { getCurrentProfile, isInstaller, type Profile } from "../lib/auth";
 import styles from "./page.module.css";
 
-const statCards = [
-  { label: "Projected Revenue", value: "$24,500" },
-  { label: "Active Jobs", value: "8" },
-  { label: "Open Leads", value: "13" },
-  { label: "Work Orders", value: "21" },
+const stats = [
+  { label: "Projected Revenue", value: "$24,500", detail: "+12% this month" },
+  { label: "Active Jobs", value: "8", detail: "3 installs this week" },
+  { label: "Open Leads", value: "13", detail: "5 need follow-up" },
+  { label: "Work Orders", value: "21", detail: "7 ready to schedule" },
 ];
 
-const quickLinks = [
-  { label: "Open Jobs", href: "/jobs" },
-  { label: "Configurator", href: "/configurator" },
-  { label: "Login", href: "/login" },
+const pipeline = [
+  { stage: "New Leads", count: 5 },
+  { stage: "Quoted", count: 4 },
+  { stage: "Scheduled", count: 3 },
+  { stage: "In Progress", count: 4 },
+];
+
+const recentActivity = [
+  { title: "Smith Garage moved to Scheduled", time: "10 min ago" },
+  { title: "Harris Shop estimate updated", time: "42 min ago" },
+  { title: "Turner Patio deposit marked paid", time: "1 hr ago" },
+  { title: "New lead added from website form", time: "2 hr ago" },
+];
+
+const upcoming = [
+  { title: "Garage Epoxy Install", date: "Apr 14", location: "Anderson, SC" },
+  { title: "Shop Floor Coating", date: "Apr 16", location: "Greenville, SC" },
+  { title: "Patio Seal + Finish", date: "Apr 19", location: "Belton, SC" },
 ];
 
 export default function DashboardPage() {
   const router = useRouter();
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const [userEmail, setUserEmail] = useState("");
+  const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
     let mounted = true;
 
     async function protectPage() {
-      const { data } = await supabase.auth.getSession();
+      const currentProfile = await getCurrentProfile();
 
       if (!mounted) return;
 
-      if (!data.session) {
+      if (!currentProfile) {
         router.replace("/login");
         return;
       }
 
-      setUserEmail(data.session.user.email ?? "");
+      if (isInstaller(currentProfile.role)) {
+        router.replace("/installer/work-orders");
+        return;
+      }
+
+      setProfile(currentProfile);
       setCheckingAuth(false);
     }
 
@@ -88,13 +108,32 @@ export default function DashboardPage() {
             <Link href="/jobs" className={styles.sideLink}>
               Jobs
             </Link>
+            <Link href="/leads" className={styles.sideLink}>
+              Leads
+            </Link>
+            <Link href="/schedule" className={styles.sideLink}>
+              Schedule
+            </Link>
             <Link href="/configurator" className={styles.sideLink}>
               Configurator
             </Link>
-            <Link href="/login" className={styles.sideLink}>
-              Login
+            <Link href="/dashboard/finance" className={styles.sideLink}>
+              Finance
+            </Link>
+            <Link href="/dashboard/inventory" className={styles.sideLink}>
+              Inventory
             </Link>
           </nav>
+
+          <div className={styles.sideFooter}>
+            {profile?.email ? (
+              <p className={styles.userEmail}>Signed in as {profile.email}</p>
+            ) : null}
+
+            <button className={styles.logoutBtn} onClick={handleLogout}>
+              Logout
+            </button>
+          </div>
         </aside>
 
         <section className={styles.main}>
@@ -103,12 +142,8 @@ export default function DashboardPage() {
               <p className={styles.eyebrow}>CONTROL CENTER</p>
               <h1 className={styles.title}>Dashboard</h1>
               <p className={styles.subtitle}>
-                Track jobs, scheduling, leads, and business activity from one clean
-                control center.
+                Track jobs, scheduling, leads, and business activity from one clean control center.
               </p>
-              {userEmail ? (
-                <p className={styles.userEmail}>Signed in as {userEmail}</p>
-              ) : null}
             </div>
 
             <div className={styles.topActions}>
@@ -118,17 +153,45 @@ export default function DashboardPage() {
               <Link href="/configurator" className={styles.secondaryBtn}>
                 Configurator
               </Link>
-              <button className={styles.logoutBtn} onClick={handleLogout}>
-                Logout
-              </button>
             </div>
           </header>
 
+          <section className={styles.heroPanel}>
+            <div className={styles.heroPanelLeft}>
+              <p className={styles.heroTag}>Business Snapshot</p>
+              <h2 className={styles.heroTitle}>Everything important, one view.</h2>
+              <p className={styles.heroText}>
+                Keep your sales pipeline, install schedule, revenue targets, and active work moving in one place.
+              </p>
+
+              <div className={styles.heroActions}>
+                <Link href="/leads" className={styles.heroPrimary}>
+                  View Leads
+                </Link>
+                <Link href="/schedule" className={styles.heroGhost}>
+                  Open Schedule
+                </Link>
+              </div>
+            </div>
+
+            <div className={styles.heroPanelRight}>
+              <div className={styles.heroMiniCard}>
+                <span className={styles.heroMiniLabel}>Focus</span>
+                <strong className={styles.heroMiniValue}>3 installs this week</strong>
+              </div>
+              <div className={styles.heroMiniCard}>
+                <span className={styles.heroMiniLabel}>Next target</span>
+                <strong className={styles.heroMiniValue}>Close 5 open leads</strong>
+              </div>
+            </div>
+          </section>
+
           <section className={styles.statsGrid}>
-            {statCards.map((item) => (
+            {stats.map((item) => (
               <article key={item.label} className={styles.statCard}>
                 <span className={styles.statLabel}>{item.label}</span>
                 <strong className={styles.statValue}>{item.value}</strong>
+                <span className={styles.statDetail}>{item.detail}</span>
               </article>
             ))}
           </section>
@@ -142,56 +205,69 @@ export default function DashboardPage() {
               </p>
 
               <div className={styles.linkList}>
-                {quickLinks.map((item) => (
-                  <Link key={item.label} href={item.href} className={styles.actionLink}>
-                    {item.label}
-                  </Link>
-                ))}
+                <Link href="/jobs" className={styles.actionLink}>
+                  Open Jobs
+                </Link>
+                <Link href="/leads" className={styles.actionLink}>
+                  View Leads
+                </Link>
+                <Link href="/schedule" className={styles.actionLink}>
+                  Open Schedule
+                </Link>
+                <Link href="/configurator" className={styles.actionLink}>
+                  Configurator
+                </Link>
               </div>
             </div>
 
             <div className={styles.panel}>
-              <p className={styles.panelTag}>System Status</p>
-              <h3 className={styles.panelTitle}>All systems ready</h3>
+              <p className={styles.panelTag}>Pipeline</p>
+              <h3 className={styles.panelTitle}>Sales flow</h3>
 
-              <div className={styles.statusList}>
-                <div className={styles.statusRow}>
-                  <span>Dashboard</span>
-                  <span className={styles.statusGood}>Active</span>
-                </div>
-                <div className={styles.statusRow}>
-                  <span>Jobs</span>
-                  <span className={styles.statusGood}>Ready</span>
-                </div>
-                <div className={styles.statusRow}>
-                  <span>Schedule</span>
-                  <span className={styles.statusGood}>Ready</span>
-                </div>
-                <div className={styles.statusRow}>
-                  <span>Configurator</span>
-                  <span className={styles.statusGood}>Ready</span>
-                </div>
+              <div className={styles.pipelineList}>
+                {pipeline.map((item) => (
+                  <div key={item.stage} className={styles.pipelineRow}>
+                    <span>{item.stage}</span>
+                    <span className={styles.pipelineCount}>{item.count}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </section>
 
           <section className={styles.bottomGrid}>
             <div className={styles.panel}>
-              <p className={styles.panelTag}>Lead Summary</p>
-              <h3 className={styles.panelTitle}>13 open leads</h3>
-              <p className={styles.panelText}>
-                Continue building real lead cards, pipeline movement, and customer
-                notes here.
-              </p>
+              <p className={styles.panelTag}>Upcoming Schedule</p>
+              <h3 className={styles.panelTitle}>Next assignments</h3>
+
+              <div className={styles.scheduleList}>
+                {upcoming.map((item) => (
+                  <div key={`${item.title}-${item.date}`} className={styles.scheduleRow}>
+                    <div>
+                      <div className={styles.scheduleTitle}>{item.title}</div>
+                      <div className={styles.scheduleMeta}>{item.location}</div>
+                    </div>
+                    <div className={styles.scheduleDate}>{item.date}</div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className={styles.panel}>
-              <p className={styles.panelTag}>Scheduling</p>
-              <h3 className={styles.panelTitle}>Upcoming installs</h3>
-              <p className={styles.panelText}>
-                This section can become your live install board, schedule calendar,
-                or crew view.
-              </p>
+              <p className={styles.panelTag}>Recent Activity</p>
+              <h3 className={styles.panelTitle}>Latest updates</h3>
+
+              <div className={styles.activityList}>
+                {recentActivity.map((item) => (
+                  <div key={`${item.title}-${item.time}`} className={styles.activityRow}>
+                    <div className={styles.activityDot} />
+                    <div>
+                      <div className={styles.activityTitle}>{item.title}</div>
+                      <div className={styles.activityTime}>{item.time}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
         </section>

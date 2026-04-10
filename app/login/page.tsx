@@ -74,8 +74,19 @@ export default function LoginPage() {
   return (
     <main className={styles.page}>
       <div className={styles.card}>
-        <p className={styles.eyebrow}>ACCESS PORTAL</p>
+        <div className={styles.brandRow}>
+          <div className={styles.logo}>AP</div>
+          <div>
+            <p className={styles.brandTop}>ARTIPOXI</p>
+            <h2 className={styles.brandBottom}>Access Portal</h2>
+          </div>
+        </div>
+
+        <p className={styles.eyebrow}>SIGN IN</p>
         <h1 className={styles.title}>Login</h1>
+        <p className={styles.subtitle}>
+          Access your dashboard, jobs, and installer tools from one secure workspace.
+        </p>
 
         <form className={styles.form} onSubmit={handleSubmit}>
           <input
@@ -112,6 +123,9 @@ export default function LoginPage() {
           </Link>
           <Link href="/dashboard" className={styles.linkBtn}>
             Dashboard
+          </Link>
+          <Link href="/installer/work-orders" className={styles.linkBtn}>
+            Work Orders
           </Link>
         </div>
       </div>

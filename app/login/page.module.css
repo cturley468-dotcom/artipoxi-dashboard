@@ -10,8 +10,8 @@
 }
 
 .card {
-  width: min(100%, 480px);
-  padding: 28px;
+  width: min(100%, 520px);
+  padding: 30px;
   border-radius: 28px;
   background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
   border: 1px solid rgba(255,255,255,0.1);
@@ -19,17 +19,53 @@
   box-shadow: 0 26px 60px rgba(0, 0, 0, 0.28);
 }
 
+.brandRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.logo {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(0,212,255,0.24);
+}
+
+.brandTop {
+  margin: 0;
+  font-size: 0.76rem;
+  letter-spacing: 0.2em;
+  color: rgba(216,240,255,0.68);
+}
+
+.brandBottom {
+  margin: 4px 0 0;
+  font-size: 1rem;
+}
+
 .eyebrow {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   letter-spacing: 0.22em;
   color: #8fdfff;
   font-size: 0.78rem;
 }
 
 .title {
-  margin: 0 0 20px;
+  margin: 0;
   font-size: 3rem;
   line-height: 0.95;
+}
+
+.subtitle {
+  margin: 14px 0 22px;
+  line-height: 1.7;
+  color: rgba(231,243,255,0.78);
 }
 
 .form {
@@ -54,6 +90,12 @@
 
 .input::placeholder {
   color: rgba(17, 24, 39, 0.45);
+}
+
+.status {
+  margin: 2px 0 0;
+  color: #9fe8ff;
+  font-size: 0.95rem;
 }
 
 .error {
@@ -101,16 +143,4 @@
 
 .linkBtn:hover {
   background: rgba(255,255,255,0.08);
-}
-
-.status {
-  margin: 2px 0 0;
-  color: #9fe8ff;
-  font-size: 0.95rem;
-}
-
-.error {
-  margin: 2px 0 0;
-  color: #ffb4b4;
-  font-size: 0.95rem;
 }

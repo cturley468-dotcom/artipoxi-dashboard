@@ -1,203 +1,242 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getCurrentProfile } from "../../lib/auth";
-import { supabase } from "../../lib/supabase";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-
-type UserRole = "admin" | "staff" | "installer" | "customer";
-
-type Profile = {
-  id: string;
-  email: string | null;
-  full_name: string | null;
-  role: UserRole;
-};
+import { supabase } from "../../lib/supabase";
+import styles from "./page.module.css";
 
 type WorkOrder = {
   id: string;
-  job_id: string | null;
-  title: string | null;
-  description: string | null;
-  materials: string | null;
-  scheduled_date: string | null;
-  status: "Open" | "In Progress" | "Completed";
-  assigned_installer_id: string | null;
-  assigned_installer_name: string | null;
+  title: string;
+  client_name: string | null;
+  status: string | null;
+  address: string | null;
+  install_date: string | null;
+  notes: string | null;
 };
+
+const demoWorkOrders: WorkOrder[] = [
+  {
+    id: "WO-1042",
+    title: "Garage Epoxy Install",
+    client_name: "Smith Residence",
+    status: "Scheduled",
+    address: "Anderson, SC",
+    install_date: "2026-04-14",
+    notes: "Prep floor, grind surface, metallic charcoal finish.",
+  },
+  {
+    id: "WO-1043",
+    title: "Shop Floor Coating",
+    client_name: "Harris Auto",
+    status: "In Progress",
+    address: "Greenville, SC",
+    install_date: "2026-04-16",
+    notes: "Back room first, then front showroom.",
+  },
+  {
+    id: "WO-1044",
+    title: "Patio Seal + Finish",
+    client_name: "Turner Property",
+    status: "Ready",
+    address: "Belton, SC",
+    install_date: "2026-04-19",
+    notes: "Customer requested satin topcoat.",
+  },
+];
 
 export default function InstallerWorkOrdersPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
-  const [message, setMessage] = useState("");
+
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [userEmail, setUserEmail] = useState("");
+  const [workOrders, setWorkOrders] = useState<WorkOrder[]>(demoWorkOrders);
+  const [selectedStatus, setSelectedStatus] = useState("All");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
-    async function load() {
-      try {
-        const profile = await getCurrentProfile();
+    let mounted = true;
 
-        if (!profile) {
-          router.replace("/login");
-          return;
-        }
+    async function checkSession() {
+      const { data } = await supabase.auth.getSession();
 
-        if (profile.role === "admin" || profile.role === "staff") {
-          router.replace("/dashboard/work-orders");
-          return;
-        }
+      if (!mounted) return;
 
-        if (profile.role === "customer") {
-          router.replace("/portal");
-          return;
-        }
-
-        const { data, error } = await supabase
-          .from("work_orders")
-          .select(
-            "id, job_id, title, description, materials, scheduled_date, status, assigned_installer_id, assigned_installer_name"
-          )
-          .eq("assigned_installer_id", profile.id)
-          .order("scheduled_date", { ascending: true });
-
-        if (error) throw error;
-
-        setWorkOrders((data as WorkOrder[]) || []);
-      } catch (error: any) {
-        setMessage(error?.message || "Failed to load work orders.");
-      } finally {
-        setLoading(false);
+      if (!data.session) {
+        router.replace("/login");
+        return;
       }
+
+      setUserEmail(data.session.user.email ?? "");
+      setCheckingAuth(false);
     }
 
-    load();
+    checkSession();
+
+    return () => {
+      mounted = false;
+    };
   }, [router]);
 
-  async function updateStatus(
-    workOrderId: string,
-    newStatus: "Open" | "In Progress" | "Completed"
-  ) {
-    const { error } = await supabase
-      .from("work_orders")
-      .update({ status: newStatus })
-      .eq("id", workOrderId);
-
-    if (error) {
-      setMessage(error.message);
-      return;
-    }
-
-    setWorkOrders((prev) =>
-      prev.map((order) =>
-        order.id === workOrderId ? { ...order, status: newStatus } : order
-      )
-    );
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    router.replace("/login");
+    router.refresh();
   }
 
-  if (loading) {
+  const filteredOrders = useMemo(() => {
+    return workOrders.filter((order) => {
+      const matchesStatus =
+        selectedStatus === "All" || (order.status ?? "").toLowerCase() === selectedStatus.toLowerCase();
+
+      const haystack = [
+        order.id,
+        order.title,
+        order.client_name ?? "",
+        order.address ?? "",
+        order.notes ?? "",
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      const matchesSearch = haystack.includes(search.toLowerCase());
+
+      return matchesStatus && matchesSearch;
+    });
+  }, [workOrders, selectedStatus, search]);
+
+  if (checkingAuth) {
     return (
-      <div className="min-h-screen bg-black p-6 text-white">
-        <div className="rounded-2xl border border-white/10 bg-neutral-900 p-6">
-          Loading work orders...
+      <main className={styles.page}>
+        <div className={styles.loadingWrap}>
+          <div className={styles.loadingCard}>Checking installer access...</div>
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black p-6 text-white">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <div>
-          <p className="text-sm uppercase tracking-[0.25em] text-cyan-300">
-            Installer Portal
-          </p>
-          <h1 className="mt-2 text-3xl font-bold">My Work Orders</h1>
-          <p className="mt-2 text-zinc-400">
-            View and update only the work orders assigned to you.
-          </p>
-        </div>
-
-        {message && (
-          <div className="rounded-xl border border-white/10 bg-neutral-900 p-4 text-sm text-zinc-300">
-            {message}
-          </div>
-        )}
-
-        <div className="space-y-4">
-          {workOrders.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-neutral-900 p-6 text-zinc-400">
-              No assigned work orders yet.
+    <main className={styles.page}>
+      <div className={styles.shell}>
+        <aside className={styles.sidebar}>
+          <div className={styles.brandCard}>
+            <div className={styles.logo}>AP</div>
+            <div>
+              <p className={styles.brandTop}>ARTIPOXI</p>
+              <h2 className={styles.brandBottom}>Installer Hub</h2>
             </div>
-          ) : (
-            workOrders.map((order) => (
-              <div
-                key={order.id}
-                className="rounded-2xl border border-white/10 bg-neutral-900 p-6"
-              >
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          </div>
+
+          <nav className={styles.sideNav}>
+            <Link href="/" className={styles.sideLink}>
+              Home
+            </Link>
+            <Link href="/dashboard" className={styles.sideLink}>
+              Dashboard
+            </Link>
+            <Link href="/jobs" className={styles.sideLink}>
+              Jobs
+            </Link>
+            <Link href="/installer/work-orders" className={styles.sideLinkActive}>
+              Work Orders
+            </Link>
+            <Link href="/configurator" className={styles.sideLink}>
+              Configurator
+            </Link>
+          </nav>
+
+          <div className={styles.sideFooter}>
+            {userEmail ? <p className={styles.userEmail}>{userEmail}</p> : null}
+            <button className={styles.logoutBtn} onClick={handleLogout}>
+              Logout
+            </button>
+          </div>
+        </aside>
+
+        <section className={styles.main}>
+          <header className={styles.topbar}>
+            <div>
+              <p className={styles.eyebrow}>INSTALLER WORKFLOW</p>
+              <h1 className={styles.title}>Work Orders</h1>
+              <p className={styles.subtitle}>
+                Review upcoming installs, track status, and keep the crew aligned on active jobs.
+              </p>
+            </div>
+
+            <div className={styles.topActions}>
+              <Link href="/jobs" className={styles.primaryBtn}>
+                Open Jobs
+              </Link>
+              <Link href="/dashboard" className={styles.secondaryBtn}>
+                Dashboard
+              </Link>
+            </div>
+          </header>
+
+          <section className={styles.filterBar}>
+            <input
+              className={styles.searchInput}
+              type="text"
+              placeholder="Search work orders"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+
+            <select
+              className={styles.statusSelect}
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+            >
+              <option>All</option>
+              <option>Ready</option>
+              <option>Scheduled</option>
+              <option>In Progress</option>
+              <option>Complete</option>
+            </select>
+          </section>
+
+          <section className={styles.cardGrid}>
+            {filteredOrders.map((order) => (
+              <article key={order.id} className={styles.orderCard}>
+                <div className={styles.orderTop}>
                   <div>
-                    <h2 className="text-2xl font-bold">
-                      {order.title || "Untitled Work Order"}
-                    </h2>
-                    <div className="mt-2 text-sm text-zinc-400">
-                      Scheduled: {order.scheduled_date || "-"}
-                    </div>
+                    <p className={styles.orderId}>{order.id}</p>
+                    <h3 className={styles.orderTitle}>{order.title}</h3>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => updateStatus(order.id, "Open")}
-                      className="rounded-lg border border-yellow-400/20 bg-yellow-400/10 px-3 py-2 text-sm font-semibold text-yellow-300"
-                    >
-                      Open
-                    </button>
-                    <button
-                      onClick={() => updateStatus(order.id, "In Progress")}
-                      className="rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-sm font-semibold text-cyan-300"
-                    >
-                      In Progress
-                    </button>
-                    <button
-                      onClick={() => updateStatus(order.id, "Completed")}
-                      className="rounded-lg border border-lime-400/20 bg-lime-400/10 px-3 py-2 text-sm font-semibold text-lime-300"
-                    >
-                      Completed
-                    </button>
-                  </div>
+                  <span className={styles.statusBadge}>{order.status ?? "Open"}</span>
                 </div>
 
-                <div className="mt-5 grid gap-4 md:grid-cols-2">
-                  <Info label="Status" value={order.status} />
-                  <Info label="Assigned To" value={order.assigned_installer_name || "-"} />
+                <div className={styles.infoGrid}>
+                  <Info label="Client" value={order.client_name ?? "—"} />
+                  <Info label="Address" value={order.address ?? "—"} />
+                  <Info label="Install Date" value={order.install_date ?? "—"} />
                 </div>
 
-                <div className="mt-5">
-                  <div className="text-sm text-zinc-400">Description</div>
-                  <div className="mt-2 rounded-lg border border-white/10 bg-black/30 p-4 text-zinc-200">
-                    {order.description || "No description."}
-                  </div>
+                <div className={styles.notesBlock}>
+                  <p className={styles.notesLabel}>Notes</p>
+                  <p className={styles.notesText}>{order.notes ?? "No notes added yet."}</p>
                 </div>
 
-                <div className="mt-5">
-                  <div className="text-sm text-zinc-400">Materials</div>
-                  <div className="mt-2 rounded-lg border border-white/10 bg-black/30 p-4 whitespace-pre-wrap text-zinc-200">
-                    {order.materials || "No materials listed."}
-                  </div>
+                <div className={styles.cardActions}>
+                  <button className={styles.actionBtn}>Open Details</button>
+                  <button className={styles.actionGhostBtn}>Mark Updated</button>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
+              </article>
+            ))}
+          </section>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-white/10 bg-black/30 p-4">
-      <div className="text-sm text-zinc-400">{label}</div>
-      <div className="mt-1 font-medium text-white">{value}</div>
+    <div className={styles.infoCard}>
+      <div className={styles.infoLabel}>{label}</div>
+      <div className={styles.infoValue}>{value}</div>
     </div>
   );
 }

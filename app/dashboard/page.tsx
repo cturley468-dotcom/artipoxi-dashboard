@@ -48,7 +48,7 @@ export default function DashboardPage() {
 
             <div className={styles.topActions}>
               <Link href="/jobs" className={styles.primaryBtn}>Open Jobs</Link>
-              <Link href="/configurator" className={styles.secondaryBtn}>Open Configurator</Link>
+              <Link href="/configurator" className={styles.secondaryBtn}>Configurator</Link>
             </div>
           </header>
 
@@ -62,9 +62,12 @@ export default function DashboardPage() {
           </section>
 
           <section className={styles.contentGrid}>
-            <div className={styles.panel}>
+            <div className={styles.panelLarge}>
               <p className={styles.panelTag}>Quick Actions</p>
               <h3 className={styles.panelTitle}>Run the business faster</h3>
+              <p className={styles.panelText}>
+                Jump into the most-used tools and keep the workflow moving.
+              </p>
 
               <div className={styles.linkList}>
                 {quickLinks.map((item) => (
@@ -92,7 +95,29 @@ export default function DashboardPage() {
                   <span>Schedule</span>
                   <span className={styles.statusGood}>Ready</span>
                 </div>
+                <div className={styles.statusRow}>
+                  <span>Configurator</span>
+                  <span className={styles.statusGood}>Ready</span>
+                </div>
               </div>
+            </div>
+          </section>
+
+          <section className={styles.bottomGrid}>
+            <div className={styles.panel}>
+              <p className={styles.panelTag}>Lead Summary</p>
+              <h3 className={styles.panelTitle}>13 open leads</h3>
+              <p className={styles.panelText}>
+                Continue building real lead cards, pipeline movement, and customer notes here.
+              </p>
+            </div>
+
+            <div className={styles.panel}>
+              <p className={styles.panelTag}>Scheduling</p>
+              <h3 className={styles.panelTitle}>Upcoming installs</h3>
+              <p className={styles.panelText}>
+                This section can become your live install board, schedule calendar, or crew view.
+              </p>
             </div>
           </section>
         </section>

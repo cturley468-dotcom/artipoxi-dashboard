@@ -106,6 +106,33 @@ export default function Home() {
             </div>
           </div>
         </div>
+
+        <section className={styles.lowerSection}>
+          <div className={styles.lowerCard}>
+            <p className={styles.lowerTag}>Why ArtiPoxi</p>
+            <h3 className={styles.lowerTitle}>Built for real use, not just looks.</h3>
+            <p className={styles.lowerText}>
+              Premium coatings, clean installation flow, and a stronger customer-facing
+              experience from quote to completion.
+            </p>
+          </div>
+
+          <div className={styles.lowerCard}>
+            <p className={styles.lowerTag}>Business Tools</p>
+            <h3 className={styles.lowerTitle}>Operations and configurator together.</h3>
+            <p className={styles.lowerText}>
+              Manage jobs, track workflow, and build system options inside one matching app.
+            </p>
+          </div>
+
+          <div className={styles.lowerCard}>
+            <p className={styles.lowerTag}>Next Step</p>
+            <h3 className={styles.lowerTitle}>Start building the customer flow.</h3>
+            <p className={styles.lowerText}>
+              Next we can connect login, configurator steps, estimates, and real dashboard data.
+            </p>
+          </div>
+        </section>
       </section>
     </main>
   );

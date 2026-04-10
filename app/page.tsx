@@ -1,3 +1,4 @@
+import Link from "next/link";
 import styles from "./page.module.css";
 
 export default function Home() {
@@ -5,21 +6,24 @@ export default function Home() {
     <main className={styles.page}>
       <section className={styles.hero}>
         <div className={styles.overlay} />
+        <div className={styles.overlayGlow} />
 
         <header className={styles.header}>
           <div className={styles.logoWrap}>
             <div className={styles.logoBox}>AP</div>
-            <div>
-              <p className={styles.brandTop}>ArtiPoxi</p>
+
+            <div className={styles.brandText}>
+              <p className={styles.brandTop}>ARTIPOXI</p>
               <h2 className={styles.brandBottom}>Premium Epoxy Systems</h2>
             </div>
           </div>
 
           <nav className={styles.nav}>
-            <button className={styles.navBtn}>Home</button>
-            <button className={styles.navBtn}>Projects</button>
-            <button className={styles.navBtn}>Services</button>
-            <button className={styles.navBtn}>Contact</button>
+            <Link href="/" className={styles.navBtn}>Home</Link>
+            <Link href="/dashboard" className={styles.navBtn}>Dashboard</Link>
+            <Link href="/jobs" className={styles.navBtn}>Jobs</Link>
+            <Link href="/configurator" className={styles.navBtn}>Configurator</Link>
+            <Link href="/login" className={styles.loginBtn}>Login</Link>
           </nav>
         </header>
 
@@ -41,20 +45,64 @@ export default function Home() {
             </p>
 
             <div className={styles.buttonRow}>
-              <button className={styles.primaryBtn}>View Projects</button>
-              <button className={styles.secondaryBtn}>Start Your Quote</button>
+              <Link href="/jobs" className={styles.primaryBtn}>
+                View Jobs
+              </Link>
+              <Link href="/configurator" className={styles.secondaryBtn}>
+                Start Configurator
+              </Link>
+            </div>
+
+            <div className={styles.metricRow}>
+              <div className={styles.metricCard}>
+                <span className={styles.metricLabel}>Finish</span>
+                <span className={styles.metricValue}>Luxury Resin</span>
+              </div>
+
+              <div className={styles.metricCard}>
+                <span className={styles.metricLabel}>Strength</span>
+                <span className={styles.metricValue}>Contractor Grade</span>
+              </div>
+
+              <div className={styles.metricCard}>
+                <span className={styles.metricLabel}>Use Case</span>
+                <span className={styles.metricValue}>Garage + Shop</span>
+              </div>
             </div>
           </div>
 
           <div className={styles.right}>
             <div className={styles.featureCard}>
-              <span className={styles.featureTag}>Featured System</span>
-              <h3 className={styles.featureTitle}>Black Resin Garage Finish</h3>
-              <p className={styles.featureText}>
-                Deep resin movement, strong contrast, and a premium modern finish
-                that feels custom without losing durability.
-              </p>
-              <button className={styles.cardBtn}>See Details</button>
+              <div className={styles.featureVisual}>
+                <div className={styles.visualGlow} />
+                <div className={styles.visualPanel}>
+                  <div className={styles.visualBadge}>Featured System</div>
+                  <div className={styles.visualLines}>
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                  <div className={styles.visualPlate}>BLACK RESIN FINISH</div>
+                </div>
+              </div>
+
+              <div className={styles.featureInfo}>
+                <span className={styles.featureTag}>Premium Coating</span>
+                <h3 className={styles.featureTitle}>Black Resin Garage Finish</h3>
+                <p className={styles.featureText}>
+                  Deep resin movement, strong contrast, and a premium modern finish
+                  that feels custom without losing durability.
+                </p>
+
+                <div className={styles.featureActions}>
+                  <Link href="/configurator" className={styles.cardBtn}>
+                    Open Configurator
+                  </Link>
+                  <Link href="/dashboard" className={styles.cardGhostBtn}>
+                    Open Dashboard
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
         </div>

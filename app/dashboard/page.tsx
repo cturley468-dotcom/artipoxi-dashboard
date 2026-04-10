@@ -1,89 +1,102 @@
-"use client";
-
 import Link from "next/link";
+import styles from "./page.module.css";
 
-export default function DashboardOverviewPage() {
+const statCards = [
+  { label: "Projected Revenue", value: "$24,500" },
+  { label: "Active Jobs", value: "8" },
+  { label: "Open Leads", value: "13" },
+  { label: "Work Orders", value: "21" },
+];
+
+const quickLinks = [
+  { label: "Open Jobs", href: "/jobs" },
+  { label: "Configurator", href: "/configurator" },
+  { label: "Login", href: "/login" },
+];
+
+export default function DashboardPage() {
   return (
-    <div className="flex flex-col gap-6">
-      <section className="app-card-soft app-section">
-        <div className="app-kicker">ArtiPoxi</div>
-        <h1 className="app-title mt-4">
-          Dashboard
-        </h1>
-        <p className="app-subtitle mt-4 max-w-2xl">
-          Track jobs, scheduling, customer flow, and business activity from one
-          clean control center.
-        </p>
-
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link href="/dashboard/jobs" className="ui-btn ui-btn-primary">
-            Open Jobs
-          </Link>
-          <Link href="/dashboard/schedule" className="ui-btn ui-btn-secondary">
-            View Schedule
-          </Link>
-          <Link href="/configurator" className="ui-btn ui-btn-secondary">
-            Configurator
-          </Link>
-        </div>
-      </section>
-
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="ui-stat">
-          <div className="ui-stat-label">Projected Revenue</div>
-          <div className="ui-stat-value">$0</div>
-        </div>
-
-        <div className="ui-stat">
-          <div className="ui-stat-label">Active Jobs</div>
-          <div className="ui-stat-value">0</div>
-        </div>
-
-        <div className="ui-stat">
-          <div className="ui-stat-label">Open Leads</div>
-          <div className="ui-stat-value">0</div>
-        </div>
-
-        <div className="ui-stat">
-          <div className="ui-stat-label">Work Orders</div>
-          <div className="ui-stat-value">0</div>
-        </div>
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-2">
-        <div className="app-card-soft app-section">
-          <div className="text-2xl font-black">Quick Actions</div>
-          <div className="mt-5 grid gap-3">
-            <Link href="/dashboard/jobs" className="ui-btn ui-btn-secondary w-full">
-              Create Job
-            </Link>
-            <Link href="/dashboard/schedule" className="ui-btn ui-btn-secondary w-full">
-              Open Schedule
-            </Link>
-            <Link href="/dashboard/finance" className="ui-btn ui-btn-secondary w-full">
-              Finance Hub
-            </Link>
-          </div>
-        </div>
-
-        <div className="app-card-soft app-section">
-          <div className="text-2xl font-black">System Status</div>
-          <div className="mt-5 grid gap-3">
-            <div className="ui-list-card flex items-center justify-between">
-              <span className="text-zinc-300">Dashboard</span>
-              <span className="text-cyan-400 font-bold">Active</span>
-            </div>
-            <div className="ui-list-card flex items-center justify-between">
-              <span className="text-zinc-300">Jobs</span>
-              <span className="text-cyan-400 font-bold">Ready</span>
-            </div>
-            <div className="ui-list-card flex items-center justify-between">
-              <span className="text-zinc-300">Schedule</span>
-              <span className="text-cyan-400 font-bold">Ready</span>
+    <main className={styles.page}>
+      <div className={styles.shell}>
+        <aside className={styles.sidebar}>
+          <div className={styles.brandCard}>
+            <div className={styles.logo}>AP</div>
+            <div>
+              <p className={styles.brandTop}>ARTIPOXI</p>
+              <h2 className={styles.brandBottom}>Operations</h2>
             </div>
           </div>
-        </div>
-      </section>
-    </div>
+
+          <nav className={styles.sideNav}>
+            <Link href="/" className={styles.sideLink}>Home</Link>
+            <Link href="/dashboard" className={styles.sideLinkActive}>Dashboard</Link>
+            <Link href="/jobs" className={styles.sideLink}>Jobs</Link>
+            <Link href="/configurator" className={styles.sideLink}>Configurator</Link>
+            <Link href="/login" className={styles.sideLink}>Login</Link>
+          </nav>
+        </aside>
+
+        <section className={styles.main}>
+          <header className={styles.topbar}>
+            <div>
+              <p className={styles.eyebrow}>CONTROL CENTER</p>
+              <h1 className={styles.title}>Dashboard</h1>
+              <p className={styles.subtitle}>
+                Track jobs, scheduling, leads, and business activity from one clean control center.
+              </p>
+            </div>
+
+            <div className={styles.topActions}>
+              <Link href="/jobs" className={styles.primaryBtn}>Open Jobs</Link>
+              <Link href="/configurator" className={styles.secondaryBtn}>Open Configurator</Link>
+            </div>
+          </header>
+
+          <section className={styles.statsGrid}>
+            {statCards.map((item) => (
+              <article key={item.label} className={styles.statCard}>
+                <span className={styles.statLabel}>{item.label}</span>
+                <strong className={styles.statValue}>{item.value}</strong>
+              </article>
+            ))}
+          </section>
+
+          <section className={styles.contentGrid}>
+            <div className={styles.panel}>
+              <p className={styles.panelTag}>Quick Actions</p>
+              <h3 className={styles.panelTitle}>Run the business faster</h3>
+
+              <div className={styles.linkList}>
+                {quickLinks.map((item) => (
+                  <Link key={item.label} href={item.href} className={styles.actionLink}>
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <div className={styles.panel}>
+              <p className={styles.panelTag}>System Status</p>
+              <h3 className={styles.panelTitle}>All systems ready</h3>
+
+              <div className={styles.statusList}>
+                <div className={styles.statusRow}>
+                  <span>Dashboard</span>
+                  <span className={styles.statusGood}>Active</span>
+                </div>
+                <div className={styles.statusRow}>
+                  <span>Jobs</span>
+                  <span className={styles.statusGood}>Ready</span>
+                </div>
+                <div className={styles.statusRow}>
+                  <span>Schedule</span>
+                  <span className={styles.statusGood}>Ready</span>
+                </div>
+              </div>
+            </div>
+          </section>
+        </section>
+      </div>
+    </main>
   );
 }

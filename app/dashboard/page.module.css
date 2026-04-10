@@ -14,8 +14,8 @@
 
 .sidebar {
   padding: 24px;
-  border-right: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.03);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(16px);
 }
 
@@ -33,15 +33,15 @@
   display: grid;
   place-items: center;
   font-weight: 700;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(0,212,255,0.24);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(0, 212, 255, 0.24);
 }
 
 .brandTop {
   margin: 0;
   font-size: 0.76rem;
   letter-spacing: 0.2em;
-  color: rgba(216,240,255,0.68);
+  color: rgba(216, 240, 255, 0.68);
 }
 
 .brandBottom {
@@ -61,16 +61,16 @@
   color: white;
   padding: 12px 14px;
   border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
   transition: 0.22s ease;
 }
 
 .sideLink:hover,
 .sideLinkActive {
-  border-color: rgba(0,212,255,0.32);
-  background: rgba(0,212,255,0.1);
-  box-shadow: 0 8px 20px rgba(0,212,255,0.08);
+  border-color: rgba(0, 212, 255, 0.32);
+  background: rgba(0, 212, 255, 0.1);
+  box-shadow: 0 8px 20px rgba(0, 212, 255, 0.08);
 }
 
 .main {
@@ -101,7 +101,7 @@
 .subtitle {
   margin-top: 12px;
   max-width: 680px;
-  color: rgba(231,243,255,0.78);
+  color: rgba(231, 243, 255, 0.78);
   line-height: 1.7;
 }
 
@@ -122,15 +122,15 @@
   border-radius: 14px;
   color: #031019;
   font-weight: 700;
-  background: linear-gradient(135deg, rgba(0,212,255,0.95), rgba(0,140,255,0.9));
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.95), rgba(0, 140, 255, 0.9));
 }
 
 .secondaryBtn {
   padding: 12px 16px;
   border-radius: 14px;
   color: white;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .statsGrid {
@@ -145,14 +145,14 @@
 .panelLarge {
   border-radius: 22px;
   padding: 20px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
-  border: 1px solid rgba(255,255,255,0.1);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+  border: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(16px);
 }
 
 .statLabel {
   display: block;
-  color: rgba(216,238,255,0.66);
+  color: rgba(216, 238, 255, 0.66);
   font-size: 0.78rem;
   margin-bottom: 10px;
 }
@@ -190,7 +190,7 @@
 .panelText {
   margin: 0;
   line-height: 1.7;
-  color: rgba(231,243,255,0.74);
+  color: rgba(231, 243, 255, 0.74);
 }
 
 .linkList {
@@ -204,8 +204,8 @@
   padding: 12px 14px;
   border-radius: 14px;
   color: white;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .statusList {
@@ -217,7 +217,7 @@
   display: flex;
   justify-content: space-between;
   padding: 12px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .statusGood {
@@ -231,7 +231,7 @@
 
   .sidebar {
     border-right: none;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .statsGrid,

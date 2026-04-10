@@ -28,11 +28,21 @@ export default function DashboardPage() {
           </div>
 
           <nav className={styles.sideNav}>
-            <Link href="/" className={styles.sideLink}>Home</Link>
-            <Link href="/dashboard" className={styles.sideLinkActive}>Dashboard</Link>
-            <Link href="/jobs" className={styles.sideLink}>Jobs</Link>
-            <Link href="/configurator" className={styles.sideLink}>Configurator</Link>
-            <Link href="/login" className={styles.sideLink}>Login</Link>
+            <Link href="/" className={styles.sideLink}>
+              Home
+            </Link>
+            <Link href="/dashboard" className={styles.sideLinkActive}>
+              Dashboard
+            </Link>
+            <Link href="/jobs" className={styles.sideLink}>
+              Jobs
+            </Link>
+            <Link href="/configurator" className={styles.sideLink}>
+              Configurator
+            </Link>
+            <Link href="/login" className={styles.sideLink}>
+              Login
+            </Link>
           </nav>
         </aside>
 
@@ -42,13 +52,18 @@ export default function DashboardPage() {
               <p className={styles.eyebrow}>CONTROL CENTER</p>
               <h1 className={styles.title}>Dashboard</h1>
               <p className={styles.subtitle}>
-                Track jobs, scheduling, leads, and business activity from one clean control center.
+                Track jobs, scheduling, leads, and business activity from one clean
+                control center.
               </p>
             </div>
 
             <div className={styles.topActions}>
-              <Link href="/jobs" className={styles.primaryBtn}>Open Jobs</Link>
-              <Link href="/configurator" className={styles.secondaryBtn}>Configurator</Link>
+              <Link href="/jobs" className={styles.primaryBtn}>
+                Open Jobs
+              </Link>
+              <Link href="/configurator" className={styles.secondaryBtn}>
+                Configurator
+              </Link>
             </div>
           </header>
 
@@ -108,7 +123,8 @@ export default function DashboardPage() {
               <p className={styles.panelTag}>Lead Summary</p>
               <h3 className={styles.panelTitle}>13 open leads</h3>
               <p className={styles.panelText}>
-                Continue building real lead cards, pipeline movement, and customer notes here.
+                Continue building real lead cards, pipeline movement, and customer
+                notes here.
               </p>
             </div>
 
@@ -116,7 +132,8 @@ export default function DashboardPage() {
               <p className={styles.panelTag}>Scheduling</p>
               <h3 className={styles.panelTitle}>Upcoming installs</h3>
               <p className={styles.panelText}>
-                This section can become your live install board, schedule calendar, or crew view.
+                This section can become your live install board, schedule calendar,
+                or crew view.
               </p>
             </div>
           </section>

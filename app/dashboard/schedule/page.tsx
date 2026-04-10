@@ -155,19 +155,40 @@ export default function SchedulePage() {
           </div>
 
           <nav className={styles.sideNav}>
-            <Link href="/" className={styles.sideLink}>Home</Link>
-            <Link href="/dashboard" className={styles.sideLink}>Dashboard</Link>
-            <Link href="/jobs" className={styles.sideLink}>Jobs</Link>
-            <Link href="/leads" className={styles.sideLink}>Leads</Link>
-            <Link href="/schedule" className={styles.sideLinkActive}>Schedule</Link>
-            <Link href="/configurator" className={styles.sideLink}>Configurator</Link>
-            <Link href="/dashboard/finance" className={styles.sideLink}>Finance</Link>
-            <Link href="/dashboard/inventory" className={styles.sideLink}>Inventory</Link>
+            <Link href="/" className={styles.sideLink}>
+              Home
+            </Link>
+            <Link href="/dashboard" className={styles.sideLink}>
+              Dashboard
+            </Link>
+            <Link href="/jobs" className={styles.sideLink}>
+              Jobs
+            </Link>
+            <Link href="/leads" className={styles.sideLink}>
+              Leads
+            </Link>
+            <Link href="/schedule" className={styles.sideLinkActive}>
+              Schedule
+            </Link>
+            <Link href="/schedule/manage" className={styles.sideLink}>
+              Manage Schedule
+            </Link>
+            <Link href="/configurator" className={styles.sideLink}>
+              Configurator
+            </Link>
+            <Link href="/dashboard/finance" className={styles.sideLink}>
+              Finance
+            </Link>
+            <Link href="/dashboard/inventory" className={styles.sideLink}>
+              Inventory
+            </Link>
           </nav>
 
           <div className={styles.sideFooter}>
             {profile?.email ? <p className={styles.userEmail}>Signed in as {profile.email}</p> : null}
-            <button className={styles.logoutBtn} onClick={handleLogout}>Logout</button>
+            <button className={styles.logoutBtn} onClick={handleLogout}>
+              Logout
+            </button>
           </div>
         </aside>
 
@@ -182,8 +203,12 @@ export default function SchedulePage() {
             </div>
 
             <div className={styles.topActions}>
-              <Link href="/jobs" className={styles.primaryBtn}>Open Jobs</Link>
-              <Link href="/installer/schedule" className={styles.secondaryBtn}>Installer View</Link>
+              <Link href="/jobs" className={styles.primaryBtn}>
+                Open Jobs
+              </Link>
+              <Link href="/installer/schedule" className={styles.secondaryBtn}>
+                Installer View
+              </Link>
             </div>
           </header>
 
@@ -227,14 +252,20 @@ export default function SchedulePage() {
                 </div>
 
                 <div className={styles.calendarNav}>
-                  <button className={styles.navBtn} onClick={goPrevMonth}>Prev</button>
-                  <button className={styles.navBtn} onClick={goNextMonth}>Next</button>
+                  <button className={styles.navBtn} onClick={goPrevMonth}>
+                    Prev
+                  </button>
+                  <button className={styles.navBtn} onClick={goNextMonth}>
+                    Next
+                  </button>
                 </div>
               </div>
 
               <div className={styles.weekHeader}>
                 {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                  <div key={day} className={styles.weekCell}>{day}</div>
+                  <div key={day} className={styles.weekCell}>
+                    {day}
+                  </div>
                 ))}
               </div>
 
@@ -249,7 +280,9 @@ export default function SchedulePage() {
                   return (
                     <button
                       key={`${cell.date}-${index}`}
-                      className={`${styles.dayCell} ${isSelected ? styles.dayCellActive : ""} ${!cell.date ? styles.dayCellEmpty : ""}`}
+                      className={`${styles.dayCell} ${isSelected ? styles.dayCellActive : ""} ${
+                        !cell.date ? styles.dayCellEmpty : ""
+                      }`}
                       onClick={() => cell.date && setSelectedDate(cell.date)}
                       disabled={!cell.date}
                     >

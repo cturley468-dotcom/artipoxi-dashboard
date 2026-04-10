@@ -16,6 +16,7 @@
   background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
   border: 1px solid rgba(255,255,255,0.1);
   backdrop-filter: blur(16px);
+  box-shadow: 0 26px 60px rgba(0, 0, 0, 0.28);
 }
 
 .eyebrow {
@@ -28,6 +29,7 @@
 .title {
   margin: 0 0 20px;
   font-size: 3rem;
+  line-height: 0.95;
 }
 
 .form {
@@ -40,12 +42,24 @@
   padding: 14px 16px;
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.05);
-  color: white;
+  background: rgba(255,255,255,0.95);
+  color: #111827;
+  outline: none;
+}
+
+.input:focus {
+  border-color: rgba(0, 212, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.12);
 }
 
 .input::placeholder {
-  color: rgba(231,243,255,0.5);
+  color: rgba(17, 24, 39, 0.45);
+}
+
+.error {
+  margin: 2px 0 0;
+  color: #ffb4b4;
+  font-size: 0.95rem;
 }
 
 .submitBtn {
@@ -56,6 +70,17 @@
   font-weight: 700;
   background: linear-gradient(135deg, rgba(0,212,255,0.95), rgba(0,140,255,0.9));
   cursor: pointer;
+  transition: 0.22s ease;
+}
+
+.submitBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(0, 212, 255, 0.22);
+}
+
+.submitBtn:disabled {
+  opacity: 0.7;
+  cursor: wait;
 }
 
 .links {
@@ -72,4 +97,20 @@
   border-radius: 12px;
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.12);
+}
+
+.linkBtn:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.status {
+  margin: 2px 0 0;
+  color: #9fe8ff;
+  font-size: 0.95rem;
+}
+
+.error {
+  margin: 2px 0 0;
+  color: #ffb4b4;
+  font-size: 0.95rem;
 }

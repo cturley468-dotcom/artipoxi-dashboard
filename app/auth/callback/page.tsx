@@ -2,45 +2,32 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getCurrentProfile } from "../../lib/auth";
+import { supabase } from "../../lib/supabase";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
 
   useEffect(() => {
-    async function load() {
-      try {
-        const profile = await getCurrentProfile();
+    let mounted = true;
 
-        if (!profile) {
-          router.replace("/login");
-          return;
-        }
+    async function checkSession() {
+      const { data } = await supabase.auth.getSession();
 
-        if (profile.role === "admin" || profile.role === "staff") {
-          router.replace("/dashboard");
-          return;
-        }
+      if (!mounted) return;
 
-        if (profile.role === "installer") {
-          router.replace("/installer");
-          return;
-        }
-
-        router.replace("/portal");
-      } catch {
+      if (data.session) {
+        router.replace("/dashboard");
+      } else {
         router.replace("/login");
       }
     }
 
-    load();
+    checkSession();
+
+    return () => {
+      mounted = false;
+    };
   }, [router]);
 
-  return (
-    <div className="min-h-screen bg-black p-6 text-white">
-      <div className="rounded-xl border border-white/10 bg-neutral-900 p-4">
-        Redirecting...
-      </div>
-    </div>
-  );
+  return null;
 }

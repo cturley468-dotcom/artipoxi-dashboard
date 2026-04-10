@@ -1,4 +1,9 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "../lib/supabase";
 import styles from "./page.module.css";
 
 const statCards = [
@@ -15,6 +20,52 @@ const quickLinks = [
 ];
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [userEmail, setUserEmail] = useState("");
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function protectPage() {
+      const { data } = await supabase.auth.getSession();
+
+      if (!mounted) return;
+
+      if (!data.session) {
+        router.replace("/login");
+        return;
+      }
+
+      setUserEmail(data.session.user.email ?? "");
+      setCheckingAuth(false);
+    }
+
+    protectPage();
+
+    return () => {
+      mounted = false;
+    };
+  }, [router]);
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    router.replace("/login");
+    router.refresh();
+  }
+
+  if (checkingAuth) {
+    return (
+      <main className={styles.page}>
+        <div className={styles.loadingWrap}>
+          <div className={styles.loadingCard}>
+            <p className={styles.loadingText}>Checking session...</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className={styles.page}>
       <div className={styles.shell}>
@@ -55,6 +106,9 @@ export default function DashboardPage() {
                 Track jobs, scheduling, leads, and business activity from one clean
                 control center.
               </p>
+              {userEmail ? (
+                <p className={styles.userEmail}>Signed in as {userEmail}</p>
+              ) : null}
             </div>
 
             <div className={styles.topActions}>
@@ -64,6 +118,9 @@ export default function DashboardPage() {
               <Link href="/configurator" className={styles.secondaryBtn}>
                 Configurator
               </Link>
+              <button className={styles.logoutBtn} onClick={handleLogout}>
+                Logout
+              </button>
             </div>
           </header>
 

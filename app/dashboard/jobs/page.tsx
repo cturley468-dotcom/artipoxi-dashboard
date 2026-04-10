@@ -1,50 +1,91 @@
-import Link from "next/link";
-import styles from "./page.module.css";
+"use client";
 
-const jobs = [
-  { id: "J-1042", customer: "Smith Garage", status: "In Progress", total: "$4,800" },
-  { id: "J-1043", customer: "Harris Shop", status: "Quoted", total: "$6,250" },
-  { id: "J-1044", customer: "Turner Floor", status: "Scheduled", total: "$3,900" },
-  { id: "J-1045", customer: "Custom Build", status: "Lead", total: "$8,100" },
-];
+import { useEffect, useState } from "react";
+import { supabase } from "../../lib/supabase";
+
+type Job = {
+  id: string;
+  title: string;
+  client_name: string;
+  status: string;
+  price: number;
+};
 
 export default function JobsPage() {
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [title, setTitle] = useState("");
+  const [client, setClient] = useState("");
+  const [price, setPrice] = useState("");
+
+  async function fetchJobs() {
+    const { data } = await supabase.from("jobs").select("*").order("created_at", { ascending: false });
+    setJobs(data || []);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
+  async function createJob() {
+    if (!title || !client) return;
+
+    await supabase.from("jobs").insert([
+      {
+        title,
+        client_name: client,
+        status: "open",
+        price: Number(price) || 0,
+      },
+    ]);
+
+    setTitle("");
+    setClient("");
+    setPrice("");
+
+    fetchJobs();
+  }
+
+  async function deleteJob(id: string) {
+    await supabase.from("jobs").delete().eq("id", id);
+    fetchJobs();
+  }
+
   return (
-    <main className={styles.page}>
-      <div className={styles.shell}>
-        <header className={styles.topbar}>
-          <div>
-            <p className={styles.eyebrow}>PROJECT TRACKING</p>
-            <h1 className={styles.title}>Jobs</h1>
-            <p className={styles.subtitle}>
-              Manage active work, quotes, and scheduled installs in one matching workspace.
-            </p>
-          </div>
+    <main style={{ padding: 24, color: "white" }}>
+      <h1 style={{ fontSize: 32, marginBottom: 20 }}>Jobs</h1>
 
-          <div className={styles.actions}>
-            <Link href="/dashboard" className={styles.secondaryBtn}>Dashboard</Link>
-            <Link href="/configurator" className={styles.primaryBtn}>New Configuration</Link>
-          </div>
-        </header>
-
-        <section className={styles.tableCard}>
-          <div className={styles.tableHead}>
-            <span>Job ID</span>
-            <span>Customer</span>
-            <span>Status</span>
-            <span>Total</span>
-          </div>
-
-          {jobs.map((job) => (
-            <div key={job.id} className={styles.tableRow}>
-              <span>{job.id}</span>
-              <span>{job.customer}</span>
-              <span className={styles.status}>{job.status}</span>
-              <span>{job.total}</span>
-            </div>
-          ))}
-        </section>
+      <div style={{ marginBottom: 20 }}>
+        <input
+          placeholder="Job Title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+        <input
+          placeholder="Client Name"
+          value={client}
+          onChange={(e) => setClient(e.target.value)}
+        />
+        <input
+          placeholder="Price"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+        />
+        <button onClick={createJob}>Add Job</button>
       </div>
+
+      {loading ? (
+        <p>Loading...</p>
+      ) : (
+        jobs.map((job) => (
+          <div key={job.id} style={{ marginBottom: 12 }}>
+            <strong>{job.title}</strong> — {job.client_name} — ${job.price}
+            <button onClick={() => deleteJob(job.id)}>Delete</button>
+          </div>
+        ))
+      )}
     </main>
   );
 }

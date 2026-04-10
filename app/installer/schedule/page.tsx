@@ -7,37 +7,23 @@ import { supabase } from "../../lib/supabase";
 import { getCurrentProfile, isInstaller, type Profile } from "../../lib/auth";
 import styles from "./page.module.css";
 
-const demoAssignments = [
-  {
-    id: "SCH-201",
-    date: "2026-04-14",
-    time: "8:00 AM",
-    location: "Anderson, SC",
-    title: "Garage Epoxy Install",
-    crew: "Crew A",
-  },
-  {
-    id: "SCH-202",
-    date: "2026-04-16",
-    time: "9:30 AM",
-    location: "Greenville, SC",
-    title: "Shop Floor Coating",
-    crew: "Crew B",
-  },
-  {
-    id: "SCH-203",
-    date: "2026-04-19",
-    time: "10:00 AM",
-    location: "Belton, SC",
-    title: "Patio Seal + Finish",
-    crew: "Crew A",
-  },
-];
+type ScheduleItem = {
+  id: string;
+  title: string;
+  client_name: string | null;
+  location: string | null;
+  crew: string | null;
+  assignment_date: string;
+  assignment_time: string | null;
+  status: string | null;
+  notes: string | null;
+};
 
 export default function InstallerSchedulePage() {
   const router = useRouter();
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [assignments, setAssignments] = useState<ScheduleItem[]>([]);
 
   useEffect(() => {
     let mounted = true;
@@ -67,6 +53,24 @@ export default function InstallerSchedulePage() {
       mounted = false;
     };
   }, [router]);
+
+  useEffect(() => {
+    async function fetchAssignments() {
+      const { data, error } = await supabase
+        .from("schedule_assignments")
+        .select("*")
+        .order("assignment_date", { ascending: true });
+
+      if (error) {
+        console.error("Installer schedule fetch error:", error.message);
+        return;
+      }
+
+      setAssignments((data as ScheduleItem[]) || []);
+    }
+
+    fetchAssignments();
+  }, []);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -125,27 +129,31 @@ export default function InstallerSchedulePage() {
           </header>
 
           <section className={styles.assignmentGrid}>
-            {demoAssignments.map((item) => (
+            {assignments.map((item) => (
               <article key={item.id} className={styles.assignmentCard}>
                 <div className={styles.assignmentTop}>
-                  <p className={styles.assignmentId}>{item.id}</p>
-                  <span className={styles.assignmentCrew}>{item.crew}</span>
+                  <p className={styles.assignmentId}>{item.assignment_date}</p>
+                  <span className={styles.assignmentCrew}>{item.crew ?? "—"}</span>
                 </div>
 
                 <h3 className={styles.assignmentTitle}>{item.title}</h3>
 
                 <div className={styles.assignmentMeta}>
                   <div className={styles.metaItem}>
-                    <span className={styles.metaLabel}>Date</span>
-                    <span className={styles.metaValue}>{item.date}</span>
+                    <span className={styles.metaLabel}>Client</span>
+                    <span className={styles.metaValue}>{item.client_name ?? "—"}</span>
                   </div>
                   <div className={styles.metaItem}>
                     <span className={styles.metaLabel}>Time</span>
-                    <span className={styles.metaValue}>{item.time}</span>
+                    <span className={styles.metaValue}>{item.assignment_time ?? "—"}</span>
                   </div>
                   <div className={styles.metaItem}>
                     <span className={styles.metaLabel}>Location</span>
-                    <span className={styles.metaValue}>{item.location}</span>
+                    <span className={styles.metaValue}>{item.location ?? "—"}</span>
+                  </div>
+                  <div className={styles.metaItem}>
+                    <span className={styles.metaLabel}>Status</span>
+                    <span className={styles.metaValue}>{item.status ?? "—"}</span>
                   </div>
                 </div>
               </article>

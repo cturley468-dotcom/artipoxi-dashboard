@@ -1,10 +1,13 @@
 .page {
-  padding: 40px;
-  background:
-    radial-gradient(circle at top left, rgba(0, 183, 255, 0.12), transparent 22%),
-    linear-gradient(180deg, #020611 0%, #07111f 55%, #02050c 100%);
-  color: white;
   min-height: 100vh;
+  background:
+    linear-gradient(rgba(2, 6, 17, 0.82), rgba(2, 5, 12, 0.9)),
+    url("/backgrounds/dashboard-epoxy.jpg"),
+    linear-gradient(180deg, #020611 0%, #061325 50%, #02050c 100%);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  color: white;
 }
 
 .container {

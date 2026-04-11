@@ -1,13 +1,12 @@
 .page {
   min-height: 100vh;
-
-  /* Layered premium background */
   background:
-    radial-gradient(circle at 20% 20%, rgba(0, 212, 255, 0.18), transparent 30%),
-    radial-gradient(circle at 80% 30%, rgba(0, 140, 255, 0.12), transparent 35%),
-    radial-gradient(circle at 50% 100%, rgba(0, 255, 180, 0.08), transparent 40%),
+    linear-gradient(rgba(2, 6, 17, 0.82), rgba(2, 5, 12, 0.9)),
+    url("/backgrounds/dashboard-epoxy.jpg"),
     linear-gradient(180deg, #020611 0%, #061325 50%, #02050c 100%);
-
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   color: white;
 }
 

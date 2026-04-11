@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import styles from "./page.module.css";
 import { supabase } from "../lib/supabase";
@@ -21,6 +21,28 @@ type SavedQuote = {
 };
 
 export default function ConfiguratorPage() {
+  return (
+    <Suspense fallback={<ConfiguratorLoading />}>
+      <ConfiguratorContent />
+    </Suspense>
+  );
+}
+
+function ConfiguratorLoading() {
+  return (
+    <main className={styles.page}>
+      <div className={styles.container}>
+        <header className={styles.header}>
+          <p className={styles.eyebrow}>ARTIPOXI</p>
+          <h1 className={styles.title}>Floor Configurator</h1>
+          <p className={styles.subtitle}>Loading configurator...</p>
+        </header>
+      </div>
+    </main>
+  );
+}
+
+function ConfiguratorContent() {
   const searchParams = useSearchParams();
   const quoteId = searchParams.get("quoteId");
 

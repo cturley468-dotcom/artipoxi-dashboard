@@ -102,13 +102,11 @@ export default function DashboardPage() {
             <Link href="/" className={styles.sideLink}>
               Home
             </Link>
-            <Link href="/dashboard" className={styles.sideLinkActive}>
-              Dashboard
-            </Link>
+    
             <Link href="/dashboard/jobs" className={styles.sideLink}>
               Jobs
             </Link>
-            <Link href="/dashboard/leads" className={styles.sideLink}>
+            <Link href="/dashboard/quotes" className={styles.sideLink}>
               Leads
             </Link>
             <Link href="/dashboard/schedule" className={styles.sideLink}>

@@ -9,7 +9,7 @@ import styles from "./page.module.css";
 
 const stats = [
   { label: "Projected Revenue", value: "$24,500", detail: "+12% this month" },
-  { label: "Active Jobs", value: "0", detail: "0 installs this week" },
+  { label: "Active Jobs", value: "8", detail: "3 installs this week" },
   { label: "Open Leads", value: "13", detail: "5 need follow-up" },
   { label: "Work Orders", value: "21", detail: "7 ready to schedule" },
 ];
@@ -102,15 +102,20 @@ export default function DashboardPage() {
             <Link href="/" className={styles.sideLink}>
               Home
             </Link>
-    
+            <Link href="/dashboard" className={styles.sideLinkActive}>
+              Dashboard
+            </Link>
             <Link href="/dashboard/jobs" className={styles.sideLink}>
               Jobs
             </Link>
-            <Link href="/dashboard/quotes" className={styles.sideLink}>
+            <Link href="/dashboard/leads" className={styles.sideLink}>
               Leads
             </Link>
             <Link href="/dashboard/schedule" className={styles.sideLink}>
               Schedule
+            </Link>
+            <Link href="/dashboard/quotes" className={styles.sideLink}>
+              Quotes
             </Link>
             <Link href="/configurator" className={styles.sideLink}>
               Configurator
@@ -211,8 +216,8 @@ export default function DashboardPage() {
                 <Link href="/dashboard/schedule" className={styles.actionLink}>
                   Open Schedule
                 </Link>
-                <Link href="/configurator" className={styles.actionLink}>
-                  Configurator
+                <Link href="/dashboard/quotes" className={styles.actionLink}>
+                  Saved Quotes
                 </Link>
               </div>
             </div>

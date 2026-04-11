@@ -5,6 +5,7 @@
     radial-gradient(circle at 85% 20%, rgba(0, 102, 255, 0.08), transparent 18%),
     linear-gradient(180deg, #020611 0%, #06101d 50%, #02050c 100%);
   color: white;
+  backdrop-filter: blur(2px);
 }
 
 .hero {

@@ -1,8 +1,13 @@
 .page {
   min-height: 100vh;
+
+  /* Layered premium background */
   background:
-    radial-gradient(circle at top left, rgba(0, 183, 255, 0.1), transparent 20%),
-    linear-gradient(180deg, #020611 0%, #07111f 55%, #02050c 100%);
+    radial-gradient(circle at 20% 20%, rgba(0, 212, 255, 0.18), transparent 30%),
+    radial-gradient(circle at 80% 30%, rgba(0, 140, 255, 0.12), transparent 35%),
+    radial-gradient(circle at 50% 100%, rgba(0, 255, 180, 0.08), transparent 40%),
+    linear-gradient(180deg, #020611 0%, #061325 50%, #02050c 100%);
+
   color: white;
 }
 

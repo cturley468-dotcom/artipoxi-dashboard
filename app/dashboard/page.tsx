@@ -15,10 +15,10 @@ const stats = [
 ];
 
 const pipeline = [
-  { stage: "New Leads", count: "5" },
-  { stage: "Quoted", count: "4" },
-  { stage: "Scheduled", count: "3" },
-  { stage: "In Progress", count: "4" },
+  { stage: "New Leads", count: 5 },
+  { stage: "Quoted", count: 4 },
+  { stage: "Scheduled", count: 3 },
+  { stage: "In Progress", count: 4 },
 ];
 
 const recentActivity = [
@@ -76,7 +76,7 @@ export default function DashboardPage() {
 
   if (checkingAuth) {
     return (
-      <main className="themePage bg-dashboard">
+      <main className={styles.page}>
         <div className={styles.loadingWrap}>
           <div className={styles.loadingCard}>
             <p className={styles.loadingText}>Checking session...</p>
@@ -87,101 +87,101 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="themePage bg-dashboard">
-      <div className="themeShell">
-        <aside className="themeSidebar">
-          <div className="themeBrand">
-            <div className="themeLogo">AP</div>
+    <main className={styles.page}>
+      <div className={styles.shell}>
+        <aside className={styles.sidebar}>
+          <div className={styles.brandCard}>
+            <div className={styles.logo}>AP</div>
             <div>
-              <p className="themeBrandTop">ARTIPOXI</p>
-              <h2 className="themeBrandBottom">Operations</h2>
+              <p className={styles.brandTop}>ARTIPOXI</p>
+              <h2 className={styles.brandBottom}>Operations</h2>
             </div>
           </div>
 
-          <nav className="themeNav">
-            <Link href="/" className="themeLink">
+          <nav className={styles.sideNav}>
+            <Link href="/" className={styles.sideLink}>
               Home
             </Link>
-            <Link href="/dashboard" className="themeLinkActive">
+            <Link href="/dashboard" className={styles.sideLinkActive}>
               Dashboard
             </Link>
-            <Link href="/dashboard/jobs" className="themeLink">
+            <Link href="/dashboard/jobs" className={styles.sideLink}>
               Jobs
             </Link>
-            <Link href="/dashboard/leads" className="themeLink">
+            <Link href="/dashboard/leads" className={styles.sideLink}>
               Leads
             </Link>
-            <Link href="/dashboard/schedule" className="themeLink">
+            <Link href="/dashboard/schedule" className={styles.sideLink}>
               Schedule
             </Link>
-            <Link href="/dashboard/quotes" className="themeLink">
+            <Link href="/dashboard/quotes" className={styles.sideLink}>
               Quotes
             </Link>
-            <Link href="/configurator" className="themeLink">
+            <Link href="/configurator" className={styles.sideLink}>
               Configurator
             </Link>
-            <Link href="/dashboard/finance" className="themeLink">
+            <Link href="/dashboard/finance" className={styles.sideLink}>
               Finance
             </Link>
-            <Link href="/dashboard/inventory" className="themeLink">
+            <Link href="/dashboard/inventory" className={styles.sideLink}>
               Inventory
             </Link>
           </nav>
 
-          <div className="themeSidebarFooter">
+          <div className={styles.sideFooter}>
             {profile?.email ? (
-              <p className="themeUserEmail">Signed in as {profile.email}</p>
+              <p className={styles.userEmail}>Signed in as {profile.email}</p>
             ) : null}
-            <button className="themeButtonGhost" onClick={handleLogout}>
+            <button className={styles.logoutBtn} onClick={handleLogout}>
               Logout
             </button>
           </div>
         </aside>
 
-        <section className="themeMain">
-          <header className="themeTopbar">
+        <section className={styles.main}>
+          <header className={styles.topbar}>
             <div>
-              <p className="themeEyebrow">CONTROL CENTER</p>
-              <h1 className="themeTitle">Dashboard</h1>
-              <p className="themeSubtitle">
+              <p className={styles.eyebrow}>CONTROL CENTER</p>
+              <h1 className={styles.title}>Dashboard</h1>
+              <p className={styles.subtitle}>
                 Track jobs, scheduling, leads, and business activity from one clean control center.
               </p>
             </div>
 
-            <div className="themeTopActions">
-              <Link href="/dashboard/jobs" className="themeButton">
+            <div className={styles.topActions}>
+              <Link href="/dashboard/jobs" className={styles.primaryBtn}>
                 Open Jobs
               </Link>
-              <Link href="/configurator" className="themeButtonGhost">
+              <Link href="/configurator" className={styles.secondaryBtn}>
                 Configurator
               </Link>
             </div>
           </header>
 
           <section className={styles.heroPanel}>
-            <div className="themeCard">
-              <p className="themePanelTag">Business Snapshot</p>
+            <div className={styles.heroPanelLeft}>
+              <p className={styles.heroTag}>Business Snapshot</p>
               <h2 className={styles.heroTitle}>Everything important, one view.</h2>
               <p className={styles.heroText}>
                 Keep your sales pipeline, install schedule, revenue targets, and active work moving in one place.
               </p>
 
               <div className={styles.heroActions}>
-                <Link href="/dashboard/leads" className="themeButton">
+                <Link href="/dashboard/leads" className={styles.heroPrimary}>
                   View Leads
                 </Link>
-                <Link href="/dashboard/schedule" className="themeButtonGhost">
+                <Link href="/dashboard/schedule" className={styles.heroGhost}>
                   Open Schedule
                 </Link>
               </div>
             </div>
 
-            <div className={styles.heroMiniGrid}>
-              <div className="themeCard">
+            <div className={styles.heroPanelRight}>
+              <div className={styles.heroMiniCard}>
                 <span className={styles.heroMiniLabel}>Focus</span>
                 <strong className={styles.heroMiniValue}>3 installs this week</strong>
               </div>
-              <div className="themeCard">
+              <div className={styles.heroMiniCard}>
                 <span className={styles.heroMiniLabel}>Next target</span>
                 <strong className={styles.heroMiniValue}>Close 5 open leads</strong>
               </div>
@@ -190,7 +190,7 @@ export default function DashboardPage() {
 
           <section className={styles.statsGrid}>
             {stats.map((item) => (
-              <article key={item.label} className="themeCard">
+              <article key={item.label} className={styles.statCard}>
                 <span className={styles.statLabel}>{item.label}</span>
                 <strong className={styles.statValue}>{item.value}</strong>
                 <span className={styles.statDetail}>{item.detail}</span>
@@ -199,10 +199,10 @@ export default function DashboardPage() {
           </section>
 
           <section className={styles.contentGrid}>
-            <div className="themeCard">
-              <p className="themePanelTag">Quick Actions</p>
-              <h3 className="themePanelTitle">Run the business faster</h3>
-              <p className="themePanelText">
+            <div className={styles.panelLarge}>
+              <p className={styles.panelTag}>Quick Actions</p>
+              <h3 className={styles.panelTitle}>Run the business faster</h3>
+              <p className={styles.panelText}>
                 Jump into the most-used tools and keep the workflow moving.
               </p>
 
@@ -222,9 +222,9 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="themeCard">
-              <p className="themePanelTag">Pipeline</p>
-              <h3 className="themePanelTitle">Sales flow</h3>
+            <div className={styles.panel}>
+              <p className={styles.panelTag}>Pipeline</p>
+              <h3 className={styles.panelTitle}>Sales flow</h3>
 
               <div className={styles.pipelineList}>
                 {pipeline.map((item) => (
@@ -238,9 +238,9 @@ export default function DashboardPage() {
           </section>
 
           <section className={styles.bottomGrid}>
-            <div className="themeCard">
-              <p className="themePanelTag">Upcoming Schedule</p>
-              <h3 className="themePanelTitle">Next assignments</h3>
+            <div className={styles.panel}>
+              <p className={styles.panelTag}>Upcoming Schedule</p>
+              <h3 className={styles.panelTitle}>Next assignments</h3>
 
               <div className={styles.scheduleList}>
                 {upcoming.map((item) => (
@@ -255,9 +255,9 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="themeCard">
-              <p className="themePanelTag">Recent Activity</p>
-              <h3 className="themePanelTitle">Latest updates</h3>
+            <div className={styles.panel}>
+              <p className={styles.panelTag}>Recent Activity</p>
+              <h3 className={styles.panelTitle}>Latest updates</h3>
 
               <div className={styles.activityList}>
                 {recentActivity.map((item) => (

@@ -161,16 +161,16 @@ export default function SchedulePage() {
             <Link href="/dashboard" className={styles.sideLink}>
               Dashboard
             </Link>
-            <Link href="/jobs" className={styles.sideLink}>
+            <Link href="/dashboard/jobs" className={styles.sideLink}>
               Jobs
             </Link>
-            <Link href="/leads" className={styles.sideLink}>
+            <Link href="/dashboard/leads" className={styles.sideLink}>
               Leads
             </Link>
-            <Link href="/schedule" className={styles.sideLinkActive}>
+            <Link href="/dashboard/schedule" className={styles.sideLinkActive}>
               Schedule
             </Link>
-            <Link href="/schedule/manage" className={styles.sideLink}>
+            <Link href="/dashboard/schedule/manage" className={styles.sideLink}>
               Manage Schedule
             </Link>
             <Link href="/configurator" className={styles.sideLink}>

@@ -9,7 +9,7 @@ import styles from "./page.module.css";
 
 const stats = [
   { label: "Projected Revenue", value: "$24,500", detail: "+12% this month" },
-  { label: "Active Jobs", value: "8", detail: "3 installs this week" },
+  { label: "Active Jobs", value: "0", detail: "0 installs this week" },
   { label: "Open Leads", value: "13", detail: "5 need follow-up" },
   { label: "Work Orders", value: "21", detail: "7 ready to schedule" },
 ];
@@ -105,13 +105,13 @@ export default function DashboardPage() {
             <Link href="/dashboard" className={styles.sideLinkActive}>
               Dashboard
             </Link>
-            <Link href="/jobs" className={styles.sideLink}>
+            <Link href="/dashboard/jobs" className={styles.sideLink}>
               Jobs
             </Link>
-            <Link href="/leads" className={styles.sideLink}>
+            <Link href="/dashboard/leads" className={styles.sideLink}>
               Leads
             </Link>
-            <Link href="/schedule" className={styles.sideLink}>
+            <Link href="/dashboard/schedule" className={styles.sideLink}>
               Schedule
             </Link>
             <Link href="/configurator" className={styles.sideLink}>
@@ -129,7 +129,6 @@ export default function DashboardPage() {
             {profile?.email ? (
               <p className={styles.userEmail}>Signed in as {profile.email}</p>
             ) : null}
-
             <button className={styles.logoutBtn} onClick={handleLogout}>
               Logout
             </button>
@@ -147,7 +146,7 @@ export default function DashboardPage() {
             </div>
 
             <div className={styles.topActions}>
-              <Link href="/jobs" className={styles.primaryBtn}>
+              <Link href="/dashboard/jobs" className={styles.primaryBtn}>
                 Open Jobs
               </Link>
               <Link href="/configurator" className={styles.secondaryBtn}>
@@ -165,10 +164,10 @@ export default function DashboardPage() {
               </p>
 
               <div className={styles.heroActions}>
-                <Link href="/leads" className={styles.heroPrimary}>
+                <Link href="/dashboard/leads" className={styles.heroPrimary}>
                   View Leads
                 </Link>
-                <Link href="/schedule" className={styles.heroGhost}>
+                <Link href="/dashboard/schedule" className={styles.heroGhost}>
                   Open Schedule
                 </Link>
               </div>
@@ -205,13 +204,13 @@ export default function DashboardPage() {
               </p>
 
               <div className={styles.linkList}>
-                <Link href="/jobs" className={styles.actionLink}>
+                <Link href="/dashboard/jobs" className={styles.actionLink}>
                   Open Jobs
                 </Link>
-                <Link href="/leads" className={styles.actionLink}>
+                <Link href="/dashboard/leads" className={styles.actionLink}>
                   View Leads
                 </Link>
-                <Link href="/schedule" className={styles.actionLink}>
+                <Link href="/dashboard/schedule" className={styles.actionLink}>
                   Open Schedule
                 </Link>
                 <Link href="/configurator" className={styles.actionLink}>

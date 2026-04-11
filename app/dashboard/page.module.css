@@ -1,9 +1,6 @@
 .page {
   min-height: 100vh;
-  background:
-    linear-gradient(rgba(2, 6, 17, 0.82), rgba(2, 5, 12, 0.9)),
-    url("/backgrounds/dashboard-epoxy.jpg"),
-    linear-gradient(180deg, #020611 0%, #061325 50%, #02050c 100%);
+  background-image: url("/backgrounds/dashboard-epoxy.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

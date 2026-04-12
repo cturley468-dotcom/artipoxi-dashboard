@@ -1,374 +1,421 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "../../lib/supabase";
-import { getCurrentProfile, isInstaller, type Profile } from "../../lib/auth";
-import styles from "./page.module.css";
+import { useMemo, useState } from "react";
 
 type Lead = {
   id: string;
   name: string;
-  email: string | null;
-  phone: string | null;
-  project_type: string | null;
-  status: string | null;
-  source: string | null;
-  notes: string | null;
-  created_at: string;
+  phone: string;
+  city: string;
+  project: string;
+  stage: "new" | "follow_up" | "quoted" | "won";
+  notes: string;
 };
 
-const demoLeads: Lead[] = [
+const mockLeads: Lead[] = [
   {
-    id: "LD-1001",
-    name: "John Smith",
-    email: "johnsmith@email.com",
+    id: "lead-1001",
+    name: "Michael Turner",
     phone: "(864) 555-0181",
-    project_type: "Garage Epoxy",
-    status: "New",
-    source: "Website",
-    notes: "Wants charcoal flake system. Asked about timeline.",
-    created_at: "2026-04-09T10:00:00Z",
+    city: "Anderson, SC",
+    project: "Garage Flake System",
+    stage: "new",
+    notes: "Requested quote from homepage.",
   },
   {
-    id: "LD-1002",
-    name: "Sarah Turner",
-    email: "sturner@email.com",
+    id: "lead-1002",
+    name: "Sarah Jenkins",
+    phone: "(864) 555-0114",
+    city: "Greenville, SC",
+    project: "Metallic Shop Floor",
+    stage: "follow_up",
+    notes: "Needs call back about color options.",
+  },
+  {
+    id: "lead-1003",
+    name: "David Brooks",
+    phone: "(864) 555-0138",
+    city: "Clemson, SC",
+    project: "Patio Recoat",
+    stage: "quoted",
+    notes: "Quote sent. Waiting on approval.",
+  },
+  {
+    id: "lead-1004",
+    name: "Elite Auto Detail",
     phone: "(864) 555-0192",
-    project_type: "Patio Coating",
-    status: "Contacted",
-    source: "Instagram",
-    notes: "Interested in satin finish and outdoor durability.",
-    created_at: "2026-04-08T14:00:00Z",
-  },
-  {
-    id: "LD-1003",
-    name: "Harris Auto",
-    email: "office@harrisauto.com",
-    phone: "(864) 555-0129",
-    project_type: "Shop Floor",
-    status: "Quoted",
-    source: "Referral",
-    notes: "Needs quote for back room and showroom.",
-    created_at: "2026-04-07T09:30:00Z",
+    city: "Spartanburg, SC",
+    project: "Commercial Entry Floor",
+    stage: "won",
+    notes: "Approved and moving to scheduling.",
   },
 ];
 
 export default function LeadsPage() {
-  const router = useRouter();
-
-  const [checkingAuth, setCheckingAuth] = useState(true);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [leads, setLeads] = useState<Lead[]>([]);
   const [search, setSearch] = useState("");
-  const [message, setMessage] = useState("");
-  const [workingId, setWorkingId] = useState<string | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function protectPage() {
-      const currentProfile = await getCurrentProfile();
-
-      if (!mounted) return;
-
-      if (!currentProfile) {
-        router.replace("/login");
-        return;
-      }
-
-      if (isInstaller(currentProfile.role)) {
-        router.replace("/installer/work-orders");
-        return;
-      }
-
-      setProfile(currentProfile);
-      setCheckingAuth(false);
-    }
-
-    protectPage();
-
-    return () => {
-      mounted = false;
-    };
-  }, [router]);
-
-  useEffect(() => {
-    if (!checkingAuth) {
-      void fetchLeads();
-    }
-  }, [checkingAuth]);
-
-  async function fetchLeads() {
-    const { data, error } = await supabase
-      .from("leads")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      setLeads(demoLeads);
-      setMessage("Using demo leads until the leads table is connected.");
-      return;
-    }
-
-    setLeads((data as Lead[]) || []);
-  }
-
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    router.replace("/login");
-    router.refresh();
-  }
-
-  async function updateLeadStatus(id: string, status: string) {
-    setWorkingId(id);
-    setMessage("");
-
-    const { error } = await supabase
-      .from("leads")
-      .update({ status })
-      .eq("id", id);
-
-    if (error) {
-      setMessage(error.message);
-      setWorkingId(null);
-      return;
-    }
-
-    setWorkingId(null);
-    await fetchLeads();
-  }
 
   const filteredLeads = useMemo(() => {
-    const term = search.toLowerCase().trim();
-    if (!term) return leads;
+    const term = search.trim().toLowerCase();
 
-    return leads.filter((lead) =>
-      [
-        lead.id,
-        lead.name,
-        lead.email ?? "",
-        lead.phone ?? "",
-        lead.project_type ?? "",
-        lead.status ?? "",
-        lead.source ?? "",
-        lead.notes ?? "",
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(term)
+    if (!term) return mockLeads;
+
+    return mockLeads.filter((lead) =>
+      [lead.id, lead.name, lead.phone, lead.city, lead.project, lead.stage, lead.notes]
+        .some((value) => value.toLowerCase().includes(term))
     );
-  }, [leads, search]);
+  }, [search]);
 
-  const newCount = filteredLeads.filter((x) => (x.status ?? "").toLowerCase() === "new").length;
-  const contactedCount = filteredLeads.filter((x) => (x.status ?? "").toLowerCase() === "contacted").length;
-  const quotedCount = filteredLeads.filter((x) => (x.status ?? "").toLowerCase() === "quoted").length;
-  const closedCount = filteredLeads.filter((x) => (x.status ?? "").toLowerCase() === "closed").length;
-
-  if (checkingAuth) {
-    return (
-      <main className={styles.page}>
-        <div className={styles.loadingWrap}>
-          <div className={styles.loadingCard}>Checking session...</div>
-        </div>
-      </main>
-    );
-  }
+  const newCount = mockLeads.filter((lead) => lead.stage === "new").length;
+  const followUpCount = mockLeads.filter((lead) => lead.stage === "follow_up").length;
+  const quotedCount = mockLeads.filter((lead) => lead.stage === "quoted").length;
+  const wonCount = mockLeads.filter((lead) => lead.stage === "won").length;
 
   return (
-    <main className={styles.page}>
-      <div className={styles.shell}>
-        <aside className={styles.sidebar}>
-          <div className={styles.brandCard}>
-            <div className={styles.logo}>AP</div>
-            <div>
-              <p className={styles.brandTop}>ARTIPOXI</p>
-              <h2 className={styles.brandBottom}>Operations</h2>
-            </div>
-          </div>
+    <>
+      <div style={headerStyle}>
+        <div>
+          <div style={eyebrowStyle}>SALES PIPELINE</div>
+          <h1 style={titleStyle}>Leads</h1>
+          <p style={subtitleStyle}>
+            Track incoming leads, follow up faster, and move customers toward approved work.
+          </p>
+        </div>
 
-          <nav className={styles.sideNav}>
-            <Link href="/" className={styles.sideLink}>
-              Home
-            </Link>
-            <Link href="/dashboard" className={styles.sideLink}>
-              Dashboard
-            </Link>
-            <Link href="/dashboard/jobs" className={styles.sideLink}>
-              Jobs
-            </Link>
-            <Link href="/dashboard/leads" className={styles.sideLinkActive}>
-              Leads
-            </Link>
-            <Link href="/dashboard/schedule" className={styles.sideLink}>
-              Schedule
-            </Link>
-            <Link href="/dashboard/quotes" className={styles.sideLink}>
-              Quotes
-            </Link>
-            <Link href="/configurator" className={styles.sideLink}>
-              Configurator
-            </Link>
-            <Link href="/dashboard/finance" className={styles.sideLink}>
-              Finance
-            </Link>
-            <Link href="/dashboard/inventory" className={styles.sideLink}>
-              Inventory
-            </Link>
-          </nav>
-
-          <div className={styles.sideFooter}>
-            {profile?.email ? <p className={styles.userEmail}>Signed in as {profile.email}</p> : null}
-            <button className={styles.logoutBtn} onClick={handleLogout}>
-              Logout
-            </button>
-          </div>
-        </aside>
-
-        <section className={styles.main}>
-          <header className={styles.topbar}>
-            <div>
-              <p className={styles.eyebrow}>LEAD PIPELINE</p>
-              <h1 className={styles.title}>Leads</h1>
-              <p className={styles.subtitle}>
-                Track incoming prospects, move them through the pipeline, and keep follow-up organized.
-              </p>
-            </div>
-
-            <div className={styles.topActions}>
-              <Link href="/configurator" className={styles.primaryBtn}>
-                New Quote
-              </Link>
-              <Link href="/dashboard/jobs" className={styles.secondaryBtn}>
-                Open Jobs
-              </Link>
-            </div>
-          </header>
-
-          <section className={styles.heroPanel}>
-            <div>
-              <p className={styles.heroTag}>Leads Snapshot</p>
-              <h2 className={styles.heroTitle}>Stay on top of every opportunity.</h2>
-              <p className={styles.heroText}>
-                Review fresh leads, track quote progress, and keep the customer pipeline moving forward.
-              </p>
-            </div>
-
-            <div className={styles.heroStats}>
-              <div className={styles.heroMiniCard}>
-                <span className={styles.heroMiniLabel}>New</span>
-                <strong className={styles.heroMiniValue}>{newCount}</strong>
-              </div>
-              <div className={styles.heroMiniCard}>
-                <span className={styles.heroMiniLabel}>Contacted</span>
-                <strong className={styles.heroMiniValue}>{contactedCount}</strong>
-              </div>
-              <div className={styles.heroMiniCard}>
-                <span className={styles.heroMiniLabel}>Quoted</span>
-                <strong className={styles.heroMiniValue}>{quotedCount}</strong>
-              </div>
-              <div className={styles.heroMiniCard}>
-                <span className={styles.heroMiniLabel}>Closed</span>
-                <strong className={styles.heroMiniValue}>{closedCount}</strong>
-              </div>
-            </div>
-          </section>
-
-          <section className={styles.toolbar}>
-            <input
-              className={styles.searchInput}
-              type="text"
-              placeholder="Search leads"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </section>
-
-          {message ? <p className={styles.message}>{message}</p> : null}
-
-          <section className={styles.leadGrid}>
-            {filteredLeads.map((lead) => (
-              <article key={lead.id} className={styles.leadCard}>
-                <div className={styles.cardTop}>
-                  <div>
-                    <p className={styles.leadId}>{lead.id}</p>
-                    <h3 className={styles.leadTitle}>{lead.name}</h3>
-                  </div>
-
-                  <span className={styles.statusBadge}>{lead.status || "New"}</span>
-                </div>
-
-                <div className={styles.infoGrid}>
-                  <Info label="Email" value={lead.email || "—"} />
-                  <Info label="Phone" value={lead.phone || "—"} />
-                  <Info label="Project" value={lead.project_type || "—"} />
-                  <Info label="Source" value={lead.source || "—"} />
-                  <Info
-                    label="Created"
-                    value={new Date(lead.created_at).toLocaleDateString("en-US")}
-                  />
-                </div>
-
-                <div className={styles.notesBlock}>
-                  <p className={styles.notesLabel}>Notes</p>
-                  <p className={styles.notesText}>{lead.notes || "No notes added yet."}</p>
-                </div>
-
-                <div className={styles.statusActions}>
-                  <button
-                    className={styles.actionBtn}
-                    onClick={() => updateLeadStatus(lead.id, "New")}
-                    disabled={workingId === lead.id}
-                  >
-                    New
-                  </button>
-
-                  <button
-                    className={styles.actionBtn}
-                    onClick={() => updateLeadStatus(lead.id, "Contacted")}
-                    disabled={workingId === lead.id}
-                  >
-                    Contacted
-                  </button>
-
-                  <button
-                    className={styles.actionBtn}
-                    onClick={() => updateLeadStatus(lead.id, "Quoted")}
-                    disabled={workingId === lead.id}
-                  >
-                    Quoted
-                  </button>
-
-                  <button
-                    className={styles.actionGhostBtn}
-                    onClick={() => updateLeadStatus(lead.id, "Closed")}
-                    disabled={workingId === lead.id}
-                  >
-                    Closed
-                  </button>
-                </div>
-              </article>
-            ))}
-
-            {!filteredLeads.length ? (
-              <div className={styles.emptyCard}>
-                <h3>No leads found</h3>
-                <p>Add leads to your database and they will appear here.</p>
-              </div>
-            ) : null}
-          </section>
-        </section>
+        <div style={topActionsStyle}>
+          <button style={primaryActionStyle}>New Lead</button>
+        </div>
       </div>
-    </main>
+
+      <div style={heroCardStyle}>
+        <div style={heroLeftStyle}>
+          <div style={heroSmallLabelStyle}>Lead Snapshot</div>
+          <div style={heroBigTextStyle}>Keep the pipeline moving.</div>
+          <div style={heroTextStyle}>
+            Review new inquiries, follow up on warm leads, and keep quotes moving toward sold work.
+          </div>
+        </div>
+
+        <div style={heroRightStyle}>
+          <div style={miniStatStyle}>
+            <div style={miniStatLabelStyle}>NEW</div>
+            <div style={miniStatValueStyle}>{newCount}</div>
+          </div>
+
+          <div style={miniStatStyle}>
+            <div style={miniStatLabelStyle}>FOLLOW-UP</div>
+            <div style={miniStatValueStyle}>{followUpCount}</div>
+          </div>
+
+          <div style={miniStatStyle}>
+            <div style={miniStatLabelStyle}>QUOTED</div>
+            <div style={miniStatValueStyle}>{quotedCount}</div>
+          </div>
+
+          <div style={miniStatStyle}>
+            <div style={miniStatLabelStyle}>WON</div>
+            <div style={miniStatValueStyle}>{wonCount}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={toolbarStyle}>
+        <input
+          type="text"
+          placeholder="Search leads"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={searchInputStyle}
+        />
+      </div>
+
+      <div style={leadsGridStyle}>
+        {filteredLeads.map((lead) => (
+          <article key={lead.id} style={leadCardStyle}>
+            <div style={leadTopStyle}>
+              <div style={leadIdStyle}>Lead ID: {lead.id}</div>
+              <div
+                style={{
+                  ...statusBadgeStyle,
+                  ...(lead.stage === "won"
+                    ? wonBadgeStyle
+                    : lead.stage === "quoted"
+                    ? quotedBadgeStyle
+                    : lead.stage === "follow_up"
+                    ? followUpBadgeStyle
+                    : newBadgeStyle),
+                }}
+              >
+                {formatStage(lead.stage)}
+              </div>
+            </div>
+
+            <div style={leadNameStyle}>{lead.name}</div>
+            <div style={leadMetaStyle}>{lead.project}</div>
+
+            <div style={detailsGridStyle}>
+              <Info label="Phone" value={lead.phone} />
+              <Info label="City" value={lead.city} />
+            </div>
+
+            <div style={notesBoxStyle}>
+              <div style={notesLabelStyle}>Notes</div>
+              <div style={notesTextStyle}>{lead.notes}</div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </>
   );
 }
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
-    <div className={styles.infoCard}>
-      <div className={styles.infoLabel}>{label}</div>
-      <div className={styles.infoValue}>{value}</div>
+    <div style={infoBoxStyle}>
+      <div style={infoLabelStyle}>{label}</div>
+      <div style={infoValueStyle}>{value}</div>
     </div>
   );
 }
+
+function formatStage(stage: Lead["stage"]) {
+  switch (stage) {
+    case "follow_up":
+      return "follow-up";
+    default:
+      return stage;
+  }
+}
+
+const headerStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "16px",
+  flexWrap: "wrap",
+  marginBottom: "18px",
+};
+
+const eyebrowStyle: React.CSSProperties = {
+  fontSize: "12px",
+  letterSpacing: "0.18em",
+  color: "#8fdfff",
+  marginBottom: "8px",
+};
+
+const titleStyle: React.CSSProperties = {
+  margin: 0,
+  fontSize: "64px",
+  lineHeight: 1,
+};
+
+const subtitleStyle: React.CSSProperties = {
+  marginTop: "10px",
+  color: "rgba(231,243,255,0.78)",
+};
+
+const topActionsStyle: React.CSSProperties = {
+  display: "flex",
+  gap: "12px",
+  flexWrap: "wrap",
+};
+
+const primaryActionStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "12px 16px",
+  borderRadius: "14px",
+  fontWeight: 700,
+  color: "#031019",
+  background: "linear-gradient(135deg, rgba(0,212,255,0.95), rgba(0,140,255,0.9))",
+  border: "none",
+  cursor: "pointer",
+};
+
+const heroCardStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1.2fr 0.8fr",
+  gap: "16px",
+  marginBottom: "18px",
+  borderRadius: "24px",
+  padding: "22px",
+  background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
+  border: "1px solid rgba(255,255,255,0.1)",
+  backdropFilter: "blur(16px)",
+};
+
+const heroLeftStyle: React.CSSProperties = {};
+
+const heroSmallLabelStyle: React.CSSProperties = {
+  fontSize: "12px",
+  letterSpacing: "0.16em",
+  color: "#8fdfff",
+  marginBottom: "10px",
+};
+
+const heroBigTextStyle: React.CSSProperties = {
+  fontSize: "30px",
+  fontWeight: 700,
+  lineHeight: 1.1,
+  marginBottom: "12px",
+};
+
+const heroTextStyle: React.CSSProperties = {
+  color: "rgba(231,243,255,0.78)",
+  lineHeight: 1.7,
+};
+
+const heroRightStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "12px",
+};
+
+const miniStatStyle: React.CSSProperties = {
+  borderRadius: "18px",
+  padding: "16px",
+  background: "rgba(255,255,255,0.04)",
+  border: "1px solid rgba(255,255,255,0.08)",
+};
+
+const miniStatLabelStyle: React.CSSProperties = {
+  fontSize: "12px",
+  color: "rgba(216,238,255,0.66)",
+  marginBottom: "8px",
+};
+
+const miniStatValueStyle: React.CSSProperties = {
+  fontSize: "28px",
+  fontWeight: 700,
+};
+
+const toolbarStyle: React.CSSProperties = {
+  marginBottom: "18px",
+};
+
+const searchInputStyle: React.CSSProperties = {
+  width: "100%",
+  maxWidth: "560px",
+  padding: "14px 16px",
+  borderRadius: "14px",
+  border: "1px solid rgba(255,255,255,0.1)",
+  background: "rgba(0,0,0,0.26)",
+  color: "white",
+  outline: "none",
+};
+
+const leadsGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+  gap: "16px",
+};
+
+const leadCardStyle: React.CSSProperties = {
+  borderRadius: "22px",
+  padding: "20px",
+  background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
+  border: "1px solid rgba(255,255,255,0.1)",
+  backdropFilter: "blur(16px)",
+};
+
+const leadTopStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "12px",
+  alignItems: "flex-start",
+  marginBottom: "16px",
+};
+
+const leadIdStyle: React.CSSProperties = {
+  color: "#8fdfff",
+  fontSize: "14px",
+  fontWeight: 700,
+  wordBreak: "break-all",
+};
+
+const statusBadgeStyle: React.CSSProperties = {
+  padding: "8px 12px",
+  borderRadius: "999px",
+  fontSize: "13px",
+  fontWeight: 700,
+  textTransform: "capitalize",
+  whiteSpace: "nowrap",
+};
+
+const newBadgeStyle: React.CSSProperties = {
+  color: "#bfe8ff",
+  background: "rgba(0, 198, 255, 0.12)",
+  border: "1px solid rgba(0, 198, 255, 0.22)",
+};
+
+const followUpBadgeStyle: React.CSSProperties = {
+  color: "#ffe9b3",
+  background: "rgba(255, 191, 0, 0.12)",
+  border: "1px solid rgba(255, 191, 0, 0.22)",
+};
+
+const quotedBadgeStyle: React.CSSProperties = {
+  color: "#ffd3d3",
+  background: "rgba(255, 90, 90, 0.12)",
+  border: "1px solid rgba(255, 90, 90, 0.22)",
+};
+
+const wonBadgeStyle: React.CSSProperties = {
+  color: "#bfffd6",
+  background: "rgba(52, 199, 89, 0.12)",
+  border: "1px solid rgba(52, 199, 89, 0.22)",
+};
+
+const leadNameStyle: React.CSSProperties = {
+  fontSize: "28px",
+  fontWeight: 700,
+  marginBottom: "8px",
+};
+
+const leadMetaStyle: React.CSSProperties = {
+  color: "rgba(231,243,255,0.76)",
+  marginBottom: "16px",
+};
+
+const detailsGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "12px",
+};
+
+const infoBoxStyle: React.CSSProperties = {
+  padding: "14px",
+  borderRadius: "16px",
+  background: "rgba(255,255,255,0.035)",
+  border: "1px solid rgba(255,255,255,0.06)",
+};
+
+const infoLabelStyle: React.CSSProperties = {
+  fontSize: "12px",
+  color: "rgba(216,238,255,0.66)",
+  marginBottom: "8px",
+};
+
+const infoValueStyle: React.CSSProperties = {
+  fontSize: "15px",
+  lineHeight: 1.4,
+};
+
+const notesBoxStyle: React.CSSProperties = {
+  marginTop: "16px",
+  padding: "16px",
+  borderRadius: "16px",
+  background: "rgba(255,255,255,0.035)",
+  border: "1px solid rgba(255,255,255,0.06)",
+};
+
+const notesLabelStyle: React.CSSProperties = {
+  fontSize: "12px",
+  color: "rgba(216,238,255,0.66)",
+  marginBottom: "8px",
+};
+
+const notesTextStyle: React.CSSProperties = {
+  lineHeight: 1.65,
+  color: "rgba(231,243,255,0.82)",
+};

@@ -31,7 +31,7 @@ export default function Home() {
   const [submitMessage, setSubmitMessage] = useState("");
 
   async function uploadQuotePhotos(files: File[]) {
-    const uploadedUrls: string[] = [];
+    const uploadedPaths: string[] = [];
 
     for (const file of files) {
       const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "-");
@@ -50,16 +50,10 @@ export default function Home() {
         throw error;
       }
 
-      const { data } = supabase.storage
-        .from("quote-photos")
-        .getPublicUrl(filePath);
-
-      if (data?.publicUrl) {
-        uploadedUrls.push(data.publicUrl);
-      }
+      uploadedPaths.push(filePath);
     }
 
-    return uploadedUrls;
+    return uploadedPaths;
   }
 
   async function handleQuoteSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -84,9 +78,7 @@ export default function Home() {
         photo_urls: photoUrls,
       };
 
-      const { error } = await supabase
-        .from("quote_requests")
-        .insert([payload]);
+      const { error } = await supabase.from("quote_requests").insert([payload]);
 
       if (error) {
         throw error;
@@ -169,12 +161,16 @@ export default function Home() {
           <div className={styles.heroPanelRight}>
             <div className={styles.heroMiniCard}>
               <span className={styles.heroMiniLabel}>Popular System</span>
-              <strong className={styles.heroMiniValue}>Luxury Resin Garage Finish</strong>
+              <strong className={styles.heroMiniValue}>
+                Luxury Resin Garage Finish
+              </strong>
             </div>
 
             <div className={styles.heroMiniCard}>
               <span className={styles.heroMiniLabel}>Best For</span>
-              <strong className={styles.heroMiniValue}>Garage, Shop, Patio</strong>
+              <strong className={styles.heroMiniValue}>
+                Garage, Shop, Patio
+              </strong>
             </div>
           </div>
         </section>
@@ -195,13 +191,17 @@ export default function Home() {
           <article className={styles.statCard}>
             <span className={styles.statLabel}>Use Case</span>
             <strong className={styles.statValue}>Garage + Shop</strong>
-            <span className={styles.statDetail}>Residential and light commercial</span>
+            <span className={styles.statDetail}>
+              Residential and light commercial
+            </span>
           </article>
 
           <article className={styles.statCard}>
             <span className={styles.statLabel}>Next Step</span>
             <strong className={styles.statValue}>Request a Quote</strong>
-            <span className={styles.statDetail}>Tell us your square footage</span>
+            <span className={styles.statDetail}>
+              Tell us your square footage
+            </span>
           </article>
         </section>
 

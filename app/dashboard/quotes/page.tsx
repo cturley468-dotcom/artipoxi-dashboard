@@ -3,15 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
-function getQuotePhotoUrl(pathOrUrl: string) {
-  if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
-    return pathOrUrl;
-  }
-
-  const { data } = supabase.storage.from("quote-photos").getPublicUrl(pathOrUrl);
-  return data.publicUrl;
-}
-
 type QuoteRequest = {
   id: string;
   full_name: string | null;
@@ -37,6 +28,16 @@ type EditForm = {
   details: string;
 };
 
+function getPhotoUrl(pathOrUrl: string) {
+  if (!pathOrUrl) return "";
+  if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
+    return pathOrUrl;
+  }
+
+  const { data } = supabase.storage.from("quote-photos").getPublicUrl(pathOrUrl);
+  return data.publicUrl;
+}
+
 export default function QuotesPage() {
   const [quotes, setQuotes] = useState<QuoteRequest[]>([]);
   const [search, setSearch] = useState("");
@@ -45,6 +46,7 @@ export default function QuotesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [isMobile, setIsMobile] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const [editForm, setEditForm] = useState<EditForm>({
     full_name: "",
@@ -65,9 +67,17 @@ export default function QuotesPage() {
       setIsMobile(window.innerWidth <= 900);
     }
 
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") setLightboxUrl(null);
+    }
+
     handleResize();
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("keydown", handleEscape);
+    };
   }, []);
 
   async function loadQuotes() {
@@ -172,10 +182,7 @@ export default function QuotesPage() {
     setWorkingId(id);
     setMessage("");
 
-    const { error } = await supabase
-      .from("quote_requests")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from("quote_requests").delete().eq("id", id);
 
     if (error) {
       console.error(error);
@@ -249,9 +256,7 @@ export default function QuotesPage() {
         <div style={headerTextBlock}>
           <div style={eyebrow}>CUSTOMER REQUESTS</div>
           <h1 style={pageTitle}>Quotes</h1>
-          <p style={pageSubtitle}>
-            Review quote requests submitted from the homepage.
-          </p>
+          <p style={pageSubtitle}>Review quote requests submitted from the homepage.</p>
         </div>
 
         <div style={summaryBox}>
@@ -287,12 +292,8 @@ export default function QuotesPage() {
               <article key={quote.id} style={quoteRowCard}>
                 <div style={rowTop}>
                   <div style={rowIdentity}>
-                    <h2 style={customerName}>
-                      {quote.full_name?.trim() || "Unnamed quote"}
-                    </h2>
-                    <div style={createdAtText}>
-                      {formatDateTime(quote.created_at)}
-                    </div>
+                    <h2 style={customerName}>{quote.full_name?.trim() || "Unnamed quote"}</h2>
+                    <div style={createdAtText}>{formatDateTime(quote.created_at)}</div>
                   </div>
 
                   <div style={projectBadge}>
@@ -326,12 +327,7 @@ export default function QuotesPage() {
                 </div>
 
                 {isEditing ? (
-                  <div
-                    style={{
-                      ...editGrid,
-                      ...(isMobile ? editGridMobile : null),
-                    }}
-                  >
+                  <div style={{ ...editGrid, ...(isMobile ? editGridMobile : null) }}>
                     <input style={editInput} placeholder="Full Name" value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} />
                     <input style={editInput} placeholder="Phone" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
                     <input style={editInput} placeholder="Email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
@@ -342,20 +338,14 @@ export default function QuotesPage() {
                   </div>
                 ) : (
                   <>
-                    <div
-                      style={{
-                        ...compactInfoGrid,
-                        ...(isMobile ? compactInfoGridMobile : null),
-                      }}
-                    >
+                    <div style={{ ...compactInfoGrid, ...(isMobile ? compactInfoGridMobile : null) }}>
                       <Field label="Email" value={quote.email} />
                       <Field label="Phone" value={quote.phone} />
                       <Field label="City" value={quote.city} />
                       <Field
                         label="Square Footage"
                         value={
-                          quote.square_footage !== null &&
-                          quote.square_footage !== undefined
+                          quote.square_footage !== null && quote.square_footage !== undefined
                             ? String(quote.square_footage)
                             : ""
                         }
@@ -365,25 +355,24 @@ export default function QuotesPage() {
                     {photos.length > 0 ? (
                       <div style={photosSection}>
                         <div style={fieldLabel}>Project Photos</div>
-                        <div style={photosWrap}>
-                          {photos.map((url, index) => (
-                            <a
-                              key={`${quote.id}-${index}`}
-                              href={getQuotePhotoUrl(url)}
-                              target="_blank"
-                              rel="noreferrer"
-                              style={photoLink}
-                            >
-                              <img
-                              src={getQuotePhotoUrl(url)}
-                               alt={`Quote photo ${index + 1}`}
-                                style={{
-                                  ...photoThumb,
-                                  ...(isMobile ? photoThumbMobile : null),
-                                }}
-                              />
-                            </a>
-                          ))}
+                        <div style={{ ...photoGrid, ...(isMobile ? photoGridMobile : null) }}>
+                          {photos.map((raw, index) => {
+                            const url = getPhotoUrl(raw);
+                            return (
+                              <button
+                                key={`${quote.id}-${index}`}
+                                type="button"
+                                onClick={() => setLightboxUrl(url)}
+                                style={photoButton}
+                              >
+                                <img
+                                  src={url}
+                                  alt={`Quote photo ${index + 1}`}
+                                  style={photoThumb}
+                                />
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                     ) : null}
@@ -401,6 +390,24 @@ export default function QuotesPage() {
           })}
         </div>
       )}
+
+      {lightboxUrl ? (
+        <div style={lightboxOverlay} onClick={() => setLightboxUrl(null)}>
+          <button
+            type="button"
+            onClick={() => setLightboxUrl(null)}
+            style={lightboxClose}
+          >
+            ×
+          </button>
+          <img
+            src={lightboxUrl}
+            alt="Expanded project photo"
+            style={lightboxImage}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -421,42 +428,284 @@ function formatDateTime(value: string) {
 }
 
 const pageWrap: React.CSSProperties = { width: "100%" };
-const headerBlock: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px", flexWrap: "wrap", marginBottom: "18px" };
+const headerBlock: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "16px",
+  flexWrap: "wrap",
+  marginBottom: "18px",
+};
 const headerTextBlock: React.CSSProperties = { minWidth: 0 };
-const eyebrow: React.CSSProperties = { fontSize: "12px", letterSpacing: "0.18em", color: "#8fdfff", marginBottom: "8px" };
-const pageTitle: React.CSSProperties = { margin: 0, fontSize: "64px", lineHeight: 1, color: "white" };
-const pageSubtitle: React.CSSProperties = { marginTop: "10px", color: "rgba(231,243,255,0.78)" };
-const summaryBox: React.CSSProperties = { minWidth: "150px", padding: "14px 16px", borderRadius: "18px", background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))", border: "1px solid rgba(255,255,255,0.1)", backdropFilter: "blur(16px)" };
-const summaryLabel: React.CSSProperties = { fontSize: "12px", color: "rgba(216,238,255,0.66)", marginBottom: "8px" };
-const summaryValue: React.CSSProperties = { fontSize: "28px", fontWeight: 700, color: "white" };
+const eyebrow: React.CSSProperties = {
+  fontSize: "12px",
+  letterSpacing: "0.18em",
+  color: "#8fdfff",
+  marginBottom: "8px",
+};
+const pageTitle: React.CSSProperties = {
+  margin: 0,
+  fontSize: "64px",
+  lineHeight: 1,
+  color: "white",
+};
+const pageSubtitle: React.CSSProperties = {
+  marginTop: "10px",
+  color: "rgba(231,243,255,0.78)",
+};
+const summaryBox: React.CSSProperties = {
+  minWidth: "150px",
+  padding: "14px 16px",
+  borderRadius: "18px",
+  background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
+  border: "1px solid rgba(255,255,255,0.1)",
+  backdropFilter: "blur(16px)",
+};
+const summaryLabel: React.CSSProperties = {
+  fontSize: "12px",
+  color: "rgba(216,238,255,0.66)",
+  marginBottom: "8px",
+};
+const summaryValue: React.CSSProperties = {
+  fontSize: "28px",
+  fontWeight: 700,
+  color: "white",
+};
 const searchRow: React.CSSProperties = { marginBottom: "16px" };
-const searchInput: React.CSSProperties = { width: "100%", maxWidth: "620px", padding: "12px 14px", borderRadius: "14px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.26)", color: "white", outline: "none" };
-const messageBox: React.CSSProperties = { marginBottom: "16px", padding: "12px 14px", borderRadius: "14px", background: "rgba(0,198,255,0.08)", border: "1px solid rgba(0,198,255,0.18)", color: "#9fe8ff" };
-const emptyPanel: React.CSSProperties = { borderRadius: "20px", padding: "18px", background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))", border: "1px solid rgba(255,255,255,0.1)", backdropFilter: "blur(16px)", color: "rgba(231,243,255,0.82)" };
-const rowsWrap: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr", gap: "10px" };
-const quoteRowCard: React.CSSProperties = { borderRadius: "16px", padding: "12px 14px", background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))", border: "1px solid rgba(255,255,255,0.1)", backdropFilter: "blur(16px)", minWidth: 0, overflow: "hidden" };
-const rowTop: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px", flexWrap: "wrap", marginBottom: "10px" };
-const rowIdentity: React.CSSProperties = { minWidth: 0, flex: "1 1 240px" };
-const customerName: React.CSSProperties = { margin: 0, fontSize: "20px", fontWeight: 700, lineHeight: 1.05, color: "white", overflowWrap: "anywhere", wordBreak: "break-word" };
-const createdAtText: React.CSSProperties = { marginTop: "4px", fontSize: "12px", color: "rgba(231,243,255,0.66)", overflowWrap: "anywhere" };
-const projectBadge: React.CSSProperties = { padding: "6px 10px", borderRadius: "999px", background: "rgba(0, 198, 255, 0.1)", border: "1px solid rgba(0, 198, 255, 0.22)", color: "#9fe8ff", fontSize: "11px", lineHeight: 1.2, maxWidth: "120px", textAlign: "center" };
-const actionRow: React.CSSProperties = { display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "10px" };
-const primaryButton: React.CSSProperties = { border: "none", borderRadius: "10px", padding: "8px 11px", fontWeight: 700, cursor: "pointer", color: "#031019", background: "linear-gradient(135deg, rgba(0,212,255,0.95), rgba(0,140,255,0.9))" };
-const ghostButton: React.CSSProperties = { border: "1px solid rgba(255,255,255,0.14)", borderRadius: "10px", padding: "8px 11px", fontWeight: 700, cursor: "pointer", color: "white", background: "rgba(255,255,255,0.05)" };
-const dangerButton: React.CSSProperties = { border: "1px solid rgba(255, 90, 90, 0.24)", borderRadius: "10px", padding: "8px 11px", fontWeight: 700, cursor: "pointer", color: "#ffd3d3", background: "rgba(255, 90, 90, 0.1)" };
-const compactInfoGrid: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "8px" };
-const compactInfoGridMobile: React.CSSProperties = { gridTemplateColumns: "1fr 1fr" };
-const fieldBox: React.CSSProperties = { padding: "9px 10px", borderRadius: "12px", background: "rgba(255,255,255,0.035)", border: "1px solid rgba(255,255,255,0.06)", minWidth: 0, overflow: "hidden" };
-const fieldLabel: React.CSSProperties = { fontSize: "10px", color: "rgba(216,238,255,0.66)", marginBottom: "5px" };
-const fieldValue: React.CSSProperties = { fontSize: "13px", lineHeight: 1.3, color: "white", overflowWrap: "anywhere", wordBreak: "break-word" };
+const searchInput: React.CSSProperties = {
+  width: "100%",
+  maxWidth: "620px",
+  padding: "12px 14px",
+  borderRadius: "14px",
+  border: "1px solid rgba(255,255,255,0.1)",
+  background: "rgba(0,0,0,0.26)",
+  color: "white",
+  outline: "none",
+};
+const messageBox: React.CSSProperties = {
+  marginBottom: "16px",
+  padding: "12px 14px",
+  borderRadius: "14px",
+  background: "rgba(0,198,255,0.08)",
+  border: "1px solid rgba(0,198,255,0.18)",
+  color: "#9fe8ff",
+};
+const emptyPanel: React.CSSProperties = {
+  borderRadius: "20px",
+  padding: "18px",
+  background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
+  border: "1px solid rgba(255,255,255,0.1)",
+  backdropFilter: "blur(16px)",
+  color: "rgba(231,243,255,0.82)",
+};
+const rowsWrap: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1fr",
+  gap: "12px",
+};
+const quoteRowCard: React.CSSProperties = {
+  borderRadius: "16px",
+  padding: "12px 14px",
+  background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
+  border: "1px solid rgba(255,255,255,0.1)",
+  backdropFilter: "blur(16px)",
+  minWidth: 0,
+  overflow: "hidden",
+};
+const rowTop: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "10px",
+  flexWrap: "wrap",
+  marginBottom: "10px",
+};
+const rowIdentity: React.CSSProperties = {
+  minWidth: 0,
+  flex: "1 1 240px",
+};
+const customerName: React.CSSProperties = {
+  margin: 0,
+  fontSize: "20px",
+  fontWeight: 700,
+  lineHeight: 1.05,
+  color: "white",
+  overflowWrap: "anywhere",
+  wordBreak: "break-word",
+};
+const createdAtText: React.CSSProperties = {
+  marginTop: "4px",
+  fontSize: "12px",
+  color: "rgba(231,243,255,0.66)",
+  overflowWrap: "anywhere",
+};
+const projectBadge: React.CSSProperties = {
+  padding: "6px 10px",
+  borderRadius: "999px",
+  background: "rgba(0, 198, 255, 0.1)",
+  border: "1px solid rgba(0, 198, 255, 0.22)",
+  color: "#9fe8ff",
+  fontSize: "11px",
+  lineHeight: 1.2,
+  maxWidth: "120px",
+  textAlign: "center",
+};
+const actionRow: React.CSSProperties = {
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap",
+  marginBottom: "10px",
+};
+const primaryButton: React.CSSProperties = {
+  border: "none",
+  borderRadius: "10px",
+  padding: "8px 11px",
+  fontWeight: 700,
+  cursor: "pointer",
+  color: "#031019",
+  background: "linear-gradient(135deg, rgba(0,212,255,0.95), rgba(0,140,255,0.9))",
+};
+const ghostButton: React.CSSProperties = {
+  border: "1px solid rgba(255,255,255,0.14)",
+  borderRadius: "10px",
+  padding: "8px 11px",
+  fontWeight: 700,
+  cursor: "pointer",
+  color: "white",
+  background: "rgba(255,255,255,0.05)",
+};
+const dangerButton: React.CSSProperties = {
+  border: "1px solid rgba(255, 90, 90, 0.24)",
+  borderRadius: "10px",
+  padding: "8px 11px",
+  fontWeight: 700,
+  cursor: "pointer",
+  color: "#ffd3d3",
+  background: "rgba(255, 90, 90, 0.1)",
+};
+const compactInfoGrid: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+  gap: "8px",
+};
+const compactInfoGridMobile: React.CSSProperties = {
+  gridTemplateColumns: "1fr 1fr",
+};
+const fieldBox: React.CSSProperties = {
+  padding: "9px 10px",
+  borderRadius: "12px",
+  background: "rgba(255,255,255,0.035)",
+  border: "1px solid rgba(255,255,255,0.06)",
+  minWidth: 0,
+  overflow: "hidden",
+};
+const fieldLabel: React.CSSProperties = {
+  fontSize: "10px",
+  color: "rgba(216,238,255,0.66)",
+  marginBottom: "5px",
+};
+const fieldValue: React.CSSProperties = {
+  fontSize: "13px",
+  lineHeight: 1.3,
+  color: "white",
+  overflowWrap: "anywhere",
+  wordBreak: "break-word",
+};
 const photosSection: React.CSSProperties = { marginTop: "10px" };
-const photosWrap: React.CSSProperties = { display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "8px" };
-const photoLink: React.CSSProperties = { display: "block" };
-const photoThumb: React.CSSProperties = { width: "96px", height: "96px", objectFit: "cover", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.12)" };
-const photoThumbMobile: React.CSSProperties = { width: "120px", height: "120px" };
-const notesPanel: React.CSSProperties = { marginTop: "10px", padding: "10px 12px", borderRadius: "12px", background: "rgba(255,255,255,0.035)", border: "1px solid rgba(255,255,255,0.06)" };
-const notesValue: React.CSSProperties = { lineHeight: 1.4, color: "rgba(231,243,255,0.82)", overflowWrap: "anywhere", wordBreak: "break-word" };
-const editGrid: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "10px" };
-const editGridMobile: React.CSSProperties = { gridTemplateColumns: "1fr" };
-const editInput: React.CSSProperties = { width: "100%", padding: "10px 12px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.26)", color: "white", outline: "none" };
-const editTextarea: React.CSSProperties = { gridColumn: "1 / -1", minHeight: "90px", width: "100%", padding: "10px 12px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.26)", color: "white", outline: "none", resize: "vertical" };
+const photoGrid: React.CSSProperties = {
+  marginTop: "8px",
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fill, minmax(92px, 1fr))",
+  gap: "10px",
+};
+const photoGridMobile: React.CSSProperties = {
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+};
+const photoButton: React.CSSProperties = {
+  border: "none",
+  background: "transparent",
+  padding: 0,
+  cursor: "pointer",
+  display: "block",
+};
+const photoThumb: React.CSSProperties = {
+  width: "100%",
+  aspectRatio: "1 / 1",
+  objectFit: "cover",
+  borderRadius: "12px",
+  border: "1px solid rgba(255,255,255,0.12)",
+  display: "block",
+};
+const notesPanel: React.CSSProperties = {
+  marginTop: "10px",
+  padding: "10px 12px",
+  borderRadius: "12px",
+  background: "rgba(255,255,255,0.035)",
+  border: "1px solid rgba(255,255,255,0.06)",
+};
+const notesValue: React.CSSProperties = {
+  lineHeight: 1.4,
+  color: "rgba(231,243,255,0.82)",
+  overflowWrap: "anywhere",
+  wordBreak: "break-word",
+};
+const editGrid: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gap: "10px",
+};
+const editGridMobile: React.CSSProperties = {
+  gridTemplateColumns: "1fr",
+};
+const editInput: React.CSSProperties = {
+  width: "100%",
+  padding: "10px 12px",
+  borderRadius: "12px",
+  border: "1px solid rgba(255,255,255,0.1)",
+  background: "rgba(0,0,0,0.26)",
+  color: "white",
+  outline: "none",
+};
+const editTextarea: React.CSSProperties = {
+  gridColumn: "1 / -1",
+  minHeight: "90px",
+  width: "100%",
+  padding: "10px 12px",
+  borderRadius: "12px",
+  border: "1px solid rgba(255,255,255,0.1)",
+  background: "rgba(0,0,0,0.26)",
+  color: "white",
+  outline: "none",
+  resize: "vertical",
+};
+const lightboxOverlay: React.CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(0,0,0,0.82)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "24px",
+  zIndex: 9999,
+};
+const lightboxImage: React.CSSProperties = {
+  maxWidth: "92vw",
+  maxHeight: "88vh",
+  borderRadius: "16px",
+  objectFit: "contain",
+  boxShadow: "0 20px 80px rgba(0,0,0,0.45)",
+};
+const lightboxClose: React.CSSProperties = {
+  position: "absolute",
+  top: "16px",
+  right: "20px",
+  width: "44px",
+  height: "44px",
+  borderRadius: "999px",
+  border: "1px solid rgba(255,255,255,0.2)",
+  background: "rgba(255,255,255,0.08)",
+  color: "white",
+  fontSize: "28px",
+  lineHeight: 1,
+  cursor: "pointer",
+};

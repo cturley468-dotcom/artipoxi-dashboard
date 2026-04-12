@@ -13,6 +13,8 @@ type QuoteRequest = {
   project_type: string | null;
   details: string | null;
   created_at: string;
+  status: string | null;
+  converted_to_job_id: string | null;
 };
 
 type EditForm = {
@@ -54,6 +56,7 @@ export default function QuotesPage() {
     const { data, error } = await supabase
       .from("quote_requests")
       .select("*")
+      .neq("status", "converted")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -167,38 +170,56 @@ export default function QuotesPage() {
   }
 
   async function convertToJob(quote: QuoteRequest) {
-    const confirmed = window.confirm(
-      "Convert this quote into a job?"
-    );
+    const confirmed = window.confirm("Convert this quote into a job?");
     if (!confirmed) return;
 
     setWorkingId(quote.id);
     setMessage("");
 
-    const { error } = await supabase.from("jobs").insert([
-      {
-        quote_request_id: quote.id,
-        customer: quote.full_name?.trim() || "Unnamed customer",
-        phone: quote.phone?.trim() || null,
-        email: quote.email?.trim() || null,
-        location: quote.city?.trim() || null,
-        square_footage: quote.square_footage ?? null,
-        system_type: quote.project_type?.trim() || null,
-        notes: quote.details?.trim() || null,
-        status: "open",
-        value: 0,
-      },
-    ]);
+    const { data: insertedJob, error: insertError } = await supabase
+      .from("jobs")
+      .insert([
+        {
+          quote_request_id: quote.id,
+          customer: quote.full_name?.trim() || "Unnamed customer",
+          phone: quote.phone?.trim() || null,
+          email: quote.email?.trim() || null,
+          location: quote.city?.trim() || null,
+          square_footage: quote.square_footage ?? null,
+          system_type: quote.project_type?.trim() || null,
+          notes: quote.details?.trim() || null,
+          status: "open",
+          value: 0,
+        },
+      ])
+      .select("id")
+      .single();
 
-    if (error) {
-      console.error(error);
+    if (insertError || !insertedJob) {
+      console.error(insertError);
       setMessage("Could not convert quote to job.");
+      setWorkingId(null);
+      return;
+    }
+
+    const { error: updateError } = await supabase
+      .from("quote_requests")
+      .update({
+        status: "converted",
+        converted_to_job_id: insertedJob.id,
+      })
+      .eq("id", quote.id);
+
+    if (updateError) {
+      console.error(updateError);
+      setMessage("Job created, but quote status could not be updated.");
       setWorkingId(null);
       return;
     }
 
     setWorkingId(null);
     setMessage("Quote converted to job.");
+    await loadQuotes();
   }
 
   return (
@@ -234,8 +255,7 @@ export default function QuotesPage() {
         <div style={emptyPanel}>Loading quote requests...</div>
       ) : visibleQuotes.length === 0 ? (
         <div style={emptyPanel}>
-          No quote requests yet. When a customer submits the homepage quote form,
-          it will show here.
+          No active quote requests right now.
         </div>
       ) : (
         <div style={rowsWrap}>
@@ -430,10 +450,7 @@ function formatDateTime(value: string) {
   return date.toLocaleString();
 }
 
-const pageWrap: React.CSSProperties = {
-  width: "100%",
-};
-
+const pageWrap: React.CSSProperties = { width: "100%" };
 const headerBlock: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
@@ -442,30 +459,23 @@ const headerBlock: React.CSSProperties = {
   flexWrap: "wrap",
   marginBottom: "18px",
 };
-
-const headerTextBlock: React.CSSProperties = {
-  minWidth: 0,
-};
-
+const headerTextBlock: React.CSSProperties = { minWidth: 0 };
 const eyebrow: React.CSSProperties = {
   fontSize: "12px",
   letterSpacing: "0.18em",
   color: "#8fdfff",
   marginBottom: "8px",
 };
-
 const pageTitle: React.CSSProperties = {
   margin: 0,
   fontSize: "64px",
   lineHeight: 1,
   color: "white",
 };
-
 const pageSubtitle: React.CSSProperties = {
   marginTop: "10px",
   color: "rgba(231,243,255,0.78)",
 };
-
 const summaryBox: React.CSSProperties = {
   minWidth: "150px",
   padding: "14px 16px",
@@ -475,23 +485,17 @@ const summaryBox: React.CSSProperties = {
   border: "1px solid rgba(255,255,255,0.1)",
   backdropFilter: "blur(16px)",
 };
-
 const summaryLabel: React.CSSProperties = {
   fontSize: "12px",
   color: "rgba(216,238,255,0.66)",
   marginBottom: "8px",
 };
-
 const summaryValue: React.CSSProperties = {
   fontSize: "28px",
   fontWeight: 700,
   color: "white",
 };
-
-const searchRow: React.CSSProperties = {
-  marginBottom: "16px",
-};
-
+const searchRow: React.CSSProperties = { marginBottom: "16px" };
 const searchInput: React.CSSProperties = {
   width: "100%",
   maxWidth: "620px",
@@ -502,7 +506,6 @@ const searchInput: React.CSSProperties = {
   color: "white",
   outline: "none",
 };
-
 const messageBox: React.CSSProperties = {
   marginBottom: "16px",
   padding: "12px 14px",
@@ -511,7 +514,6 @@ const messageBox: React.CSSProperties = {
   border: "1px solid rgba(0,198,255,0.18)",
   color: "#9fe8ff",
 };
-
 const emptyPanel: React.CSSProperties = {
   borderRadius: "20px",
   padding: "18px",
@@ -521,13 +523,11 @@ const emptyPanel: React.CSSProperties = {
   backdropFilter: "blur(16px)",
   color: "rgba(231,243,255,0.82)",
 };
-
 const rowsWrap: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "1fr",
   gap: "14px",
 };
-
 const quoteRowCard: React.CSSProperties = {
   borderRadius: "18px",
   padding: "14px",
@@ -538,7 +538,6 @@ const quoteRowCard: React.CSSProperties = {
   minWidth: 0,
   overflow: "hidden",
 };
-
 const rowTop: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
@@ -547,12 +546,10 @@ const rowTop: React.CSSProperties = {
   flexWrap: "wrap",
   marginBottom: "12px",
 };
-
 const rowIdentity: React.CSSProperties = {
   minWidth: 0,
   flex: "1 1 240px",
 };
-
 const customerName: React.CSSProperties = {
   margin: 0,
   fontSize: "22px",
@@ -562,14 +559,12 @@ const customerName: React.CSSProperties = {
   overflowWrap: "anywhere",
   wordBreak: "break-word",
 };
-
 const createdAtText: React.CSSProperties = {
   marginTop: "6px",
   fontSize: "13px",
   color: "rgba(231,243,255,0.66)",
   overflowWrap: "anywhere",
 };
-
 const projectBadge: React.CSSProperties = {
   padding: "7px 10px",
   borderRadius: "999px",
@@ -581,14 +576,12 @@ const projectBadge: React.CSSProperties = {
   maxWidth: "120px",
   textAlign: "center",
 };
-
 const actionRow: React.CSSProperties = {
   display: "flex",
   gap: "8px",
   flexWrap: "wrap",
   marginBottom: "12px",
 };
-
 const primaryButton: React.CSSProperties = {
   border: "none",
   borderRadius: "10px",
@@ -599,7 +592,6 @@ const primaryButton: React.CSSProperties = {
   background:
     "linear-gradient(135deg, rgba(0,212,255,0.95), rgba(0,140,255,0.9))",
 };
-
 const ghostButton: React.CSSProperties = {
   border: "1px solid rgba(255,255,255,0.14)",
   borderRadius: "10px",
@@ -609,7 +601,6 @@ const ghostButton: React.CSSProperties = {
   color: "white",
   background: "rgba(255,255,255,0.05)",
 };
-
 const dangerButton: React.CSSProperties = {
   border: "1px solid rgba(255, 90, 90, 0.24)",
   borderRadius: "10px",
@@ -619,13 +610,11 @@ const dangerButton: React.CSSProperties = {
   color: "#ffd3d3",
   background: "rgba(255, 90, 90, 0.1)",
 };
-
 const compactInfoGrid: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
   gap: "10px",
 };
-
 const fieldBox: React.CSSProperties = {
   padding: "10px 12px",
   borderRadius: "12px",
@@ -634,13 +623,11 @@ const fieldBox: React.CSSProperties = {
   minWidth: 0,
   overflow: "hidden",
 };
-
 const fieldLabel: React.CSSProperties = {
   fontSize: "11px",
   color: "rgba(216,238,255,0.66)",
   marginBottom: "6px",
 };
-
 const fieldValue: React.CSSProperties = {
   fontSize: "14px",
   lineHeight: 1.35,
@@ -648,7 +635,6 @@ const fieldValue: React.CSSProperties = {
   overflowWrap: "anywhere",
   wordBreak: "break-word",
 };
-
 const notesPanel: React.CSSProperties = {
   marginTop: "12px",
   padding: "12px",
@@ -656,20 +642,17 @@ const notesPanel: React.CSSProperties = {
   background: "rgba(255,255,255,0.035)",
   border: "1px solid rgba(255,255,255,0.06)",
 };
-
 const notesValue: React.CSSProperties = {
   lineHeight: 1.45,
   color: "rgba(231,243,255,0.82)",
   overflowWrap: "anywhere",
   wordBreak: "break-word",
 };
-
 const editGrid: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
   gap: "10px",
 };
-
 const editInput: React.CSSProperties = {
   width: "100%",
   padding: "10px 12px",
@@ -679,7 +662,6 @@ const editInput: React.CSSProperties = {
   color: "white",
   outline: "none",
 };
-
 const editTextarea: React.CSSProperties = {
   gridColumn: "1 / -1",
   minHeight: "90px",

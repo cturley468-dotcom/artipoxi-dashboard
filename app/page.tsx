@@ -1,35 +1,40 @@
+"use client";
+
 import Link from "next/link";
 import styles from "./page.module.css";
 
 export default function Home() {
   return (
     <main className={styles.page}>
-      <section className={styles.hero}>
-        <div className={styles.overlay} />
-        <div className={styles.overlayGlow} />
-
-        <header className={styles.header}>
-          <div className={styles.logoWrap}>
-            <div className={styles.logoBox}>AP</div>
-
-            <div className={styles.brandText}>
+      <div className={styles.shell}>
+        <header className={styles.topbar}>
+          <div className={styles.brandCard}>
+            <div className={styles.logo}>AP</div>
+            <div>
               <p className={styles.brandTop}>ARTIPOXI</p>
-              <h2 className={styles.brandBottom}>Premium Epoxy Systems</h2>
+              <h2 className={styles.brandBottom}>Operations</h2>
             </div>
           </div>
 
-          <nav className={styles.nav}>
-            <Link href="/" className={styles.navBtn}>Home</Link>
-            <Link href="/dashboard" className={styles.navBtn}>Dashboard</Link>
-            <Link href="/jobs" className={styles.navBtn}>Jobs</Link>
-            <Link href="/configurator" className={styles.navBtn}>Configurator</Link>
-            <Link href="/login" className={styles.loginBtn}>Login</Link>
+          <nav className={styles.topNav}>
+            <a href="#quote" className={styles.topLink}>
+              Quote Request
+            </a>
+            <a href="#finishes" className={styles.topLink}>
+              Finishes
+            </a>
+            <a href="#before-after" className={styles.topLink}>
+              Before &amp; After
+            </a>
+            <Link href="/login" className={styles.topLinkActive}>
+              Login
+            </Link>
           </nav>
         </header>
 
-        <div className={styles.heroContent}>
-          <div className={styles.left}>
-            <p className={styles.kicker}>PREMIUM SURFACES</p>
+        <section className={styles.heroPanel}>
+          <div className={styles.heroPanelLeft}>
+            <p className={styles.eyebrow}>PREMIUM SURFACES</p>
 
             <h1 className={styles.title}>
               Premium floors.
@@ -40,100 +45,175 @@ export default function Home() {
             </h1>
 
             <p className={styles.subtitle}>
-              ArtiPoxi creates premium epoxy systems for garages, shops, and custom
-              spaces with a clean luxury finish and real-world durability.
+              ArtiPoxi creates premium epoxy systems for garages, shops, patios,
+              and custom spaces with a clean luxury finish and real-world durability.
             </p>
 
-            <div className={styles.buttonRow}>
-              <Link href="/jobs" className={styles.primaryBtn}>
-                View Jobs
-              </Link>
-              <Link href="/configurator" className={styles.secondaryBtn}>
-                Start Configurator
-              </Link>
-            </div>
-
-            <div className={styles.metricRow}>
-              <div className={styles.metricCard}>
-                <span className={styles.metricLabel}>Finish</span>
-                <span className={styles.metricValue}>Luxury Resin</span>
-              </div>
-
-              <div className={styles.metricCard}>
-                <span className={styles.metricLabel}>Strength</span>
-                <span className={styles.metricValue}>Contractor Grade</span>
-              </div>
-
-              <div className={styles.metricCard}>
-                <span className={styles.metricLabel}>Use Case</span>
-                <span className={styles.metricValue}>Garage + Shop</span>
-              </div>
+            <div className={styles.heroActions}>
+              <a href="#quote" className={styles.heroPrimary}>
+                Request Quote
+              </a>
+              <a href="#finishes" className={styles.heroGhost}>
+                View Finishes
+              </a>
             </div>
           </div>
 
-          <div className={styles.right}>
-            <div className={styles.featureCard}>
-              <div className={styles.featureVisual}>
-                <div className={styles.visualGlow} />
-                <div className={styles.visualPanel}>
-                  <div className={styles.visualBadge}>Featured System</div>
-                  <div className={styles.visualLines}>
-                    <span />
-                    <span />
-                    <span />
-                  </div>
-                  <div className={styles.visualPlate}>BLACK RESIN FINISH</div>
-                </div>
+          <div className={styles.heroPanelRight}>
+            <div className={styles.heroMiniCard}>
+              <span className={styles.heroMiniLabel}>Popular System</span>
+              <strong className={styles.heroMiniValue}>Luxury Resin Garage Finish</strong>
+            </div>
+
+            <div className={styles.heroMiniCard}>
+              <span className={styles.heroMiniLabel}>Best For</span>
+              <strong className={styles.heroMiniValue}>Garage, Shop, Patio</strong>
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.statsGrid}>
+          <article className={styles.statCard}>
+            <span className={styles.statLabel}>Finish</span>
+            <strong className={styles.statValue}>Luxury Resin</strong>
+            <span className={styles.statDetail}>Deep color and reflection</span>
+          </article>
+
+          <article className={styles.statCard}>
+            <span className={styles.statLabel}>Durability</span>
+            <strong className={styles.statValue}>Contractor Grade</strong>
+            <span className={styles.statDetail}>Built for daily use</span>
+          </article>
+
+          <article className={styles.statCard}>
+            <span className={styles.statLabel}>Use Case</span>
+            <strong className={styles.statValue}>Garage + Shop</strong>
+            <span className={styles.statDetail}>Residential and light commercial</span>
+          </article>
+
+          <article className={styles.statCard}>
+            <span className={styles.statLabel}>Next Step</span>
+            <strong className={styles.statValue}>Request a Quote</strong>
+            <span className={styles.statDetail}>Tell us your square footage</span>
+          </article>
+        </section>
+
+        <section id="quote" className={styles.contentGrid}>
+          <div className={styles.panelLarge}>
+            <p className={styles.panelTag}>QUOTE REQUEST</p>
+            <h3 className={styles.panelTitle}>Tell us about your project</h3>
+            <p className={styles.panelText}>
+              Share your project details and approximate square footage so we can
+              review the space and follow up with the right options.
+            </p>
+
+            <form className={styles.quoteForm}>
+              <div className={styles.formGrid}>
+                <input className={styles.input} type="text" placeholder="Full Name" />
+                <input className={styles.input} type="tel" placeholder="Phone Number" />
+                <input className={styles.input} type="email" placeholder="Email Address" />
+                <input className={styles.input} type="text" placeholder="City / Project Location" />
+                <input className={styles.input} type="number" placeholder="Approx. Square Footage" />
+                <select className={styles.input} defaultValue="">
+                  <option value="" disabled>
+                    Project Type
+                  </option>
+                  <option>Garage</option>
+                  <option>Shop</option>
+                  <option>Patio</option>
+                  <option>Commercial</option>
+                  <option>Other</option>
+                </select>
               </div>
 
-              <div className={styles.featureInfo}>
-                <span className={styles.featureTag}>Premium Coating</span>
-                <h3 className={styles.featureTitle}>Black Resin Garage Finish</h3>
-                <p className={styles.featureText}>
-                  Deep resin movement, strong contrast, and a premium modern finish
-                  that feels custom without losing durability.
-                </p>
+              <textarea
+                className={styles.textarea}
+                placeholder="Tell us about your floor, preferred finish, timeline, or anything else we should know."
+              />
 
-                <div className={styles.featureActions}>
-                  <Link href="/configurator" className={styles.cardBtn}>
-                    Open Configurator
-                  </Link>
-                  <Link href="/dashboard" className={styles.cardGhostBtn}>
-                    Open Dashboard
-                  </Link>
-                </div>
+              <div className={styles.formActions}>
+                <button type="button" className={styles.primaryBtn}>
+                  Submit Request
+                </button>
+                <Link href="/login" className={styles.secondaryBtn}>
+                  Employee Login
+                </Link>
+              </div>
+            </form>
+          </div>
+
+          <div className={styles.panel}>
+            <p className={styles.panelTag}>WHY CUSTOMERS CHOOSE EPOXY</p>
+            <h3 className={styles.panelTitle}>Clean, strong, and built to last</h3>
+
+            <div className={styles.pipelineList}>
+              <div className={styles.pipelineRow}>
+                <span>Cleaner Look</span>
+                <span className={styles.pipelineCount}>✔</span>
+              </div>
+              <div className={styles.pipelineRow}>
+                <span>Easier Maintenance</span>
+                <span className={styles.pipelineCount}>✔</span>
+              </div>
+              <div className={styles.pipelineRow}>
+                <span>Long-Term Protection</span>
+                <span className={styles.pipelineCount}>✔</span>
+              </div>
+              <div className={styles.pipelineRow}>
+                <span>Custom Finish Options</span>
+                <span className={styles.pipelineCount}>✔</span>
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        <section className={styles.lowerSection}>
-          <div className={styles.lowerCard}>
-            <p className={styles.lowerTag}>Why ArtiPoxi</p>
-            <h3 className={styles.lowerTitle}>Built for real use, not just looks.</h3>
-            <p className={styles.lowerText}>
-              Premium coatings, clean installation flow, and a stronger customer-facing
-              experience from quote to completion.
+        <section id="finishes" className={styles.bottomGrid}>
+          <div className={styles.panel}>
+            <p className={styles.panelTag}>FINISH OPTIONS</p>
+            <h3 className={styles.panelTitle}>Flake Finish</h3>
+            <p className={styles.panelText}>
+              Durable, clean, and ideal for garages and high-traffic spaces with
+              a classic broadcast flake appearance.
             </p>
           </div>
 
-          <div className={styles.lowerCard}>
-            <p className={styles.lowerTag}>Business Tools</p>
-            <h3 className={styles.lowerTitle}>Operations and configurator together.</h3>
-            <p className={styles.lowerText}>
-              Manage jobs, track workflow, and build system options inside one matching app.
+          <div className={styles.panel}>
+            <p className={styles.panelTag}>FINISH OPTIONS</p>
+            <h3 className={styles.panelTitle}>Metallic Resin</h3>
+            <p className={styles.panelText}>
+              Rich movement and custom depth for customers wanting a higher-end decorative finish.
             </p>
           </div>
 
-          <div className={styles.lowerCard}>
-            <p className={styles.lowerTag}>Next Step</p>
-            <h3 className={styles.lowerTitle}>Start building the customer flow.</h3>
-            <p className={styles.lowerText}>
-              Next we can connect login, configurator steps, estimates, and real dashboard data.
+          <div className={styles.panel}>
+            <p className={styles.panelTag}>FINISH OPTIONS</p>
+            <h3 className={styles.panelTitle}>Solid Color Epoxy</h3>
+            <p className={styles.panelText}>
+              Clean, modern, and practical with a sleek uniform appearance and strong protection.
             </p>
           </div>
         </section>
-      </section>
+
+        <section id="before-after" className={styles.bottomGrid}>
+          <div className={styles.panel}>
+            <p className={styles.panelTag}>BEFORE</p>
+            <h3 className={styles.panelTitle}>Worn concrete</h3>
+            <p className={styles.panelText}>
+              Bare concrete, stains, old coating failure, tire marks, cracks,
+              and a dull unfinished look.
+            </p>
+          </div>
+
+          <div className={styles.panel}>
+            <p className={styles.panelTag}>AFTER</p>
+            <h3 className={styles.panelTitle}>Finished surface</h3>
+            <p className={styles.panelText}>
+              Cleaner appearance, stronger protection, easier maintenance,
+              and a premium custom result.
+            </p>
+          </div>
+        </section>
+      </div>
     </main>
   );
 }

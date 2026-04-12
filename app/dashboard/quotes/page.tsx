@@ -134,7 +134,7 @@ export default function QuotesPage() {
 
     if (error) {
       console.error(error);
-      setMessage("Could not save quote changes.");
+      setMessage(`Could not save quote changes: ${error.message}`);
       setWorkingId(null);
       return;
     }
@@ -159,7 +159,7 @@ export default function QuotesPage() {
 
     if (error) {
       console.error(error);
-      setMessage("Could not delete quote.");
+      setMessage(`Could not delete quote: ${error.message}`);
       setWorkingId(null);
       return;
     }
@@ -197,7 +197,7 @@ export default function QuotesPage() {
 
     if (insertError || !insertedJob) {
       console.error(insertError);
-      setMessage("Could not convert quote to job.");
+      setMessage(`Could not convert quote to job: ${insertError?.message || "unknown error"}`);
       setWorkingId(null);
       return;
     }
@@ -212,7 +212,7 @@ export default function QuotesPage() {
 
     if (updateError) {
       console.error(updateError);
-      setMessage("Job created, but quote status could not be updated.");
+      setMessage(`Job created, but quote status could not be updated: ${updateError.message}`);
       setWorkingId(null);
       return;
     }
@@ -254,9 +254,7 @@ export default function QuotesPage() {
       {loading ? (
         <div style={emptyPanel}>Loading quote requests...</div>
       ) : visibleQuotes.length === 0 ? (
-        <div style={emptyPanel}>
-          No active quote requests right now.
-        </div>
+        <div style={emptyPanel}>No active quote requests right now.</div>
       ) : (
         <div style={rowsWrap}>
           {visibleQuotes.map((quote) => {
@@ -526,11 +524,11 @@ const emptyPanel: React.CSSProperties = {
 const rowsWrap: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "1fr",
-  gap: "14px",
+  gap: "10px",
 };
 const quoteRowCard: React.CSSProperties = {
-  borderRadius: "18px",
-  padding: "14px",
+  borderRadius: "16px",
+  padding: "12px 14px",
   background:
     "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
   border: "1px solid rgba(255,255,255,0.1)",
@@ -544,7 +542,7 @@ const rowTop: React.CSSProperties = {
   alignItems: "flex-start",
   gap: "10px",
   flexWrap: "wrap",
-  marginBottom: "12px",
+  marginBottom: "10px",
 };
 const rowIdentity: React.CSSProperties = {
   minWidth: 0,
@@ -552,7 +550,7 @@ const rowIdentity: React.CSSProperties = {
 };
 const customerName: React.CSSProperties = {
   margin: 0,
-  fontSize: "22px",
+  fontSize: "20px",
   fontWeight: 700,
   lineHeight: 1.05,
   color: "white",
@@ -560,18 +558,18 @@ const customerName: React.CSSProperties = {
   wordBreak: "break-word",
 };
 const createdAtText: React.CSSProperties = {
-  marginTop: "6px",
-  fontSize: "13px",
+  marginTop: "4px",
+  fontSize: "12px",
   color: "rgba(231,243,255,0.66)",
   overflowWrap: "anywhere",
 };
 const projectBadge: React.CSSProperties = {
-  padding: "7px 10px",
+  padding: "6px 10px",
   borderRadius: "999px",
   background: "rgba(0, 198, 255, 0.1)",
   border: "1px solid rgba(0, 198, 255, 0.22)",
   color: "#9fe8ff",
-  fontSize: "12px",
+  fontSize: "11px",
   lineHeight: 1.2,
   maxWidth: "120px",
   textAlign: "center",
@@ -580,12 +578,12 @@ const actionRow: React.CSSProperties = {
   display: "flex",
   gap: "8px",
   flexWrap: "wrap",
-  marginBottom: "12px",
+  marginBottom: "10px",
 };
 const primaryButton: React.CSSProperties = {
   border: "none",
   borderRadius: "10px",
-  padding: "9px 12px",
+  padding: "8px 11px",
   fontWeight: 700,
   cursor: "pointer",
   color: "#031019",
@@ -595,7 +593,7 @@ const primaryButton: React.CSSProperties = {
 const ghostButton: React.CSSProperties = {
   border: "1px solid rgba(255,255,255,0.14)",
   borderRadius: "10px",
-  padding: "9px 12px",
+  padding: "8px 11px",
   fontWeight: 700,
   cursor: "pointer",
   color: "white",
@@ -604,7 +602,7 @@ const ghostButton: React.CSSProperties = {
 const dangerButton: React.CSSProperties = {
   border: "1px solid rgba(255, 90, 90, 0.24)",
   borderRadius: "10px",
-  padding: "9px 12px",
+  padding: "8px 11px",
   fontWeight: 700,
   cursor: "pointer",
   color: "#ffd3d3",
@@ -613,10 +611,10 @@ const dangerButton: React.CSSProperties = {
 const compactInfoGrid: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-  gap: "10px",
+  gap: "8px",
 };
 const fieldBox: React.CSSProperties = {
-  padding: "10px 12px",
+  padding: "9px 10px",
   borderRadius: "12px",
   background: "rgba(255,255,255,0.035)",
   border: "1px solid rgba(255,255,255,0.06)",
@@ -624,26 +622,26 @@ const fieldBox: React.CSSProperties = {
   overflow: "hidden",
 };
 const fieldLabel: React.CSSProperties = {
-  fontSize: "11px",
+  fontSize: "10px",
   color: "rgba(216,238,255,0.66)",
-  marginBottom: "6px",
+  marginBottom: "5px",
 };
 const fieldValue: React.CSSProperties = {
-  fontSize: "14px",
-  lineHeight: 1.35,
+  fontSize: "13px",
+  lineHeight: 1.3,
   color: "white",
   overflowWrap: "anywhere",
   wordBreak: "break-word",
 };
 const notesPanel: React.CSSProperties = {
-  marginTop: "12px",
-  padding: "12px",
+  marginTop: "10px",
+  padding: "10px 12px",
   borderRadius: "12px",
   background: "rgba(255,255,255,0.035)",
   border: "1px solid rgba(255,255,255,0.06)",
 };
 const notesValue: React.CSSProperties = {
-  lineHeight: 1.45,
+  lineHeight: 1.4,
   color: "rgba(231,243,255,0.82)",
   overflowWrap: "anywhere",
   wordBreak: "break-word",

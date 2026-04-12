@@ -5,8 +5,18 @@ import { useState } from "react";
 import { supabase } from "./lib/supabase";
 import styles from "./page.module.css";
 
+type QuoteFormState = {
+  full_name: string;
+  phone: string;
+  email: string;
+  city: string;
+  square_footage: string;
+  project_type: string;
+  details: string;
+};
+
 export default function Home() {
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<QuoteFormState>({
     full_name: "",
     phone: "",
     email: "",
@@ -16,44 +26,89 @@ export default function Home() {
     details: "",
   });
 
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
+
+  async function uploadQuotePhotos(files: File[]) {
+    const uploadedUrls: string[] = [];
+
+    for (const file of files) {
+      const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "-");
+      const filePath = `public/${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}-${safeName}`;
+
+      const { error } = await supabase.storage
+        .from("quote-photos")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      const { data } = supabase.storage
+        .from("quote-photos")
+        .getPublicUrl(filePath);
+
+      if (data?.publicUrl) {
+        uploadedUrls.push(data.publicUrl);
+      }
+    }
+
+    return uploadedUrls;
+  }
 
   async function handleQuoteSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSubmitting(true);
     setSubmitMessage("");
 
-    const payload = {
-      full_name: form.full_name.trim(),
-      phone: form.phone.trim(),
-      email: form.email.trim(),
-      city: form.city.trim(),
-      square_footage: form.square_footage ? Number(form.square_footage) : null,
-      project_type: form.project_type,
-      details: form.details.trim(),
-    };
+    try {
+      const photoUrls =
+        selectedFiles.length > 0 ? await uploadQuotePhotos(selectedFiles) : [];
 
-    const { error } = await supabase.from("quote_requests").insert([payload]);
+      const payload = {
+        full_name: form.full_name.trim(),
+        phone: form.phone.trim() || null,
+        email: form.email.trim(),
+        city: form.city.trim() || null,
+        square_footage: form.square_footage
+          ? Number(form.square_footage)
+          : null,
+        project_type: form.project_type.trim() || null,
+        details: form.details.trim() || null,
+        photo_urls: photoUrls,
+      };
 
-    if (error) {
+      const { error } = await supabase
+        .from("quote_requests")
+        .insert([payload]);
+
+      if (error) {
+        throw error;
+      }
+
+      setSubmitMessage("Quote request sent successfully.");
+      setForm({
+        full_name: "",
+        phone: "",
+        email: "",
+        city: "",
+        square_footage: "",
+        project_type: "",
+        details: "",
+      });
+      setSelectedFiles([]);
+    } catch (error) {
       console.error(error);
       setSubmitMessage("Something went wrong. Please try again.");
+    } finally {
       setSubmitting(false);
-      return;
     }
-
-    setSubmitMessage("Quote request sent successfully.");
-    setForm({
-      full_name: "",
-      phone: "",
-      email: "",
-      city: "",
-      square_footage: "",
-      project_type: "",
-      details: "",
-    });
-    setSubmitting(false);
   }
 
   return (
@@ -233,6 +288,59 @@ export default function Home() {
                 onChange={(e) => setForm({ ...form, details: e.target.value })}
               />
 
+              <div style={{ marginTop: 14 }}>
+                <label
+                  htmlFor="quote-photos"
+                  style={{
+                    display: "block",
+                    marginBottom: 8,
+                    color: "rgba(231,243,255,0.82)",
+                    fontSize: 14,
+                    fontWeight: 600,
+                  }}
+                >
+                  Add photos
+                </label>
+
+                <input
+                  id="quote-photos"
+                  className={styles.input}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) =>
+                    setSelectedFiles(Array.from(e.target.files ?? []))
+                  }
+                />
+
+                {selectedFiles.length > 0 ? (
+                  <div
+                    style={{
+                      marginTop: 10,
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 8,
+                    }}
+                  >
+                    {selectedFiles.map((file) => (
+                      <span
+                        key={`${file.name}-${file.size}`}
+                        style={{
+                          padding: "8px 10px",
+                          borderRadius: 999,
+                          background: "rgba(255,255,255,0.06)",
+                          border: "1px solid rgba(255,255,255,0.1)",
+                          color: "rgba(231,243,255,0.85)",
+                          fontSize: 12,
+                        }}
+                      >
+                        {file.name}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+
               <div className={styles.formActions}>
                 <button
                   type="submit"
@@ -241,16 +349,12 @@ export default function Home() {
                 >
                   {submitting ? "Sending..." : "Submit Request"}
                 </button>
-
-                <Link href="/login" className={styles.secondaryBtn}>
-                  Employee Login
-                </Link>
               </div>
 
               {submitMessage ? (
                 <p
                   style={{
-                    marginTop: "12px",
+                    marginTop: 12,
                     color: submitMessage.includes("success")
                       ? "#9fe8ff"
                       : "#ffd3d3",

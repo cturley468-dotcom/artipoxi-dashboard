@@ -35,9 +35,7 @@ export default function Home() {
 
     for (const file of files) {
       const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "-");
-      const filePath = `public/${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2)}-${safeName}`;
+      const filePath = `${Date.now()}-${Math.random().toString(36).slice(2)}-${safeName}`;
 
       const { error } = await supabase.storage
         .from("quote-photos")

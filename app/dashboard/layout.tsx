@@ -15,6 +15,17 @@ export default function DashboardLayout({
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    function handleResize() {
+      setIsMobile(window.innerWidth <= 900);
+    }
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -43,10 +54,21 @@ export default function DashboardLayout({
   if (loading) {
     return (
       <main style={pageStyle}>
-        <div style={shellStyle}>
-          <aside style={sidebarStyle}>
-            <Sidebar pathname={pathname} />
+        <div
+          style={{
+            ...shellStyle,
+            ...(isMobile ? shellMobileStyle : shellDesktopStyle),
+          }}
+        >
+          <aside
+            style={{
+              ...sidebarStyle,
+              ...(isMobile ? sidebarMobileStyle : sidebarDesktopStyle),
+            }}
+          >
+            <Sidebar pathname={pathname} isMobile={isMobile} />
           </aside>
+
           <section style={contentStyle}>
             <div style={loadingCardStyle}>Loading...</div>
           </section>
@@ -57,12 +79,27 @@ export default function DashboardLayout({
 
   return (
     <main style={pageStyle}>
-      <div style={shellStyle}>
-        <aside style={sidebarStyle}>
-          <Sidebar pathname={pathname} />
+      <div
+        style={{
+          ...shellStyle,
+          ...(isMobile ? shellMobileStyle : shellDesktopStyle),
+        }}
+      >
+        <aside
+          style={{
+            ...sidebarStyle,
+            ...(isMobile ? sidebarMobileStyle : sidebarDesktopStyle),
+          }}
+        >
+          <Sidebar pathname={pathname} isMobile={isMobile} />
         </aside>
 
-        <section style={contentStyle}>
+        <section
+          style={{
+            ...contentStyle,
+            ...(isMobile ? contentMobileStyle : null),
+          }}
+        >
           {profile ? (
             <div style={signedInWrapStyle}>
               <span style={signedInTextStyle}>
@@ -78,7 +115,13 @@ export default function DashboardLayout({
   );
 }
 
-function Sidebar({ pathname }: { pathname: string }) {
+function Sidebar({
+  pathname,
+  isMobile,
+}: {
+  pathname: string;
+  isMobile: boolean;
+}) {
   return (
     <>
       <div style={brandWrapStyle}>
@@ -89,7 +132,12 @@ function Sidebar({ pathname }: { pathname: string }) {
         </div>
       </div>
 
-      <div style={navStackStyle}>
+      <div
+        style={{
+          ...navStackStyle,
+          ...(isMobile ? navStackMobileStyle : null),
+        }}
+      >
         <NavItem href="/" label="Home" pathname={pathname} exact />
         <NavItem href="/dashboard" label="Dashboard" pathname={pathname} exact />
         <NavItem href="/dashboard/jobs" label="Jobs" pathname={pathname} />
@@ -142,16 +190,31 @@ const pageStyle: React.CSSProperties = {
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
+};
+
+const shellDesktopStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "300px 1fr",
 };
 
+const shellMobileStyle: React.CSSProperties = {
+  display: "block",
+};
+
 const sidebarStyle: React.CSSProperties = {
+  background: "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03))",
+  backdropFilter: "blur(14px)",
+};
+
+const sidebarDesktopStyle: React.CSSProperties = {
   minHeight: "100vh",
   padding: "24px 20px",
   borderRight: "1px solid rgba(255,255,255,0.08)",
-  background: "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03))",
-  backdropFilter: "blur(14px)",
+};
+
+const sidebarMobileStyle: React.CSSProperties = {
+  padding: "20px 16px 12px",
+  borderBottom: "1px solid rgba(255,255,255,0.08)",
 };
 
 const contentStyle: React.CSSProperties = {
@@ -159,6 +222,10 @@ const contentStyle: React.CSSProperties = {
   padding: "24px",
   background:
     "radial-gradient(circle at top left, rgba(0, 183, 255, 0.08), transparent 20%), radial-gradient(circle at right center, rgba(0, 140, 255, 0.06), transparent 24%)",
+};
+
+const contentMobileStyle: React.CSSProperties = {
+  padding: "16px",
 };
 
 const brandWrapStyle: React.CSSProperties = {
@@ -198,6 +265,11 @@ const navStackStyle: React.CSSProperties = {
   gap: "12px",
 };
 
+const navStackMobileStyle: React.CSSProperties = {
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: "10px",
+};
+
 const navItemStyle: React.CSSProperties = {
   textDecoration: "none",
   color: "white",
@@ -207,6 +279,7 @@ const navItemStyle: React.CSSProperties = {
   background: "rgba(255,255,255,0.04)",
   backdropFilter: "blur(14px)",
   fontWeight: 700,
+  textAlign: "left",
 };
 
 const navItemActiveStyle: React.CSSProperties = {
@@ -222,6 +295,7 @@ const signedInWrapStyle: React.CSSProperties = {
 const signedInTextStyle: React.CSSProperties = {
   color: "#9fe8ff",
   fontWeight: 600,
+  overflowWrap: "anywhere",
 };
 
 const loadingCardStyle: React.CSSProperties = {

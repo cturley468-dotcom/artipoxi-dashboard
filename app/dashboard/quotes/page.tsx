@@ -1,323 +1,379 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
-import { getCurrentProfile, isInstaller, type Profile } from "../../lib/auth";
-import styles from "./page.module.css";
+import { getCurrentProfile, type Profile } from "../../lib/auth";
 
-type Quote = {
+type QuoteRequest = {
   id: string;
+  full_name: string;
+  phone: string | null;
+  email: string | null;
+  city: string | null;
+  square_footage: number | null;
+  project_type: string | null;
+  details: string | null;
   created_at: string;
-  customer_name: string | null;
-  customer_email: string | null;
-  project_name: string | null;
-  square_feet: number | null;
-  coating_type: string | null;
-  prep_level: string | null;
-  extras: string[] | null;
-  coating_cost: number | null;
-  prep_cost: number | null;
-  extras_cost: number | null;
-  total_estimate: number | null;
-  status: string | null;
 };
 
 export default function QuotesPage() {
   const router = useRouter();
 
-  const [checkingAuth, setCheckingAuth] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [quotes, setQuotes] = useState<QuoteRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
   const [search, setSearch] = useState("");
-  const [message, setMessage] = useState("");
-  const [workingId, setWorkingId] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
 
-    async function protectPage() {
-      const currentProfile = await getCurrentProfile();
+    async function loadPage() {
+      try {
+        const currentProfile = await getCurrentProfile();
 
-      if (!mounted) return;
+        if (!mounted) return;
 
-      if (!currentProfile) {
-        router.replace("/login");
-        return;
+        if (!currentProfile) {
+          router.replace("/login");
+          return;
+        }
+
+        setProfile(currentProfile);
+
+        const { data, error } = await supabase
+          .from("quote_requests")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          throw error;
+        }
+
+        if (!mounted) return;
+        setQuotes((data ?? []) as QuoteRequest[]);
+      } catch (error) {
+        console.error(error);
+        if (!mounted) return;
+        setErrorMessage("Could not load quote requests.");
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
-
-      if (isInstaller(currentProfile.role)) {
-        router.replace("/installer/work-orders");
-        return;
-      }
-
-      setProfile(currentProfile);
-      setCheckingAuth(false);
     }
 
-    protectPage();
+    loadPage();
 
     return () => {
       mounted = false;
     };
   }, [router]);
 
-  useEffect(() => {
-    if (!checkingAuth) {
-      void fetchQuotes();
-    }
-  }, [checkingAuth]);
-
-  async function fetchQuotes() {
-    const { data, error } = await supabase
-      .from("quotes")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      setMessage(error.message);
-      return;
-    }
-
-    setQuotes((data as Quote[]) || []);
-  }
-
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    router.replace("/login");
-    router.refresh();
-  }
-
-  async function handleConvertToJob(quote: Quote) {
-    setWorkingId(quote.id);
-    setMessage("");
-
-    const { error } = await supabase.from("jobs").insert([
-      {
-        quote_id: quote.id,
-        title: quote.project_name || "New Quote Job",
-        client_name: quote.customer_name || "Unknown Client",
-        client_email: quote.customer_email || null,
-        status: "open",
-        price: quote.total_estimate || 0,
-        notes: `Created from quote ${quote.id}`,
-      },
-    ]);
-
-    if (error) {
-      setMessage(error.message);
-      setWorkingId(null);
-      return;
-    }
-
-    await supabase.from("quotes").update({ status: "converted" }).eq("id", quote.id);
-
-    setMessage("Quote converted to job.");
-    setWorkingId(null);
-    await fetchQuotes();
-  }
-
-  async function handleDeleteQuote(id: string) {
-    setWorkingId(id);
-    setMessage("");
-
-    const { error } = await supabase.from("quotes").delete().eq("id", id);
-
-    if (error) {
-      setMessage(error.message);
-      setWorkingId(null);
-      return;
-    }
-
-    setMessage("Quote deleted.");
-    setWorkingId(null);
-    await fetchQuotes();
-  }
-
   const filteredQuotes = useMemo(() => {
-    const term = search.toLowerCase().trim();
+    const term = search.trim().toLowerCase();
+
     if (!term) return quotes;
 
-    return quotes.filter((quote) =>
-      [
-        quote.customer_name ?? "",
-        quote.customer_email ?? "",
-        quote.project_name ?? "",
-        quote.coating_type ?? "",
-        quote.prep_level ?? "",
-        quote.status ?? "",
-        quote.id,
+    return quotes.filter((quote) => {
+      return [
+        quote.full_name,
+        quote.email,
+        quote.phone,
+        quote.city,
+        quote.project_type,
+        quote.details,
+        quote.square_footage?.toString(),
       ]
-        .join(" ")
-        .toLowerCase()
-        .includes(term)
-    );
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(term));
+    });
   }, [quotes, search]);
 
-  if (checkingAuth) {
+  if (loading) {
     return (
-      <main className={styles.page}>
-        <div className={styles.loadingWrap}>
-          <div className={styles.loadingCard}>Checking session...</div>
-        </div>
+      <main style={pageStyle}>
+        <div style={cardStyle}>Loading quote requests...</div>
       </main>
     );
   }
 
   return (
-    <main className={styles.page}>
-      <div className={styles.shell}>
-        <aside className={styles.sidebar}>
-          <div className={styles.brandCard}>
-            <div className={styles.logo}>AP</div>
-            <div>
-              <p className={styles.brandTop}>ARTIPOXI</p>
-              <h2 className={styles.brandBottom}>Operations</h2>
-            </div>
-          </div>
+    <main style={pageStyle}>
+      <div style={headerRowStyle}>
+        <div>
+          <div style={eyebrowStyle}>CUSTOMER REQUESTS</div>
+          <h1 style={titleStyle}>Quotes</h1>
+          <p style={subtextStyle}>
+            Review quote requests submitted from the homepage.
+          </p>
+          {profile ? (
+            <p style={signedInStyle}>Signed in as {profile.email ?? "user"}</p>
+          ) : null}
+        </div>
 
-          <nav className={styles.sideNav}>
-            <Link href="/" className={styles.sideLink}>
-              Home
-            </Link>
-            <Link href="/dashboard" className={styles.sideLink}>
-              Dashboard
-            </Link>
-            <Link href="/dashboard/jobs" className={styles.sideLink}>
-              Jobs
-            </Link>
-            <Link href="/dashboard/leads" className={styles.sideLink}>
-              Leads
-            </Link>
-            <Link href="/dashboard/schedule" className={styles.sideLink}>
-              Schedule
-            </Link>
-            <Link href="/dashboard/quotes" className={styles.sideLinkActive}>
-              Quotes
-            </Link>
-            <Link href="/configurator" className={styles.sideLink}>
-              Configurator
-            </Link>
-            <Link href="/dashboard/finance" className={styles.sideLink}>
-              Finance
-            </Link>
-            <Link href="/dashboard/inventory" className={styles.sideLink}>
-              Inventory
-            </Link>
-          </nav>
-
-          <div className={styles.sideFooter}>
-            {profile?.email ? <p className={styles.userEmail}>Signed in as {profile.email}</p> : null}
-            <button className={styles.logoutBtn} onClick={handleLogout}>
-              Logout
-            </button>
-          </div>
-        </aside>
-
-        <section className={styles.main}>
-          <header className={styles.topbar}>
-            <div>
-              <p className={styles.eyebrow}>QUOTE MANAGEMENT</p>
-              <h1 className={styles.title}>Saved Quotes</h1>
-              <p className={styles.subtitle}>
-                Review saved quotes, reopen them in the configurator, or convert them into jobs later.
-              </p>
-            </div>
-
-            <div className={styles.topActions}>
-              <Link href="/configurator" className={styles.primaryBtn}>
-                New Quote
-              </Link>
-              <Link href="/dashboard/jobs" className={styles.secondaryBtn}>
-                Open Jobs
-              </Link>
-            </div>
-          </header>
-
-          <section className={styles.toolbar}>
-            <input
-              className={styles.searchInput}
-              type="text"
-              placeholder="Search saved quotes"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </section>
-
-          {message ? <p className={styles.message}>{message}</p> : null}
-
-          <section className={styles.quoteGrid}>
-            {filteredQuotes.map((quote) => (
-              <article key={quote.id} className={styles.quoteCard}>
-                <div className={styles.cardTop}>
-                  <div>
-                    <p className={styles.quoteId}>Quote ID: {quote.id}</p>
-                    <h3 className={styles.quoteTitle}>{quote.project_name || "Untitled Project"}</h3>
-                  </div>
-
-                  <span className={styles.statusBadge}>{quote.status || "draft"}</span>
-                </div>
-
-                <div className={styles.infoGrid}>
-                  <Info label="Customer" value={quote.customer_name || "—"} />
-                  <Info label="Email" value={quote.customer_email || "—"} />
-                  <Info label="Square Feet" value={String(quote.square_feet ?? "—")} />
-                  <Info label="Coating" value={quote.coating_type || "—"} />
-                  <Info label="Prep" value={quote.prep_level || "—"} />
-                  <Info
-                    label="Created"
-                    value={new Date(quote.created_at).toLocaleDateString("en-US")}
-                  />
-                </div>
-
-                <div className={styles.totalRow}>
-                  <span>Total Estimate</span>
-                  <strong>${Number(quote.total_estimate || 0).toLocaleString()}</strong>
-                </div>
-
-                <div className={styles.cardActions}>
-                  <Link href={`/configurator?quoteId=${quote.id}`} className={styles.actionBtn}>
-                    Open Quote
-                  </Link>
-
-                  <button
-                    className={styles.actionGhostBtn}
-                    onClick={() => handleConvertToJob(quote)}
-                    disabled={workingId === quote.id}
-                  >
-                    {workingId === quote.id ? "Working..." : "Convert to Job"}
-                  </button>
-
-                  <button
-                    className={styles.deleteBtn}
-                    onClick={() => handleDeleteQuote(quote.id)}
-                    disabled={workingId === quote.id}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </article>
-            ))}
-
-            {!filteredQuotes.length ? (
-              <div className={styles.emptyCard}>
-                <h3>No saved quotes yet</h3>
-                <p>Create a quote in the configurator and it will appear here.</p>
-              </div>
-            ) : null}
-          </section>
-        </section>
+        <div style={summaryCardStyle}>
+          <div style={summaryLabelStyle}>Total Requests</div>
+          <div style={summaryValueStyle}>{quotes.length}</div>
+        </div>
       </div>
+
+      <div style={toolbarStyle}>
+        <input
+          type="text"
+          placeholder="Search by name, email, city, sqft, or details"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={inputStyle}
+        />
+      </div>
+
+      {errorMessage ? <div style={errorStyle}>{errorMessage}</div> : null}
+
+      {filteredQuotes.length === 0 ? (
+        <div style={cardStyle}>
+          <h2 style={emptyTitleStyle}>No quote requests yet</h2>
+          <p style={emptyTextStyle}>
+            When a customer submits the homepage quote form, it will show here.
+          </p>
+        </div>
+      ) : (
+        <div style={gridStyle}>
+          {filteredQuotes.map((quote) => (
+            <article key={quote.id} style={cardStyle}>
+              <div style={cardTopStyle}>
+                <div>
+                  <div style={nameStyle}>{quote.full_name || "Unnamed Request"}</div>
+                  <div style={metaStyle}>
+                    {formatDate(quote.created_at)}
+                  </div>
+                </div>
+
+                <div style={badgeStyle}>
+                  {quote.project_type || "Project"}
+                </div>
+              </div>
+
+              <div style={detailsGridStyle}>
+                <Info label="Email" value={quote.email} />
+                <Info label="Phone" value={quote.phone} />
+                <Info label="City" value={quote.city} />
+                <Info
+                  label="Square Footage"
+                  value={
+                    quote.square_footage !== null && quote.square_footage !== undefined
+                      ? String(quote.square_footage)
+                      : ""
+                  }
+                />
+              </div>
+
+              <div style={notesBlockStyle}>
+                <div style={notesLabelStyle}>Project Notes</div>
+                <div style={notesTextStyle}>
+                  {quote.details?.trim() || "No additional details provided."}
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </main>
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) {
+function Info({ label, value }: { label: string; value?: string | null }) {
   return (
-    <div className={styles.infoCard}>
-      <div className={styles.infoLabel}>{label}</div>
-      <div className={styles.infoValue}>{value}</div>
+    <div style={infoBoxStyle}>
+      <div style={infoLabelStyle}>{label}</div>
+      <div style={infoValueStyle}>{value?.trim() || "—"}</div>
     </div>
   );
 }
+
+function formatDate(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleString();
+}
+
+const pageStyle: React.CSSProperties = {
+  minHeight: "100vh",
+  padding: "24px",
+  color: "white",
+};
+
+const headerRowStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "16px",
+  flexWrap: "wrap",
+  marginBottom: "20px",
+};
+
+const eyebrowStyle: React.CSSProperties = {
+  fontSize: "12px",
+  letterSpacing: "0.18em",
+  color: "#8fdfff",
+  marginBottom: "8px",
+};
+
+const titleStyle: React.CSSProperties = {
+  margin: 0,
+  fontSize: "48px",
+  lineHeight: 1,
+};
+
+const subtextStyle: React.CSSProperties = {
+  marginTop: "10px",
+  color: "rgba(231,243,255,0.78)",
+};
+
+const signedInStyle: React.CSSProperties = {
+  marginTop: "10px",
+  color: "#9fe8ff",
+};
+
+const summaryCardStyle: React.CSSProperties = {
+  minWidth: "180px",
+  padding: "18px",
+  borderRadius: "18px",
+  background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
+  border: "1px solid rgba(255,255,255,0.1)",
+  backdropFilter: "blur(16px)",
+};
+
+const summaryLabelStyle: React.CSSProperties = {
+  color: "rgba(216,238,255,0.66)",
+  fontSize: "12px",
+  marginBottom: "10px",
+};
+
+const summaryValueStyle: React.CSSProperties = {
+  fontSize: "34px",
+  fontWeight: 700,
+};
+
+const toolbarStyle: React.CSSProperties = {
+  marginBottom: "20px",
+};
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  maxWidth: "520px",
+  padding: "14px 16px",
+  borderRadius: "14px",
+  border: "1px solid rgba(255,255,255,0.1)",
+  background: "rgba(0,0,0,0.26)",
+  color: "white",
+  outline: "none",
+};
+
+const errorStyle: React.CSSProperties = {
+  marginBottom: "18px",
+  padding: "14px 16px",
+  borderRadius: "14px",
+  background: "rgba(255, 90, 90, 0.12)",
+  border: "1px solid rgba(255, 90, 90, 0.28)",
+  color: "#ffd3d3",
+};
+
+const gridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+  gap: "16px",
+};
+
+const cardStyle: React.CSSProperties = {
+  borderRadius: "22px",
+  padding: "20px",
+  background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
+  border: "1px solid rgba(255,255,255,0.1)",
+  backdropFilter: "blur(16px)",
+};
+
+const cardTopStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "12px",
+  alignItems: "flex-start",
+  marginBottom: "18px",
+};
+
+const nameStyle: React.CSSProperties = {
+  fontSize: "24px",
+  fontWeight: 700,
+};
+
+const metaStyle: React.CSSProperties = {
+  marginTop: "6px",
+  color: "rgba(231,243,255,0.66)",
+  fontSize: "14px",
+};
+
+const badgeStyle: React.CSSProperties = {
+  padding: "8px 12px",
+  borderRadius: "999px",
+  background: "rgba(0, 198, 255, 0.1)",
+  border: "1px solid rgba(0, 198, 255, 0.22)",
+  color: "#9fe8ff",
+  whiteSpace: "nowrap",
+  fontSize: "13px",
+};
+
+const detailsGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "12px",
+};
+
+const infoBoxStyle: React.CSSProperties = {
+  padding: "14px",
+  borderRadius: "16px",
+  background: "rgba(255,255,255,0.035)",
+  border: "1px solid rgba(255,255,255,0.06)",
+};
+
+const infoLabelStyle: React.CSSProperties = {
+  fontSize: "12px",
+  color: "rgba(216,238,255,0.66)",
+  marginBottom: "8px",
+};
+
+const infoValueStyle: React.CSSProperties = {
+  fontSize: "15px",
+  lineHeight: 1.4,
+};
+
+const notesBlockStyle: React.CSSProperties = {
+  marginTop: "16px",
+  padding: "16px",
+  borderRadius: "16px",
+  background: "rgba(255,255,255,0.035)",
+  border: "1px solid rgba(255,255,255,0.06)",
+};
+
+const notesLabelStyle: React.CSSProperties = {
+  fontSize: "12px",
+  color: "rgba(216,238,255,0.66)",
+  marginBottom: "8px",
+};
+
+const notesTextStyle: React.CSSProperties = {
+  lineHeight: 1.65,
+  color: "rgba(231,243,255,0.82)",
+};
+
+const emptyTitleStyle: React.CSSProperties = {
+  margin: 0,
+  fontSize: "24px",
+};
+
+const emptyTextStyle: React.CSSProperties = {
+  marginTop: "10px",
+  color: "rgba(231,243,255,0.76)",
+};

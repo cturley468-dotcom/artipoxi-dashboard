@@ -15,6 +15,7 @@ type QuoteRequest = {
   created_at: string;
   status: string | null;
   converted_to_job_id: string | null;
+  photo_urls: string[] | null;
 };
 
 type EditForm = {
@@ -73,11 +74,10 @@ export default function QuotesPage() {
 
   const visibleQuotes = useMemo(() => {
     const term = search.trim().toLowerCase();
-
     if (!term) return quotes;
 
-    return quotes.filter((quote) => {
-      return [
+    return quotes.filter((quote) =>
+      [
         quote.full_name,
         quote.phone,
         quote.email,
@@ -87,8 +87,8 @@ export default function QuotesPage() {
         quote.square_footage?.toString(),
       ]
         .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(term));
-    });
+        .some((value) => String(value).toLowerCase().includes(term))
+    );
   }, [quotes, search]);
 
   function startEdit(quote: QuoteRequest) {
@@ -188,6 +188,7 @@ export default function QuotesPage() {
           square_footage: quote.square_footage ?? null,
           system_type: quote.project_type?.trim() || null,
           notes: quote.details?.trim() || null,
+          photo_urls: quote.photo_urls ?? [],
           status: "open",
           value: 0,
         },
@@ -260,6 +261,7 @@ export default function QuotesPage() {
           {visibleQuotes.map((quote) => {
             const isEditing = editingId === quote.id;
             const isWorking = workingId === quote.id;
+            const photos = Array.isArray(quote.photo_urls) ? quote.photo_urls : [];
 
             return (
               <article key={quote.id} style={quoteRowCard}>
@@ -281,47 +283,22 @@ export default function QuotesPage() {
                 <div style={actionRow}>
                   {isEditing ? (
                     <>
-                      <button
-                        type="button"
-                        style={primaryButton}
-                        onClick={() => saveEdit(quote.id)}
-                        disabled={isWorking}
-                      >
+                      <button type="button" style={primaryButton} onClick={() => saveEdit(quote.id)} disabled={isWorking}>
                         {isWorking ? "Saving..." : "Save"}
                       </button>
-                      <button
-                        type="button"
-                        style={ghostButton}
-                        onClick={cancelEdit}
-                        disabled={isWorking}
-                      >
+                      <button type="button" style={ghostButton} onClick={cancelEdit} disabled={isWorking}>
                         Cancel
                       </button>
                     </>
                   ) : (
                     <>
-                      <button
-                        type="button"
-                        style={ghostButton}
-                        onClick={() => startEdit(quote)}
-                        disabled={isWorking}
-                      >
+                      <button type="button" style={ghostButton} onClick={() => startEdit(quote)} disabled={isWorking}>
                         Edit
                       </button>
-                      <button
-                        type="button"
-                        style={dangerButton}
-                        onClick={() => deleteQuote(quote.id)}
-                        disabled={isWorking}
-                      >
+                      <button type="button" style={dangerButton} onClick={() => deleteQuote(quote.id)} disabled={isWorking}>
                         {isWorking ? "Deleting..." : "Delete"}
                       </button>
-                      <button
-                        type="button"
-                        style={primaryButton}
-                        onClick={() => convertToJob(quote)}
-                        disabled={isWorking}
-                      >
+                      <button type="button" style={primaryButton} onClick={() => convertToJob(quote)} disabled={isWorking}>
                         {isWorking ? "Converting..." : "Convert to Job"}
                       </button>
                     </>
@@ -330,68 +307,13 @@ export default function QuotesPage() {
 
                 {isEditing ? (
                   <div style={editGrid}>
-                    <input
-                      style={editInput}
-                      placeholder="Full Name"
-                      value={editForm.full_name}
-                      onChange={(e) =>
-                        setEditForm({ ...editForm, full_name: e.target.value })
-                      }
-                    />
-                    <input
-                      style={editInput}
-                      placeholder="Phone"
-                      value={editForm.phone}
-                      onChange={(e) =>
-                        setEditForm({ ...editForm, phone: e.target.value })
-                      }
-                    />
-                    <input
-                      style={editInput}
-                      placeholder="Email"
-                      value={editForm.email}
-                      onChange={(e) =>
-                        setEditForm({ ...editForm, email: e.target.value })
-                      }
-                    />
-                    <input
-                      style={editInput}
-                      placeholder="City"
-                      value={editForm.city}
-                      onChange={(e) =>
-                        setEditForm({ ...editForm, city: e.target.value })
-                      }
-                    />
-                    <input
-                      style={editInput}
-                      placeholder="Square Footage"
-                      value={editForm.square_footage}
-                      onChange={(e) =>
-                        setEditForm({
-                          ...editForm,
-                          square_footage: e.target.value,
-                        })
-                      }
-                    />
-                    <input
-                      style={editInput}
-                      placeholder="Project Type"
-                      value={editForm.project_type}
-                      onChange={(e) =>
-                        setEditForm({
-                          ...editForm,
-                          project_type: e.target.value,
-                        })
-                      }
-                    />
-                    <textarea
-                      style={editTextarea}
-                      placeholder="Project details"
-                      value={editForm.details}
-                      onChange={(e) =>
-                        setEditForm({ ...editForm, details: e.target.value })
-                      }
-                    />
+                    <input style={editInput} placeholder="Full Name" value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} />
+                    <input style={editInput} placeholder="Phone" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
+                    <input style={editInput} placeholder="Email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+                    <input style={editInput} placeholder="City" value={editForm.city} onChange={(e) => setEditForm({ ...editForm, city: e.target.value })} />
+                    <input style={editInput} placeholder="Square Footage" value={editForm.square_footage} onChange={(e) => setEditForm({ ...editForm, square_footage: e.target.value })} />
+                    <input style={editInput} placeholder="Project Type" value={editForm.project_type} onChange={(e) => setEditForm({ ...editForm, project_type: e.target.value })} />
+                    <textarea style={editTextarea} placeholder="Project details" value={editForm.details} onChange={(e) => setEditForm({ ...editForm, details: e.target.value })} />
                   </div>
                 ) : (
                   <>
@@ -410,6 +332,16 @@ export default function QuotesPage() {
                       />
                     </div>
 
+                    {photos.length > 0 ? (
+                      <div style={photosWrap}>
+                        {photos.map((url, index) => (
+                          <a key={`${quote.id}-${index}`} href={url} target="_blank" rel="noreferrer" style={photoLink}>
+                            <img src={url} alt={`Quote photo ${index + 1}`} style={photoThumb} />
+                          </a>
+                        ))}
+                      </div>
+                    ) : null}
+
                     <div style={notesPanel}>
                       <div style={fieldLabel}>Project Notes</div>
                       <div style={notesValue}>
@@ -427,13 +359,7 @@ export default function QuotesPage() {
   );
 }
 
-function Field({
-  label,
-  value,
-}: {
-  label: string;
-  value?: string | null;
-}) {
+function Field({ label, value }: { label: string; value?: string | null }) {
   return (
     <div style={fieldBox}>
       <div style={fieldLabel}>{label}</div>
@@ -449,226 +375,38 @@ function formatDateTime(value: string) {
 }
 
 const pageWrap: React.CSSProperties = { width: "100%" };
-const headerBlock: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "flex-start",
-  gap: "16px",
-  flexWrap: "wrap",
-  marginBottom: "18px",
-};
+const headerBlock: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px", flexWrap: "wrap", marginBottom: "18px" };
 const headerTextBlock: React.CSSProperties = { minWidth: 0 };
-const eyebrow: React.CSSProperties = {
-  fontSize: "12px",
-  letterSpacing: "0.18em",
-  color: "#8fdfff",
-  marginBottom: "8px",
-};
-const pageTitle: React.CSSProperties = {
-  margin: 0,
-  fontSize: "64px",
-  lineHeight: 1,
-  color: "white",
-};
-const pageSubtitle: React.CSSProperties = {
-  marginTop: "10px",
-  color: "rgba(231,243,255,0.78)",
-};
-const summaryBox: React.CSSProperties = {
-  minWidth: "150px",
-  padding: "14px 16px",
-  borderRadius: "18px",
-  background:
-    "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
-  border: "1px solid rgba(255,255,255,0.1)",
-  backdropFilter: "blur(16px)",
-};
-const summaryLabel: React.CSSProperties = {
-  fontSize: "12px",
-  color: "rgba(216,238,255,0.66)",
-  marginBottom: "8px",
-};
-const summaryValue: React.CSSProperties = {
-  fontSize: "28px",
-  fontWeight: 700,
-  color: "white",
-};
+const eyebrow: React.CSSProperties = { fontSize: "12px", letterSpacing: "0.18em", color: "#8fdfff", marginBottom: "8px" };
+const pageTitle: React.CSSProperties = { margin: 0, fontSize: "64px", lineHeight: 1, color: "white" };
+const pageSubtitle: React.CSSProperties = { marginTop: "10px", color: "rgba(231,243,255,0.78)" };
+const summaryBox: React.CSSProperties = { minWidth: "150px", padding: "14px 16px", borderRadius: "18px", background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))", border: "1px solid rgba(255,255,255,0.1)", backdropFilter: "blur(16px)" };
+const summaryLabel: React.CSSProperties = { fontSize: "12px", color: "rgba(216,238,255,0.66)", marginBottom: "8px" };
+const summaryValue: React.CSSProperties = { fontSize: "28px", fontWeight: 700, color: "white" };
 const searchRow: React.CSSProperties = { marginBottom: "16px" };
-const searchInput: React.CSSProperties = {
-  width: "100%",
-  maxWidth: "620px",
-  padding: "12px 14px",
-  borderRadius: "14px",
-  border: "1px solid rgba(255,255,255,0.1)",
-  background: "rgba(0,0,0,0.26)",
-  color: "white",
-  outline: "none",
-};
-const messageBox: React.CSSProperties = {
-  marginBottom: "16px",
-  padding: "12px 14px",
-  borderRadius: "14px",
-  background: "rgba(0,198,255,0.08)",
-  border: "1px solid rgba(0,198,255,0.18)",
-  color: "#9fe8ff",
-};
-const emptyPanel: React.CSSProperties = {
-  borderRadius: "20px",
-  padding: "18px",
-  background:
-    "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
-  border: "1px solid rgba(255,255,255,0.1)",
-  backdropFilter: "blur(16px)",
-  color: "rgba(231,243,255,0.82)",
-};
-const rowsWrap: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "1fr",
-  gap: "10px",
-};
-const quoteRowCard: React.CSSProperties = {
-  borderRadius: "16px",
-  padding: "12px 14px",
-  background:
-    "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
-  border: "1px solid rgba(255,255,255,0.1)",
-  backdropFilter: "blur(16px)",
-  minWidth: 0,
-  overflow: "hidden",
-};
-const rowTop: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "flex-start",
-  gap: "10px",
-  flexWrap: "wrap",
-  marginBottom: "10px",
-};
-const rowIdentity: React.CSSProperties = {
-  minWidth: 0,
-  flex: "1 1 240px",
-};
-const customerName: React.CSSProperties = {
-  margin: 0,
-  fontSize: "20px",
-  fontWeight: 700,
-  lineHeight: 1.05,
-  color: "white",
-  overflowWrap: "anywhere",
-  wordBreak: "break-word",
-};
-const createdAtText: React.CSSProperties = {
-  marginTop: "4px",
-  fontSize: "12px",
-  color: "rgba(231,243,255,0.66)",
-  overflowWrap: "anywhere",
-};
-const projectBadge: React.CSSProperties = {
-  padding: "6px 10px",
-  borderRadius: "999px",
-  background: "rgba(0, 198, 255, 0.1)",
-  border: "1px solid rgba(0, 198, 255, 0.22)",
-  color: "#9fe8ff",
-  fontSize: "11px",
-  lineHeight: 1.2,
-  maxWidth: "120px",
-  textAlign: "center",
-};
-const actionRow: React.CSSProperties = {
-  display: "flex",
-  gap: "8px",
-  flexWrap: "wrap",
-  marginBottom: "10px",
-};
-const primaryButton: React.CSSProperties = {
-  border: "none",
-  borderRadius: "10px",
-  padding: "8px 11px",
-  fontWeight: 700,
-  cursor: "pointer",
-  color: "#031019",
-  background:
-    "linear-gradient(135deg, rgba(0,212,255,0.95), rgba(0,140,255,0.9))",
-};
-const ghostButton: React.CSSProperties = {
-  border: "1px solid rgba(255,255,255,0.14)",
-  borderRadius: "10px",
-  padding: "8px 11px",
-  fontWeight: 700,
-  cursor: "pointer",
-  color: "white",
-  background: "rgba(255,255,255,0.05)",
-};
-const dangerButton: React.CSSProperties = {
-  border: "1px solid rgba(255, 90, 90, 0.24)",
-  borderRadius: "10px",
-  padding: "8px 11px",
-  fontWeight: 700,
-  cursor: "pointer",
-  color: "#ffd3d3",
-  background: "rgba(255, 90, 90, 0.1)",
-};
-const compactInfoGrid: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-  gap: "8px",
-};
-const fieldBox: React.CSSProperties = {
-  padding: "9px 10px",
-  borderRadius: "12px",
-  background: "rgba(255,255,255,0.035)",
-  border: "1px solid rgba(255,255,255,0.06)",
-  minWidth: 0,
-  overflow: "hidden",
-};
-const fieldLabel: React.CSSProperties = {
-  fontSize: "10px",
-  color: "rgba(216,238,255,0.66)",
-  marginBottom: "5px",
-};
-const fieldValue: React.CSSProperties = {
-  fontSize: "13px",
-  lineHeight: 1.3,
-  color: "white",
-  overflowWrap: "anywhere",
-  wordBreak: "break-word",
-};
-const notesPanel: React.CSSProperties = {
-  marginTop: "10px",
-  padding: "10px 12px",
-  borderRadius: "12px",
-  background: "rgba(255,255,255,0.035)",
-  border: "1px solid rgba(255,255,255,0.06)",
-};
-const notesValue: React.CSSProperties = {
-  lineHeight: 1.4,
-  color: "rgba(231,243,255,0.82)",
-  overflowWrap: "anywhere",
-  wordBreak: "break-word",
-};
-const editGrid: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-  gap: "10px",
-};
-const editInput: React.CSSProperties = {
-  width: "100%",
-  padding: "10px 12px",
-  borderRadius: "12px",
-  border: "1px solid rgba(255,255,255,0.1)",
-  background: "rgba(0,0,0,0.26)",
-  color: "white",
-  outline: "none",
-};
-const editTextarea: React.CSSProperties = {
-  gridColumn: "1 / -1",
-  minHeight: "90px",
-  width: "100%",
-  padding: "10px 12px",
-  borderRadius: "12px",
-  border: "1px solid rgba(255,255,255,0.1)",
-  background: "rgba(0,0,0,0.26)",
-  color: "white",
-  outline: "none",
-  resize: "vertical",
-};
+const searchInput: React.CSSProperties = { width: "100%", maxWidth: "620px", padding: "12px 14px", borderRadius: "14px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.26)", color: "white", outline: "none" };
+const messageBox: React.CSSProperties = { marginBottom: "16px", padding: "12px 14px", borderRadius: "14px", background: "rgba(0,198,255,0.08)", border: "1px solid rgba(0,198,255,0.18)", color: "#9fe8ff" };
+const emptyPanel: React.CSSProperties = { borderRadius: "20px", padding: "18px", background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))", border: "1px solid rgba(255,255,255,0.1)", backdropFilter: "blur(16px)", color: "rgba(231,243,255,0.82)" };
+const rowsWrap: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr", gap: "10px" };
+const quoteRowCard: React.CSSProperties = { borderRadius: "16px", padding: "12px 14px", background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))", border: "1px solid rgba(255,255,255,0.1)", backdropFilter: "blur(16px)", minWidth: 0, overflow: "hidden" };
+const rowTop: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px", flexWrap: "wrap", marginBottom: "10px" };
+const rowIdentity: React.CSSProperties = { minWidth: 0, flex: "1 1 240px" };
+const customerName: React.CSSProperties = { margin: 0, fontSize: "20px", fontWeight: 700, lineHeight: 1.05, color: "white", overflowWrap: "anywhere", wordBreak: "break-word" };
+const createdAtText: React.CSSProperties = { marginTop: "4px", fontSize: "12px", color: "rgba(231,243,255,0.66)", overflowWrap: "anywhere" };
+const projectBadge: React.CSSProperties = { padding: "6px 10px", borderRadius: "999px", background: "rgba(0, 198, 255, 0.1)", border: "1px solid rgba(0, 198, 255, 0.22)", color: "#9fe8ff", fontSize: "11px", lineHeight: 1.2, maxWidth: "120px", textAlign: "center" };
+const actionRow: React.CSSProperties = { display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "10px" };
+const primaryButton: React.CSSProperties = { border: "none", borderRadius: "10px", padding: "8px 11px", fontWeight: 700, cursor: "pointer", color: "#031019", background: "linear-gradient(135deg, rgba(0,212,255,0.95), rgba(0,140,255,0.9))" };
+const ghostButton: React.CSSProperties = { border: "1px solid rgba(255,255,255,0.14)", borderRadius: "10px", padding: "8px 11px", fontWeight: 700, cursor: "pointer", color: "white", background: "rgba(255,255,255,0.05)" };
+const dangerButton: React.CSSProperties = { border: "1px solid rgba(255, 90, 90, 0.24)", borderRadius: "10px", padding: "8px 11px", fontWeight: 700, cursor: "pointer", color: "#ffd3d3", background: "rgba(255, 90, 90, 0.1)" };
+const compactInfoGrid: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "8px" };
+const fieldBox: React.CSSProperties = { padding: "9px 10px", borderRadius: "12px", background: "rgba(255,255,255,0.035)", border: "1px solid rgba(255,255,255,0.06)", minWidth: 0, overflow: "hidden" };
+const fieldLabel: React.CSSProperties = { fontSize: "10px", color: "rgba(216,238,255,0.66)", marginBottom: "5px" };
+const fieldValue: React.CSSProperties = { fontSize: "13px", lineHeight: 1.3, color: "white", overflowWrap: "anywhere", wordBreak: "break-word" };
+const photosWrap: React.CSSProperties = { display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "10px" };
+const photoLink: React.CSSProperties = { display: "block" };
+const photoThumb: React.CSSProperties = { width: "88px", height: "88px", objectFit: "cover", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.12)" };
+const notesPanel: React.CSSProperties = { marginTop: "10px", padding: "10px 12px", borderRadius: "12px", background: "rgba(255,255,255,0.035)", border: "1px solid rgba(255,255,255,0.06)" };
+const notesValue: React.CSSProperties = { lineHeight: 1.4, color: "rgba(231,243,255,0.82)", overflowWrap: "anywhere", wordBreak: "break-word" };
+const editGrid: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "10px" };
+const editInput: React.CSSProperties = { width: "100%", padding: "10px 12px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.26)", color: "white", outline: "none" };
+const editTextarea: React.CSSProperties = { gridColumn: "1 / -1", minHeight: "90px", width: "100%", padding: "10px 12px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.26)", color: "white", outline: "none", resize: "vertical" };

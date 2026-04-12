@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getCurrentProfile, type Profile } from "../lib/auth";
+import styles from "./page.module.css";
+import { supabase } from "../lib/supabase";
 
 export default function DashboardLayout({
   children,
@@ -124,13 +126,30 @@ function Sidebar({
 }) {
   return (
     <>
-      <div style={brandWrapStyle}>
-        <div style={brandLogoStyle}>AP</div>
-        <div>
-          <div style={brandTopStyle}>ARTIPOXI</div>
-          <div style={brandBottomStyle}>Operations</div>
-        </div>
-      </div>
+      <div className={styles.brandWrap}>
+  <img
+    src="/branding/ap-logo.png"
+    alt="ArtiPoxi logo"
+    className={styles.brandLogoImage}
+  />
+  <div className={styles.brandText}>
+    <p className={styles.brandTop}>ARTIPOXI</p>
+    <h2 className={styles.brandBottom}>Operations</h2>
+  </div>
+</div>
+
+<div className={styles.logoutWrap}>
+  <button
+    type="button"
+    className={styles.logoutButton}
+    onClick={async () => {
+      await supabase.auth.signOut();
+      window.location.href = "/login";
+    }}
+  >
+    Logout
+  </button>
+</div>
 
       <div
         style={{

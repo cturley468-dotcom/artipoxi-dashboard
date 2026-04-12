@@ -1,13 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
-import { getCurrentProfile, type Profile } from "../../lib/auth";
 
 type QuoteRequest = {
   id: string;
-  full_name: string;
+  full_name: string | null;
   phone: string | null;
   email: string | null;
   city: string | null;
@@ -18,183 +16,111 @@ type QuoteRequest = {
 };
 
 export default function QuotesPage() {
-  const router = useRouter();
-
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [quotes, setQuotes] = useState<QuoteRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let mounted = true;
+    loadQuotes();
+  }, []);
 
-    async function loadPage() {
-      try {
-        const currentProfile = await getCurrentProfile();
+  async function loadQuotes() {
+    setLoading(true);
 
-        if (!mounted) return;
+    const { data, error } = await supabase
+      .from("quote_requests")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-        if (!currentProfile) {
-          router.replace("/login");
-          return;
-        }
-
-        setProfile(currentProfile);
-
-        const { data, error } = await supabase
-          .from("quote_requests")
-          .select("*")
-          .order("created_at", { ascending: false });
-
-        if (error) throw error;
-
-        if (!mounted) return;
-        setQuotes((data ?? []) as QuoteRequest[]);
-      } catch (error) {
-        console.error(error);
-        if (!mounted) return;
-        setErrorMessage("Could not load quote requests.");
-      } finally {
-        if (mounted) setLoading(false);
-      }
+    if (error) {
+      console.error("Failed to load quotes:", error);
+      setQuotes([]);
+      setLoading(false);
+      return;
     }
 
-    loadPage();
+    setQuotes((data as QuoteRequest[]) || []);
+    setLoading(false);
+  }
 
-    return () => {
-      mounted = false;
-    };
-  }, [router]);
-
-  const filteredQuotes = useMemo(() => {
+  const visibleQuotes = useMemo(() => {
     const term = search.trim().toLowerCase();
 
     if (!term) return quotes;
 
-    return quotes.filter((quote) =>
-      [
+    return quotes.filter((quote) => {
+      return [
         quote.full_name,
-        quote.email,
         quote.phone,
+        quote.email,
         quote.city,
         quote.project_type,
         quote.details,
         quote.square_footage?.toString(),
       ]
         .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(term))
-    );
+        .some((value) => String(value).toLowerCase().includes(term));
+    });
   }, [quotes, search]);
 
-  const openRequests = quotes.length;
-  const searchResults = filteredQuotes.length;
-  const latestRequest =
-    quotes.length > 0 ? formatDate(quotes[0].created_at) : "—";
-
-  if (loading) {
-    return (
-      <div style={loadingCardStyle}>
-        Loading quote requests...
-      </div>
-    );
-  }
-
   return (
-    <>
-      <div style={headerStyle}>
-        <div>
-          <div style={eyebrowStyle}>CUSTOMER REQUESTS</div>
-          <h1 style={titleStyle}>Quotes</h1>
-          <p style={subtitleStyle}>
+    <section style={pageWrap}>
+      <div style={headerBlock}>
+        <div style={headerTextBlock}>
+          <div style={eyebrow}>CUSTOMER REQUESTS</div>
+          <h1 style={pageTitle}>Quotes</h1>
+          <p style={pageSubtitle}>
             Review quote requests submitted from the homepage.
           </p>
-          {profile ? (
-            <p style={signedInStyle}>
-              Signed in as {profile.email ?? "user"}
-            </p>
-          ) : null}
         </div>
 
-        <div style={topStatsWrapStyle}>
-          <div style={topStatCardStyle}>
-            <div style={topStatLabelStyle}>Open Requests</div>
-            <div style={topStatValueStyle}>{openRequests}</div>
-          </div>
-
-          <div style={topStatCardStyle}>
-            <div style={topStatLabelStyle}>Search Results</div>
-            <div style={topStatValueStyle}>{searchResults}</div>
-          </div>
+        <div style={summaryBox}>
+          <div style={summaryLabel}>TOTAL</div>
+          <div style={summaryValue}>{visibleQuotes.length}</div>
         </div>
       </div>
 
-      <div style={heroCardStyle}>
-        <div style={heroLeftStyle}>
-          <div style={heroSmallLabelStyle}>Quotes Snapshot</div>
-          <div style={heroBigTextStyle}>Keep customer follow-up moving.</div>
-          <div style={heroTextStyle}>
-            Review incoming quote requests, search project details, and turn
-            leads into scheduled work.
-          </div>
-        </div>
-
-        <div style={heroRightStyle}>
-          <div style={miniCardStyle}>
-            <div style={miniCardLabelStyle}>Most Recent</div>
-            <div style={miniCardValueStyle}>{latestRequest}</div>
-          </div>
-
-          <div style={miniCardStyle}>
-            <div style={miniCardLabelStyle}>Customer Requests</div>
-            <div style={miniCardValueStyle}>{openRequests}</div>
-          </div>
-        </div>
-      </div>
-
-      <div style={toolbarStyle}>
+      <div style={searchRow}>
         <input
           type="text"
           placeholder="Search by name, email, city, sqft, or details"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={searchInputStyle}
+          style={searchInput}
         />
       </div>
 
-      {errorMessage ? <div style={errorStyle}>{errorMessage}</div> : null}
-
-      {filteredQuotes.length === 0 ? (
-        <div style={panelStyle}>
-          <h2 style={emptyTitleStyle}>No quote requests yet</h2>
-          <p style={emptyTextStyle}>
-            When a customer submits the homepage quote form, it will show here.
-          </p>
+      {loading ? (
+        <div style={emptyPanel}>Loading quote requests...</div>
+      ) : visibleQuotes.length === 0 ? (
+        <div style={emptyPanel}>
+          No quote requests yet. When a customer submits the homepage quote form,
+          it will show here.
         </div>
       ) : (
-        <div style={quotesGridStyle}>
-          {filteredQuotes.map((quote) => (
-            <article key={quote.id} style={panelStyle}>
-              <div style={quoteTopStyle}>
-                <div>
-                  <div style={quoteNameStyle}>
-                    {quote.full_name || "Unnamed Request"}
-                  </div>
-                  <div style={quoteDateStyle}>
-                    {formatDate(quote.created_at)}
+        <div style={cardsWrap}>
+          {visibleQuotes.map((quote) => (
+            <article key={quote.id} style={quoteCard}>
+              <div style={cardHeader}>
+                <div style={cardHeaderText}>
+                  <h2 style={customerName}>
+                    {quote.full_name?.trim() || "Unnamed quote"}
+                  </h2>
+                  <div style={createdAtText}>
+                    {formatDateTime(quote.created_at)}
                   </div>
                 </div>
 
-                <div style={badgeStyle}>
-                  {quote.project_type || "Project"}
+                <div style={projectBadge}>
+                  {quote.project_type?.trim() || "Project"}
                 </div>
               </div>
 
-              <div style={detailsGridStyle}>
-                <Info label="Email" value={quote.email} />
-                <Info label="Phone" value={quote.phone} />
-                <Info label="City" value={quote.city} />
-                <Info
+              <div style={fieldStack}>
+                <Field label="Email" value={quote.email} />
+                <Field label="Phone" value={quote.phone} />
+                <Field label="City" value={quote.city} />
+                <Field
                   label="Square Footage"
                   value={
                     quote.square_footage !== null &&
@@ -205,9 +131,9 @@ export default function QuotesPage() {
                 />
               </div>
 
-              <div style={notesBoxStyle}>
-                <div style={notesLabelStyle}>Project Notes</div>
-                <div style={notesTextStyle}>
+              <div style={notesPanel}>
+                <div style={fieldLabel}>Project Notes</div>
+                <div style={notesValue}>
                   {quote.details?.trim() || "No additional details provided."}
                 </div>
               </div>
@@ -215,146 +141,95 @@ export default function QuotesPage() {
           ))}
         </div>
       )}
-    </>
+    </section>
   );
 }
 
-function Info({ label, value }: { label: string; value?: string | null }) {
+function Field({
+  label,
+  value,
+}: {
+  label: string;
+  value?: string | null;
+}) {
   return (
-    <div style={infoBoxStyle}>
-      <div style={infoLabelStyle}>{label}</div>
-      <div style={infoValueStyle}>{value?.trim() || "—"}</div>
+    <div style={fieldBox}>
+      <div style={fieldLabel}>{label}</div>
+      <div style={fieldValue}>{value?.trim() || "—"}</div>
     </div>
   );
 }
 
-function formatDate(value: string) {
+function formatDateTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString();
 }
 
-const headerStyle: React.CSSProperties = {
+const pageWrap: React.CSSProperties = {
+  width: "100%",
+};
+
+const headerBlock: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "flex-start",
   gap: "16px",
   flexWrap: "wrap",
-  marginBottom: "18px",
+  marginBottom: "24px",
 };
 
-const eyebrowStyle: React.CSSProperties = {
+const headerTextBlock: React.CSSProperties = {
+  minWidth: 0,
+};
+
+const eyebrow: React.CSSProperties = {
   fontSize: "12px",
   letterSpacing: "0.18em",
   color: "#8fdfff",
   marginBottom: "8px",
 };
 
-const titleStyle: React.CSSProperties = {
+const pageTitle: React.CSSProperties = {
   margin: 0,
   fontSize: "64px",
   lineHeight: 1,
+  color: "white",
 };
 
-const subtitleStyle: React.CSSProperties = {
+const pageSubtitle: React.CSSProperties = {
   marginTop: "10px",
   color: "rgba(231,243,255,0.78)",
 };
 
-const signedInStyle: React.CSSProperties = {
-  marginTop: "10px",
-  color: "#9fe8ff",
-};
-
-const topStatsWrapStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(140px, 1fr))",
-  gap: "12px",
-};
-
-const topStatCardStyle: React.CSSProperties = {
-  borderRadius: "18px",
+const summaryBox: React.CSSProperties = {
+  minWidth: "150px",
   padding: "18px",
-  background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
-  border: "1px solid rgba(255,255,255,0.1)",
-  backdropFilter: "blur(16px)",
-  minWidth: "140px",
-};
-
-const topStatLabelStyle: React.CSSProperties = {
-  color: "rgba(216,238,255,0.66)",
-  fontSize: "12px",
-  marginBottom: "8px",
-};
-
-const topStatValueStyle: React.CSSProperties = {
-  fontSize: "28px",
-  fontWeight: 700,
-};
-
-const heroCardStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "1.2fr 0.8fr",
-  gap: "16px",
-  marginBottom: "18px",
-  borderRadius: "24px",
-  padding: "22px",
-  background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
-  border: "1px solid rgba(255,255,255,0.1)",
-  backdropFilter: "blur(16px)",
-};
-
-const heroLeftStyle: React.CSSProperties = {};
-
-const heroRightStyle: React.CSSProperties = {
-  display: "grid",
-  gap: "12px",
-};
-
-const heroSmallLabelStyle: React.CSSProperties = {
-  fontSize: "12px",
-  letterSpacing: "0.16em",
-  color: "#8fdfff",
-  marginBottom: "10px",
-};
-
-const heroBigTextStyle: React.CSSProperties = {
-  fontSize: "30px",
-  fontWeight: 700,
-  lineHeight: 1.1,
-  marginBottom: "12px",
-};
-
-const heroTextStyle: React.CSSProperties = {
-  color: "rgba(231,243,255,0.78)",
-  lineHeight: 1.7,
-};
-
-const miniCardStyle: React.CSSProperties = {
   borderRadius: "18px",
-  padding: "16px",
-  background: "rgba(255,255,255,0.04)",
-  border: "1px solid rgba(255,255,255,0.08)",
+  background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
+  border: "1px solid rgba(255,255,255,0.1)",
+  backdropFilter: "blur(16px)",
 };
 
-const miniCardLabelStyle: React.CSSProperties = {
+const summaryLabel: React.CSSProperties = {
   fontSize: "12px",
   color: "rgba(216,238,255,0.66)",
   marginBottom: "8px",
 };
 
-const miniCardValueStyle: React.CSSProperties = {
-  fontSize: "24px",
+const summaryValue: React.CSSProperties = {
+  fontSize: "32px",
   fontWeight: 700,
+  color: "white",
 };
 
-const toolbarStyle: React.CSSProperties = {
-  marginBottom: "18px",
+const searchRow: React.CSSProperties = {
+  marginBottom: "24px",
 };
 
-const searchInputStyle: React.CSSProperties = {
+const searchInput: React.CSSProperties = {
   width: "100%",
-  maxWidth: "560px",
+  maxWidth: "620px",
   padding: "14px 16px",
   borderRadius: "14px",
   border: "1px solid rgba(255,255,255,0.1)",
@@ -363,83 +238,105 @@ const searchInputStyle: React.CSSProperties = {
   outline: "none",
 };
 
-const errorStyle: React.CSSProperties = {
-  marginBottom: "18px",
-  padding: "14px 16px",
-  borderRadius: "14px",
-  background: "rgba(255, 90, 90, 0.12)",
-  border: "1px solid rgba(255, 90, 90, 0.28)",
-  color: "#ffd3d3",
-};
-
-const quotesGridStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-  gap: "16px",
-};
-
-const panelStyle: React.CSSProperties = {
+const emptyPanel: React.CSSProperties = {
   borderRadius: "22px",
   padding: "20px",
   background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
   border: "1px solid rgba(255,255,255,0.1)",
   backdropFilter: "blur(16px)",
+  color: "rgba(231,243,255,0.82)",
 };
 
-const quoteTopStyle: React.CSSProperties = {
+const cardsWrap: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(430px, 1fr))",
+  gap: "18px",
+  alignItems: "start",
+};
+
+const quoteCard: React.CSSProperties = {
+  borderRadius: "22px",
+  padding: "20px",
+  background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
+  border: "1px solid rgba(255,255,255,0.1)",
+  backdropFilter: "blur(16px)",
+  minWidth: 0,
+  overflow: "hidden",
+};
+
+const cardHeader: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
-  gap: "12px",
   alignItems: "flex-start",
+  gap: "12px",
+  flexWrap: "wrap",
   marginBottom: "18px",
 };
 
-const quoteNameStyle: React.CSSProperties = {
+const cardHeaderText: React.CSSProperties = {
+  minWidth: 0,
+  flex: "1 1 240px",
+};
+
+const customerName: React.CSSProperties = {
+  margin: 0,
   fontSize: "24px",
   fontWeight: 700,
+  lineHeight: 1.1,
+  color: "white",
+  overflowWrap: "anywhere",
+  wordBreak: "break-word",
 };
 
-const quoteDateStyle: React.CSSProperties = {
-  marginTop: "6px",
-  color: "rgba(231,243,255,0.66)",
+const createdAtText: React.CSSProperties = {
+  marginTop: "8px",
   fontSize: "14px",
+  color: "rgba(231,243,255,0.66)",
+  overflowWrap: "anywhere",
 };
 
-const badgeStyle: React.CSSProperties = {
+const projectBadge: React.CSSProperties = {
   padding: "8px 12px",
   borderRadius: "999px",
   background: "rgba(0, 198, 255, 0.1)",
   border: "1px solid rgba(0, 198, 255, 0.22)",
   color: "#9fe8ff",
-  whiteSpace: "nowrap",
   fontSize: "13px",
+  lineHeight: 1.2,
+  maxWidth: "140px",
+  textAlign: "center",
 };
 
-const detailsGridStyle: React.CSSProperties = {
+const fieldStack: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "1fr 1fr",
+  gridTemplateColumns: "1fr",
   gap: "12px",
 };
 
-const infoBoxStyle: React.CSSProperties = {
+const fieldBox: React.CSSProperties = {
   padding: "14px",
   borderRadius: "16px",
   background: "rgba(255,255,255,0.035)",
   border: "1px solid rgba(255,255,255,0.06)",
+  minWidth: 0,
+  overflow: "hidden",
 };
 
-const infoLabelStyle: React.CSSProperties = {
+const fieldLabel: React.CSSProperties = {
   fontSize: "12px",
   color: "rgba(216,238,255,0.66)",
   marginBottom: "8px",
 };
 
-const infoValueStyle: React.CSSProperties = {
+const fieldValue: React.CSSProperties = {
   fontSize: "15px",
   lineHeight: 1.4,
+  color: "white",
+  overflowWrap: "anywhere",
+  wordBreak: "break-word",
 };
 
-const notesBoxStyle: React.CSSProperties = {
+const notesPanel: React.CSSProperties = {
   marginTop: "16px",
   padding: "16px",
   borderRadius: "16px",
@@ -447,31 +344,9 @@ const notesBoxStyle: React.CSSProperties = {
   border: "1px solid rgba(255,255,255,0.06)",
 };
 
-const notesLabelStyle: React.CSSProperties = {
-  fontSize: "12px",
-  color: "rgba(216,238,255,0.66)",
-  marginBottom: "8px",
-};
-
-const notesTextStyle: React.CSSProperties = {
+const notesValue: React.CSSProperties = {
   lineHeight: 1.65,
   color: "rgba(231,243,255,0.82)",
-};
-
-const emptyTitleStyle: React.CSSProperties = {
-  margin: 0,
-  fontSize: "24px",
-};
-
-const emptyTextStyle: React.CSSProperties = {
-  marginTop: "10px",
-  color: "rgba(231,243,255,0.76)",
-};
-
-const loadingCardStyle: React.CSSProperties = {
-  borderRadius: "22px",
-  padding: "20px",
-  background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
-  border: "1px solid rgba(255,255,255,0.1)",
-  backdropFilter: "blur(16px)",
+  overflowWrap: "anywhere",
+  wordBreak: "break-word",
 };

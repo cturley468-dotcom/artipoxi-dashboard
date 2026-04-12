@@ -30,6 +30,17 @@ type NewJobForm = {
   value: string;
 };
 
+type EditJobForm = {
+  customer: string;
+  phone: string;
+  email: string;
+  location: string;
+  square_footage: string;
+  system_type: string;
+  notes: string;
+  value: string;
+};
+
 function getPhotoUrl(pathOrUrl: string) {
   if (!pathOrUrl) return "";
   if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
@@ -50,8 +61,20 @@ export default function JobsPage() {
   const [showNewJobModal, setShowNewJobModal] = useState(false);
   const [creatingJob, setCreatingJob] = useState(false);
   const [workingJobId, setWorkingJobId] = useState<string | null>(null);
+  const [editingJobId, setEditingJobId] = useState<string | null>(null);
 
   const [newJobForm, setNewJobForm] = useState<NewJobForm>({
+    customer: "",
+    phone: "",
+    email: "",
+    location: "",
+    square_footage: "",
+    system_type: "",
+    notes: "",
+    value: "",
+  });
+
+  const [editJobForm, setEditJobForm] = useState<EditJobForm>({
     customer: "",
     phone: "",
     email: "",
@@ -75,6 +98,7 @@ export default function JobsPage() {
       if (e.key === "Escape") {
         setLightboxUrl(null);
         setShowNewJobModal(false);
+        setEditingJobId(null);
       }
     }
 
@@ -171,6 +195,67 @@ export default function JobsPage() {
   const openValue = jobs
     .filter((job) => job.status !== "complete")
     .reduce((sum, job) => sum + Number(job.value || 0), 0);
+
+  function startEditJob(job: Job) {
+    setEditingJobId(job.id);
+    setMessage("");
+    setEditJobForm({
+      customer: job.customer ?? "",
+      phone: job.phone ?? "",
+      email: job.email ?? "",
+      location: job.location ?? "",
+      square_footage:
+        job.square_footage !== null && job.square_footage !== undefined
+          ? String(job.square_footage)
+          : "",
+      system_type: job.system_type ?? "",
+      notes: job.notes ?? "",
+      value:
+        job.value !== null && job.value !== undefined
+          ? String(job.value)
+          : "",
+    });
+  }
+
+  function cancelEditJob() {
+    setEditingJobId(null);
+    setMessage("");
+  }
+
+  async function saveJobEdit(jobId: string) {
+    setWorkingJobId(jobId);
+    setMessage("");
+
+    const payload = {
+      customer: editJobForm.customer.trim() || "New Job",
+      phone: editJobForm.phone.trim() || null,
+      email: editJobForm.email.trim() || null,
+      location: editJobForm.location.trim() || null,
+      square_footage: editJobForm.square_footage
+        ? Number(editJobForm.square_footage)
+        : null,
+      system_type: editJobForm.system_type.trim() || null,
+      notes: editJobForm.notes.trim() || null,
+      value: editJobForm.value ? Number(editJobForm.value) : 0,
+    };
+
+    const { error } = await supabase
+      .from("jobs")
+      .update(payload)
+      .eq("id", jobId);
+
+    if (error) {
+      console.error(error);
+      setMessage(`Could not save job changes: ${error.message}`);
+      setWorkingJobId(null);
+      return;
+    }
+
+    setEditingJobId(null);
+    setWorkingJobId(null);
+    setMessage("Job updated.");
+    await loadJobs();
+  }
 
   async function createNewJob(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -292,7 +377,7 @@ export default function JobsPage() {
           <div style={eyebrowStyle}>PROJECT TRACKING</div>
           <h1 style={titleStyle}>Jobs</h1>
           <p style={subtitleStyle}>
-            Track saved jobs, update statuses, add project photos, and keep production moving.
+            Track saved jobs, update statuses, add project photos, and edit details directly from one page.
           </p>
         </div>
 
@@ -372,6 +457,7 @@ export default function JobsPage() {
           {visibleJobs.map((job) => {
             const photos = Array.isArray(job.photo_urls) ? job.photo_urls : [];
             const isWorking = workingJobId === job.id;
+            const isEditing = editingJobId === job.id;
 
             return (
               <article key={job.id} style={jobRowCardStyle}>
@@ -401,126 +487,212 @@ export default function JobsPage() {
                 </div>
 
                 <div style={actionRowStyle}>
-                  <button
-                    type="button"
-                    style={ghostButtonStyle}
-                    onClick={() => updateJobStatus(job.id, "open")}
-                    disabled={isWorking}
-                  >
-                    Open
-                  </button>
-                  <button
-                    type="button"
-                    style={ghostButtonStyle}
-                    onClick={() => updateJobStatus(job.id, "scheduled")}
-                    disabled={isWorking}
-                  >
-                    Scheduled
-                  </button>
-                  <button
-                    type="button"
-                    style={ghostButtonStyle}
-                    onClick={() => updateJobStatus(job.id, "in_progress")}
-                    disabled={isWorking}
-                  >
-                    In Progress
-                  </button>
-                  <button
-                    type="button"
-                    style={primaryButtonStyle}
-                    onClick={() => updateJobStatus(job.id, "complete")}
-                    disabled={isWorking}
-                  >
-                    Complete
-                  </button>
+                  {isEditing ? (
+                    <>
+                      <button
+                        type="button"
+                        style={primaryButtonStyle}
+                        onClick={() => saveJobEdit(job.id)}
+                        disabled={isWorking}
+                      >
+                        {isWorking ? "Saving..." : "Save"}
+                      </button>
+                      <button
+                        type="button"
+                        style={ghostButtonStyle}
+                        onClick={cancelEditJob}
+                        disabled={isWorking}
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        style={ghostButtonStyle}
+                        onClick={() => startEditJob(job)}
+                        disabled={isWorking}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        style={ghostButtonStyle}
+                        onClick={() => updateJobStatus(job.id, "open")}
+                        disabled={isWorking}
+                      >
+                        Open
+                      </button>
+                      <button
+                        type="button"
+                        style={ghostButtonStyle}
+                        onClick={() => updateJobStatus(job.id, "scheduled")}
+                        disabled={isWorking}
+                      >
+                        Scheduled
+                      </button>
+                      <button
+                        type="button"
+                        style={ghostButtonStyle}
+                        onClick={() => updateJobStatus(job.id, "in_progress")}
+                        disabled={isWorking}
+                      >
+                        In Progress
+                      </button>
+                      <button
+                        type="button"
+                        style={primaryButtonStyle}
+                        onClick={() => updateJobStatus(job.id, "complete")}
+                        disabled={isWorking}
+                      >
+                        Complete
+                      </button>
+                    </>
+                  )}
                 </div>
 
-                <div style={jobUploadRow}>
-                  <label style={uploadLabelButton}>
-                    Add Progress Photos
+                {isEditing ? (
+                  <div style={{ ...editGridStyle, ...(isMobile ? editGridMobileStyle : null) }}>
                     <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      style={hiddenInput}
-                      onChange={(e) => appendPhotosToJob(job, e.target.files, "progress")}
+                      style={editInputStyle}
+                      placeholder="Customer"
+                      value={editJobForm.customer}
+                      onChange={(e) => setEditJobForm({ ...editJobForm, customer: e.target.value })}
                     />
-                  </label>
-
-                  <label style={uploadLabelButton}>
-                    Add Completion Photos
                     <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      style={hiddenInput}
-                      onChange={(e) => appendPhotosToJob(job, e.target.files, "completion")}
+                      style={editInputStyle}
+                      placeholder="Phone"
+                      value={editJobForm.phone}
+                      onChange={(e) => setEditJobForm({ ...editJobForm, phone: e.target.value })}
                     />
-                  </label>
-                </div>
+                    <input
+                      style={editInputStyle}
+                      placeholder="Email"
+                      value={editJobForm.email}
+                      onChange={(e) => setEditJobForm({ ...editJobForm, email: e.target.value })}
+                    />
+                    <input
+                      style={editInputStyle}
+                      placeholder="Location"
+                      value={editJobForm.location}
+                      onChange={(e) => setEditJobForm({ ...editJobForm, location: e.target.value })}
+                    />
+                    <input
+                      style={editInputStyle}
+                      placeholder="Square Footage"
+                      value={editJobForm.square_footage}
+                      onChange={(e) => setEditJobForm({ ...editJobForm, square_footage: e.target.value })}
+                    />
+                    <input
+                      style={editInputStyle}
+                      placeholder="System Type"
+                      value={editJobForm.system_type}
+                      onChange={(e) => setEditJobForm({ ...editJobForm, system_type: e.target.value })}
+                    />
+                    <input
+                      style={editInputStyle}
+                      placeholder="Job Value"
+                      value={editJobForm.value}
+                      onChange={(e) => setEditJobForm({ ...editJobForm, value: e.target.value })}
+                    />
+                    <textarea
+                      style={editTextareaStyle}
+                      placeholder="Notes"
+                      value={editJobForm.notes}
+                      onChange={(e) => setEditJobForm({ ...editJobForm, notes: e.target.value })}
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <div style={jobUploadRow}>
+                      <label style={uploadLabelButton}>
+                        Add Progress Photos
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          style={hiddenInput}
+                          onChange={(e) => appendPhotosToJob(job, e.target.files, "progress")}
+                        />
+                      </label>
 
-                <div
-                  style={{
-                    ...detailsGridStyle,
-                    ...(isMobile ? detailsGridMobileStyle : null),
-                  }}
-                >
-                  <Info label="System" value={job.system_type} />
-                  <Info
-                    label="Value"
-                    value={
-                      job.value !== null && job.value !== undefined
-                        ? `$${Number(job.value).toLocaleString()}`
-                        : "$0"
-                    }
-                  />
-                  <Info label="Phone" value={job.phone} />
-                  <Info label="Email" value={job.email} />
-                  <Info
-                    label="Square Footage"
-                    value={
-                      job.square_footage !== null && job.square_footage !== undefined
-                        ? String(job.square_footage)
-                        : "—"
-                    }
-                  />
-                  <Info
-                    label="Source Quote"
-                    value={job.quote_request_id ? "Converted quote" : "Manual job"}
-                  />
-                </div>
-
-                {photos.length > 0 ? (
-                  <div style={photosSectionStyle}>
-                    <div style={notesLabelStyle}>Project Photos</div>
-                    <div style={{ ...photoGridStyle, ...(isMobile ? photoGridMobileStyle : null) }}>
-                      {photos.map((raw, index) => {
-                        const url = getPhotoUrl(raw);
-                        return (
-                          <button
-                            key={`${job.id}-${index}`}
-                            type="button"
-                            style={photoButtonStyle}
-                            onClick={() => setLightboxUrl(url)}
-                          >
-                            <img
-                              src={url}
-                              alt={`Job photo ${index + 1}`}
-                              style={photoThumbStyle}
-                            />
-                          </button>
-                        );
-                      })}
+                      <label style={uploadLabelButton}>
+                        Add Completion Photos
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          style={hiddenInput}
+                          onChange={(e) => appendPhotosToJob(job, e.target.files, "completion")}
+                        />
+                      </label>
                     </div>
-                  </div>
-                ) : null}
 
-                <div style={notesBoxStyle}>
-                  <div style={notesLabelStyle}>Notes</div>
-                  <div style={notesTextStyle}>
-                    {job.notes?.trim() || "No notes added yet."}
-                  </div>
-                </div>
+                    <div
+                      style={{
+                        ...detailsGridStyle,
+                        ...(isMobile ? detailsGridMobileStyle : null),
+                      }}
+                    >
+                      <Info label="System" value={job.system_type} />
+                      <Info
+                        label="Value"
+                        value={
+                          job.value !== null && job.value !== undefined
+                            ? `$${Number(job.value).toLocaleString()}`
+                            : "$0"
+                        }
+                      />
+                      <Info label="Phone" value={job.phone} />
+                      <Info label="Email" value={job.email} />
+                      <Info
+                        label="Square Footage"
+                        value={
+                          job.square_footage !== null && job.square_footage !== undefined
+                            ? String(job.square_footage)
+                            : "—"
+                        }
+                      />
+                      <Info
+                        label="Source Quote"
+                        value={job.quote_request_id ? "Converted quote" : "Manual job"}
+                      />
+                    </div>
+
+                    {photos.length > 0 ? (
+                      <div style={photosSectionStyle}>
+                        <div style={notesLabelStyle}>Project Photos</div>
+                        <div style={{ ...photoGridStyle, ...(isMobile ? photoGridMobileStyle : null) }}>
+                          {photos.map((raw, index) => {
+                            const url = getPhotoUrl(raw);
+                            return (
+                              <button
+                                key={`${job.id}-${index}`}
+                                type="button"
+                                style={photoButtonStyle}
+                                onClick={() => setLightboxUrl(url)}
+                              >
+                                <img
+                                  src={url}
+                                  alt={`Job photo ${index + 1}`}
+                                  style={photoThumbStyle}
+                                />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div style={notesBoxStyle}>
+                      <div style={notesLabelStyle}>Notes</div>
+                      <div style={notesTextStyle}>
+                        {job.notes?.trim() || "No notes added yet."}
+                      </div>
+                    </div>
+                  </>
+                )}
               </article>
             );
           })}
@@ -911,6 +1083,39 @@ const ghostButtonStyle: React.CSSProperties = {
   cursor: "pointer",
   color: "white",
   background: "rgba(255,255,255,0.05)",
+};
+
+const editGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gap: "10px",
+};
+
+const editGridMobileStyle: React.CSSProperties = {
+  gridTemplateColumns: "1fr",
+};
+
+const editInputStyle: React.CSSProperties = {
+  width: "100%",
+  padding: "10px 12px",
+  borderRadius: "12px",
+  border: "1px solid rgba(255,255,255,0.1)",
+  background: "rgba(0,0,0,0.26)",
+  color: "white",
+  outline: "none",
+};
+
+const editTextareaStyle: React.CSSProperties = {
+  gridColumn: "1 / -1",
+  minHeight: "100px",
+  width: "100%",
+  padding: "10px 12px",
+  borderRadius: "12px",
+  border: "1px solid rgba(255,255,255,0.1)",
+  background: "rgba(0,0,0,0.26)",
+  color: "white",
+  outline: "none",
+  resize: "vertical",
 };
 
 const detailsGridStyle: React.CSSProperties = {

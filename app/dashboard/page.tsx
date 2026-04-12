@@ -1,279 +1,236 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "../lib/supabase";
-import { getCurrentProfile, isInstaller, type Profile } from "../lib/auth";
-import styles from "./page.module.css";
-
-const stats = [
-  { label: "Projected Revenue", value: "$24,500", detail: "+12% this month" },
-  { label: "Active Jobs", value: "8", detail: "3 installs this week" },
-  { label: "Open Leads", value: "13", detail: "5 need follow-up" },
-  { label: "Work Orders", value: "21", detail: "7 ready to schedule" },
-];
-
-const pipeline = [
-  { stage: "New Leads", count: 5 },
-  { stage: "Quoted", count: 4 },
-  { stage: "Scheduled", count: 3 },
-  { stage: "In Progress", count: 4 },
-];
-
-const recentActivity = [
-  { title: "Smith Garage moved to Scheduled", time: "10 min ago" },
-  { title: "Harris Shop estimate updated", time: "42 min ago" },
-  { title: "Turner Patio deposit marked paid", time: "1 hr ago" },
-  { title: "New lead added from website form", time: "2 hr ago" },
-];
-
-const upcoming = [
-  { title: "Garage Epoxy Install", date: "Apr 14", location: "Anderson, SC" },
-  { title: "Shop Floor Coating", date: "Apr 16", location: "Greenville, SC" },
-  { title: "Patio Seal + Finish", date: "Apr 19", location: "Belton, SC" },
-];
-
 export default function DashboardPage() {
-  const router = useRouter();
-  const [checkingAuth, setCheckingAuth] = useState(true);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  return (
+    <>
+      <div style={headerStyle}>
+        <div>
+          <div style={eyebrowStyle}>CONTROL CENTER</div>
+          <h1 style={titleStyle}>Dashboard</h1>
+          <p style={subtitleStyle}>
+            Track jobs, scheduling, leads, and business activity from one clean control center.
+          </p>
+        </div>
 
-  useEffect(() => {
-    let mounted = true;
+        <div style={topActionsStyle}>
+          <a href="/dashboard/jobs" style={primaryActionStyle}>
+            Open Jobs
+          </a>
+          <a href="/configurator" style={secondaryActionStyle}>
+            Configurator
+          </a>
+        </div>
+      </div>
 
-    async function protectPage() {
-      const currentProfile = await getCurrentProfile();
+      <div style={heroCardStyle}>
+        <div style={heroLeftStyle}>
+          <div style={heroSmallLabelStyle}>Business Snapshot</div>
+          <div style={heroBigTextStyle}>Everything important, one view.</div>
+          <div style={heroTextStyle}>
+            Keep your sales pipeline, install schedule, revenue targets, and active
+            work moving in one place.
+          </div>
 
-      if (!mounted) return;
-
-      if (!currentProfile) {
-        router.replace("/login");
-        return;
-      }
-
-      if (isInstaller(currentProfile.role)) {
-        router.replace("/installer/work-orders");
-        return;
-      }
-
-      setProfile(currentProfile);
-      setCheckingAuth(false);
-    }
-
-    protectPage();
-
-    return () => {
-      mounted = false;
-    };
-  }, [router]);
-
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    router.replace("/login");
-    router.refresh();
-  }
-
-  if (checkingAuth) {
-    return (
-      <main className={styles.page}>
-        <div className={styles.loadingWrap}>
-          <div className={styles.loadingCard}>
-            <p className={styles.loadingText}>Checking session...</p>
+          <div style={heroButtonsStyle}>
+            <a href="/dashboard/leads" style={primaryActionStyle}>
+              View Leads
+            </a>
+            <a href="/dashboard/schedule" style={secondaryActionStyle}>
+              Open Schedule
+            </a>
           </div>
         </div>
-      </main>
-    );
-  }
 
-  return (
-    <main className={styles.page}>
-      <div className={styles.shell}>
-        <aside className={styles.sidebar}>
-          <div className={styles.brandCard}>
-            <div className={styles.logo}>AP</div>
-            <div>
-              <p className={styles.brandTop}>ARTIPOXI</p>
-              <h2 className={styles.brandBottom}>Operations</h2>
-            </div>
+        <div style={heroRightStyle}>
+          <div style={miniCardStyle}>
+            <div style={miniCardLabelStyle}>FOCUS</div>
+            <div style={miniCardValueStyle}>3 installs this week</div>
           </div>
 
-          <nav className={styles.sideNav}>
-            <Link href="/" className={styles.sideLink}>
-              Home
-            </Link>
-            <Link href="/dashboard" className={styles.sideLinkActive}>
-              Dashboard
-            </Link>
-            <Link href="/dashboard/jobs" className={styles.sideLink}>
-              Jobs
-            </Link>
-            <Link href="/dashboard/leads" className={styles.sideLink}>
-              Leads
-            </Link>
-            <Link href="/dashboard/schedule" className={styles.sideLink}>
-              Schedule
-            </Link>
-            <Link href="/dashboard/quotes" className={styles.sideLink}>
-              Quotes
-            </Link>
-            <Link href="/configurator" className={styles.sideLink}>
-              Configurator
-            </Link>
-            <Link href="/dashboard/finance" className={styles.sideLink}>
-              Finance
-            </Link>
-            <Link href="/dashboard/inventory" className={styles.sideLink}>
-              Inventory
-            </Link>
-          </nav>
-
-          <div className={styles.sideFooter}>
-            {profile?.email ? (
-              <p className={styles.userEmail}>Signed in as {profile.email}</p>
-            ) : null}
-            <button className={styles.logoutBtn} onClick={handleLogout}>
-              Logout
-            </button>
+          <div style={miniCardStyle}>
+            <div style={miniCardLabelStyle}>NEXT TARGET</div>
+            <div style={miniCardValueStyle}>Close 5 open leads</div>
           </div>
-        </aside>
-
-        <section className={styles.main}>
-          <header className={styles.topbar}>
-            <div>
-              <p className={styles.eyebrow}>CONTROL CENTER</p>
-              <h1 className={styles.title}>Dashboard</h1>
-              <p className={styles.subtitle}>
-                Track jobs, scheduling, leads, and business activity from one clean control center.
-              </p>
-            </div>
-
-            <div className={styles.topActions}>
-              <Link href="/dashboard/jobs" className={styles.primaryBtn}>
-                Open Jobs
-              </Link>
-              <Link href="/configurator" className={styles.secondaryBtn}>
-                Configurator
-              </Link>
-            </div>
-          </header>
-
-          <section className={styles.heroPanel}>
-            <div className={styles.heroPanelLeft}>
-              <p className={styles.heroTag}>Business Snapshot</p>
-              <h2 className={styles.heroTitle}>Everything important, one view.</h2>
-              <p className={styles.heroText}>
-                Keep your sales pipeline, install schedule, revenue targets, and active work moving in one place.
-              </p>
-
-              <div className={styles.heroActions}>
-                <Link href="/dashboard/leads" className={styles.heroPrimary}>
-                  View Leads
-                </Link>
-                <Link href="/dashboard/schedule" className={styles.heroGhost}>
-                  Open Schedule
-                </Link>
-              </div>
-            </div>
-
-            <div className={styles.heroPanelRight}>
-              <div className={styles.heroMiniCard}>
-                <span className={styles.heroMiniLabel}>Focus</span>
-                <strong className={styles.heroMiniValue}>3 installs this week</strong>
-              </div>
-              <div className={styles.heroMiniCard}>
-                <span className={styles.heroMiniLabel}>Next target</span>
-                <strong className={styles.heroMiniValue}>Close 5 open leads</strong>
-              </div>
-            </div>
-          </section>
-
-          <section className={styles.statsGrid}>
-            {stats.map((item) => (
-              <article key={item.label} className={styles.statCard}>
-                <span className={styles.statLabel}>{item.label}</span>
-                <strong className={styles.statValue}>{item.value}</strong>
-                <span className={styles.statDetail}>{item.detail}</span>
-              </article>
-            ))}
-          </section>
-
-          <section className={styles.contentGrid}>
-            <div className={styles.panelLarge}>
-              <p className={styles.panelTag}>Quick Actions</p>
-              <h3 className={styles.panelTitle}>Run the business faster</h3>
-              <p className={styles.panelText}>
-                Jump into the most-used tools and keep the workflow moving.
-              </p>
-
-              <div className={styles.linkList}>
-                <Link href="/dashboard/jobs" className={styles.actionLink}>
-                  Open Jobs
-                </Link>
-                <Link href="/dashboard/leads" className={styles.actionLink}>
-                  View Leads
-                </Link>
-                <Link href="/dashboard/schedule" className={styles.actionLink}>
-                  Open Schedule
-                </Link>
-                <Link href="/dashboard/quotes" className={styles.actionLink}>
-                  Saved Quotes
-                </Link>
-              </div>
-            </div>
-
-            <div className={styles.panel}>
-              <p className={styles.panelTag}>Pipeline</p>
-              <h3 className={styles.panelTitle}>Sales flow</h3>
-
-              <div className={styles.pipelineList}>
-                {pipeline.map((item) => (
-                  <div key={item.stage} className={styles.pipelineRow}>
-                    <span>{item.stage}</span>
-                    <span className={styles.pipelineCount}>{item.count}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          <section className={styles.bottomGrid}>
-            <div className={styles.panel}>
-              <p className={styles.panelTag}>Upcoming Schedule</p>
-              <h3 className={styles.panelTitle}>Next assignments</h3>
-
-              <div className={styles.scheduleList}>
-                {upcoming.map((item) => (
-                  <div key={`${item.title}-${item.date}`} className={styles.scheduleRow}>
-                    <div>
-                      <div className={styles.scheduleTitle}>{item.title}</div>
-                      <div className={styles.scheduleMeta}>{item.location}</div>
-                    </div>
-                    <div className={styles.scheduleDate}>{item.date}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className={styles.panel}>
-              <p className={styles.panelTag}>Recent Activity</p>
-              <h3 className={styles.panelTitle}>Latest updates</h3>
-
-              <div className={styles.activityList}>
-                {recentActivity.map((item) => (
-                  <div key={`${item.title}-${item.time}`} className={styles.activityRow}>
-                    <div className={styles.activityDot} />
-                    <div>
-                      <div className={styles.activityTitle}>{item.title}</div>
-                      <div className={styles.activityTime}>{item.time}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        </section>
+        </div>
       </div>
-    </main>
+
+      <div style={statsGridStyle}>
+        <div style={statCardStyle}>
+          <div style={statLabelStyle}>Projected Revenue</div>
+          <div style={statValueStyle}>$24,500</div>
+          <div style={statDetailStyle}>+12% this month</div>
+        </div>
+
+        <div style={statCardStyle}>
+          <div style={statLabelStyle}>Active Jobs</div>
+          <div style={statValueStyle}>8</div>
+          <div style={statDetailStyle}>3 installs this week</div>
+        </div>
+
+        <div style={statCardStyle}>
+          <div style={statLabelStyle}>Open Leads</div>
+          <div style={statValueStyle}>13</div>
+          <div style={statDetailStyle}>5 need follow-up</div>
+        </div>
+
+        <div style={statCardStyle}>
+          <div style={statLabelStyle}>Work Orders</div>
+          <div style={statValueStyle}>21</div>
+          <div style={statDetailStyle}>7 ready to schedule</div>
+        </div>
+      </div>
+    </>
   );
 }
+
+const headerStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "16px",
+  flexWrap: "wrap",
+  marginBottom: "18px",
+};
+
+const eyebrowStyle: React.CSSProperties = {
+  fontSize: "12px",
+  letterSpacing: "0.18em",
+  color: "#8fdfff",
+  marginBottom: "8px",
+};
+
+const titleStyle: React.CSSProperties = {
+  margin: 0,
+  fontSize: "64px",
+  lineHeight: 1,
+};
+
+const subtitleStyle: React.CSSProperties = {
+  marginTop: "10px",
+  color: "rgba(231,243,255,0.78)",
+};
+
+const topActionsStyle: React.CSSProperties = {
+  display: "flex",
+  gap: "12px",
+  flexWrap: "wrap",
+};
+
+const primaryActionStyle: React.CSSProperties = {
+  textDecoration: "none",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "12px 16px",
+  borderRadius: "14px",
+  fontWeight: 700,
+  color: "#031019",
+  background: "linear-gradient(135deg, rgba(0,212,255,0.95), rgba(0,140,255,0.9))",
+};
+
+const secondaryActionStyle: React.CSSProperties = {
+  textDecoration: "none",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "12px 16px",
+  borderRadius: "14px",
+  fontWeight: 700,
+  color: "white",
+  border: "1px solid rgba(255,255,255,0.14)",
+  background: "rgba(255,255,255,0.05)",
+};
+
+const heroCardStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1.2fr 0.8fr",
+  gap: "16px",
+  marginBottom: "18px",
+  borderRadius: "24px",
+  padding: "22px",
+  background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
+  border: "1px solid rgba(255,255,255,0.1)",
+  backdropFilter: "blur(16px)",
+};
+
+const heroLeftStyle: React.CSSProperties = {};
+
+const heroSmallLabelStyle: React.CSSProperties = {
+  fontSize: "12px",
+  letterSpacing: "0.16em",
+  color: "#8fdfff",
+  marginBottom: "10px",
+};
+
+const heroBigTextStyle: React.CSSProperties = {
+  fontSize: "30px",
+  fontWeight: 700,
+  lineHeight: 1.1,
+  marginBottom: "12px",
+};
+
+const heroTextStyle: React.CSSProperties = {
+  color: "rgba(231,243,255,0.78)",
+  lineHeight: 1.7,
+};
+
+const heroButtonsStyle: React.CSSProperties = {
+  display: "flex",
+  gap: "12px",
+  flexWrap: "wrap",
+  marginTop: "18px",
+};
+
+const heroRightStyle: React.CSSProperties = {
+  display: "grid",
+  gap: "12px",
+};
+
+const miniCardStyle: React.CSSProperties = {
+  borderRadius: "18px",
+  padding: "16px",
+  background: "rgba(255,255,255,0.04)",
+  border: "1px solid rgba(255,255,255,0.08)",
+};
+
+const miniCardLabelStyle: React.CSSProperties = {
+  fontSize: "12px",
+  color: "rgba(216,238,255,0.66)",
+  marginBottom: "8px",
+};
+
+const miniCardValueStyle: React.CSSProperties = {
+  fontSize: "28px",
+  fontWeight: 700,
+};
+
+const statsGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: "16px",
+};
+
+const statCardStyle: React.CSSProperties = {
+  borderRadius: "22px",
+  padding: "20px",
+  background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
+  border: "1px solid rgba(255,255,255,0.1)",
+  backdropFilter: "blur(16px)",
+};
+
+const statLabelStyle: React.CSSProperties = {
+  color: "rgba(216,238,255,0.66)",
+  fontSize: "12px",
+  marginBottom: "10px",
+};
+
+const statValueStyle: React.CSSProperties = {
+  fontSize: "34px",
+  fontWeight: 700,
+};
+
+const statDetailStyle: React.CSSProperties = {
+  marginTop: "10px",
+  color: "#9fe8ff",
+  fontSize: "14px",
+};

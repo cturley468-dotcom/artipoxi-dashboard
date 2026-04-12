@@ -1,71 +1,103 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "../../lib/supabase";
 
 type Job = {
   id: string;
-  status: "open" | "scheduled" | "in_progress" | "complete";
+  quote_request_id: string | null;
   customer: string;
-  location: string;
-  value: number;
-  type: string;
+  phone: string | null;
+  email: string | null;
+  location: string | null;
+  square_footage: number | null;
+  system_type: string | null;
+  notes: string | null;
+  status: string;
+  value: number | null;
+  created_at: string;
 };
 
-const mockJobs: Job[] = [
-  {
-    id: "d9d72efe-4f1b-4ac6-a463-77a6fc24b1f3",
-    status: "complete",
-    customer: "Anderson Garage Coating",
-    location: "Anderson, SC",
-    value: 4200,
-    type: "Flake System",
-  },
-  {
-    id: "740d87cd-fca2-4242-9f16-6789a65c8b35",
-    status: "open",
-    customer: "Premium Shop Floor",
-    location: "Greenville, SC",
-    value: 6800,
-    type: "Metallic Resin",
-  },
-  {
-    id: "3fa27c3b-4d0f-4db3-b7b4-91aa6122d9e8",
-    status: "scheduled",
-    customer: "Patio Recoat Project",
-    location: "Clemson, SC",
-    value: 2800,
-    type: "Solid Color Epoxy",
-  },
-  {
-    id: "aa89cd0a-139d-4b79-b83f-e4fb93dd8ef1",
-    status: "in_progress",
-    customer: "Commercial Entry Floor",
-    location: "Spartanburg, SC",
-    value: 9100,
-    type: "Commercial Flake",
-  },
-];
-
 export default function JobsPage() {
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
 
-  const filteredJobs = useMemo(() => {
+  useEffect(() => {
+    loadJobs();
+  }, []);
+
+  async function loadJobs() {
+    setLoading(true);
+    setMessage("");
+
+    const { data, error } = await supabase
+      .from("jobs")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Failed to load jobs:", error);
+      setJobs([]);
+      setMessage("Could not load jobs.");
+      setLoading(false);
+      return;
+    }
+
+    setJobs((data as Job[]) || []);
+    setLoading(false);
+  }
+
+  const visibleJobs = useMemo(() => {
     const term = search.trim().toLowerCase();
 
-    if (!term) return mockJobs;
+    if (!term) return jobs;
 
-    return mockJobs.filter((job) =>
-      [job.id, job.customer, job.location, job.type, job.status, String(job.value)]
-        .some((value) => value.toLowerCase().includes(term))
+    return jobs.filter((job) =>
+      [
+        job.id,
+        job.customer,
+        job.phone,
+        job.email,
+        job.location,
+        job.system_type,
+        job.notes,
+        job.status,
+        job.value?.toString(),
+        job.square_footage?.toString(),
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(term))
     );
-  }, [search]);
+  }, [jobs, search]);
 
-  const openCount = mockJobs.filter((job) => job.status === "open").length;
-  const scheduledCount = mockJobs.filter((job) => job.status === "scheduled").length;
-  const inProgressCount = mockJobs.filter((job) => job.status === "in_progress").length;
-  const openValue = mockJobs
+  const openCount = jobs.filter((job) => job.status === "open").length;
+  const scheduledCount = jobs.filter((job) => job.status === "scheduled").length;
+  const inProgressCount = jobs.filter((job) => job.status === "in_progress").length;
+  const completeCount = jobs.filter((job) => job.status === "complete").length;
+
+  const openValue = jobs
     .filter((job) => job.status !== "complete")
-    .reduce((sum, job) => sum + job.value, 0);
+    .reduce((sum, job) => sum + Number(job.value || 0), 0);
+
+  async function updateJobStatus(jobId: string, nextStatus: string) {
+    setMessage("");
+
+    const { error } = await supabase
+      .from("jobs")
+      .update({ status: nextStatus })
+      .eq("id", jobId);
+
+    if (error) {
+      console.error(error);
+      setMessage("Could not update job status.");
+      return;
+    }
+
+    setMessage("Job updated.");
+    await loadJobs();
+  }
 
   return (
     <>
@@ -79,7 +111,9 @@ export default function JobsPage() {
         </div>
 
         <div style={topActionsStyle}>
-          <button style={primaryActionStyle}>New Quote</button>
+          <button style={primaryActionStyle} type="button">
+            New Job
+          </button>
         </div>
       </div>
 
@@ -88,8 +122,7 @@ export default function JobsPage() {
           <div style={heroSmallLabelStyle}>Jobs Snapshot</div>
           <div style={heroBigTextStyle}>Keep production moving.</div>
           <div style={heroTextStyle}>
-            View open jobs, update statuses, and manage the value of active work
-            from one page.
+            View open jobs, update statuses, and manage active work from one page.
           </div>
         </div>
 
@@ -126,57 +159,136 @@ export default function JobsPage() {
         />
       </div>
 
-      <div style={jobsGridStyle}>
-        {filteredJobs.map((job) => (
-          <article key={job.id} style={jobCardStyle}>
-            <div style={jobTopStyle}>
-              <div style={jobIdStyle}>Job ID: {job.id}</div>
-              <div
-                style={{
-                  ...statusBadgeStyle,
-                  ...(job.status === "complete"
-                    ? completeBadgeStyle
-                    : job.status === "in_progress"
-                    ? progressBadgeStyle
-                    : job.status === "scheduled"
-                    ? scheduledBadgeStyle
-                    : openBadgeStyle),
-                }}
-              >
-                {formatStatus(job.status)}
+      {message ? <div style={messageBoxStyle}>{message}</div> : null}
+
+      {loading ? (
+        <div style={emptyPanelStyle}>Loading jobs...</div>
+      ) : visibleJobs.length === 0 ? (
+        <div style={emptyPanelStyle}>
+          No jobs yet. Convert a quote into a job and it will appear here.
+        </div>
+      ) : (
+        <div style={jobsGridStyle}>
+          {visibleJobs.map((job) => (
+            <article key={job.id} style={jobCardStyle}>
+              <div style={jobTopStyle}>
+                <div>
+                  <div style={jobIdStyle}>Job ID: {job.id}</div>
+                  <div style={jobTitleStyle}>{job.customer}</div>
+                  <div style={jobMetaStyle}>
+                    {job.location || "No location"} • {formatDate(job.created_at)}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    ...statusBadgeStyle,
+                    ...(job.status === "complete"
+                      ? completeBadgeStyle
+                      : job.status === "in_progress"
+                      ? progressBadgeStyle
+                      : job.status === "scheduled"
+                      ? scheduledBadgeStyle
+                      : openBadgeStyle),
+                  }}
+                >
+                  {formatStatus(job.status)}
+                </div>
               </div>
-            </div>
 
-            <div style={jobTitleStyle}>{job.customer}</div>
-            <div style={jobMetaStyle}>{job.location}</div>
+              <div style={actionRowStyle}>
+                <button
+                  type="button"
+                  style={ghostButtonStyle}
+                  onClick={() => updateJobStatus(job.id, "open")}
+                >
+                  Open
+                </button>
+                <button
+                  type="button"
+                  style={ghostButtonStyle}
+                  onClick={() => updateJobStatus(job.id, "scheduled")}
+                >
+                  Scheduled
+                </button>
+                <button
+                  type="button"
+                  style={ghostButtonStyle}
+                  onClick={() => updateJobStatus(job.id, "in_progress")}
+                >
+                  In Progress
+                </button>
+                <button
+                  type="button"
+                  style={primaryButtonStyle}
+                  onClick={() => updateJobStatus(job.id, "complete")}
+                >
+                  Complete
+                </button>
+              </div>
 
-            <div style={detailsGridStyle}>
-              <Info label="System" value={job.type} />
-              <Info label="Value" value={`$${job.value.toLocaleString()}`} />
-            </div>
-          </article>
-        ))}
-      </div>
+              <div style={detailsGridStyle}>
+                <Info label="System" value={job.system_type} />
+                <Info
+                  label="Value"
+                  value={
+                    job.value !== null && job.value !== undefined
+                      ? `$${Number(job.value).toLocaleString()}`
+                      : "$0"
+                  }
+                />
+                <Info label="Phone" value={job.phone} />
+                <Info label="Email" value={job.email} />
+                <Info
+                  label="Square Footage"
+                  value={
+                    job.square_footage !== null && job.square_footage !== undefined
+                      ? String(job.square_footage)
+                      : "—"
+                  }
+                />
+                <Info
+                  label="Source Quote"
+                  value={job.quote_request_id ? "Converted quote" : "Manual job"}
+                />
+              </div>
+
+              <div style={notesBoxStyle}>
+                <div style={notesLabelStyle}>Notes</div>
+                <div style={notesTextStyle}>
+                  {job.notes?.trim() || "No notes added yet."}
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </>
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) {
+function Info({ label, value }: { label: string; value?: string | null }) {
   return (
     <div style={infoBoxStyle}>
       <div style={infoLabelStyle}>{label}</div>
-      <div style={infoValueStyle}>{value}</div>
+      <div style={infoValueStyle}>{value?.trim() || "—"}</div>
     </div>
   );
 }
 
-function formatStatus(status: Job["status"]) {
+function formatStatus(status: string) {
   switch (status) {
     case "in_progress":
       return "in progress";
     default:
       return status;
   }
+}
+
+function formatDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString();
 }
 
 const headerStyle: React.CSSProperties = {
@@ -297,6 +409,24 @@ const searchInputStyle: React.CSSProperties = {
   outline: "none",
 };
 
+const messageBoxStyle: React.CSSProperties = {
+  marginBottom: "16px",
+  padding: "12px 14px",
+  borderRadius: "14px",
+  background: "rgba(0,198,255,0.08)",
+  border: "1px solid rgba(0,198,255,0.18)",
+  color: "#9fe8ff",
+};
+
+const emptyPanelStyle: React.CSSProperties = {
+  borderRadius: "22px",
+  padding: "20px",
+  background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
+  border: "1px solid rgba(255,255,255,0.1)",
+  backdropFilter: "blur(16px)",
+  color: "rgba(231,243,255,0.82)",
+};
+
 const jobsGridStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
@@ -317,6 +447,7 @@ const jobTopStyle: React.CSSProperties = {
   gap: "12px",
   alignItems: "flex-start",
   marginBottom: "16px",
+  flexWrap: "wrap",
 };
 
 const jobIdStyle: React.CSSProperties = {
@@ -324,6 +455,17 @@ const jobIdStyle: React.CSSProperties = {
   fontSize: "14px",
   fontWeight: 700,
   wordBreak: "break-all",
+  marginBottom: "8px",
+};
+
+const jobTitleStyle: React.CSSProperties = {
+  fontSize: "28px",
+  fontWeight: 700,
+  marginBottom: "8px",
+};
+
+const jobMetaStyle: React.CSSProperties = {
+  color: "rgba(231,243,255,0.76)",
 };
 
 const statusBadgeStyle: React.CSSProperties = {
@@ -359,20 +501,36 @@ const completeBadgeStyle: React.CSSProperties = {
   border: "1px solid rgba(52, 199, 89, 0.22)",
 };
 
-const jobTitleStyle: React.CSSProperties = {
-  fontSize: "28px",
-  fontWeight: 700,
-  marginBottom: "8px",
+const actionRowStyle: React.CSSProperties = {
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap",
+  marginBottom: "16px",
 };
 
-const jobMetaStyle: React.CSSProperties = {
-  color: "rgba(231,243,255,0.76)",
-  marginBottom: "16px",
+const primaryButtonStyle: React.CSSProperties = {
+  border: "none",
+  borderRadius: "10px",
+  padding: "9px 12px",
+  fontWeight: 700,
+  cursor: "pointer",
+  color: "#031019",
+  background: "linear-gradient(135deg, rgba(0,212,255,0.95), rgba(0,140,255,0.9))",
+};
+
+const ghostButtonStyle: React.CSSProperties = {
+  border: "1px solid rgba(255,255,255,0.14)",
+  borderRadius: "10px",
+  padding: "9px 12px",
+  fontWeight: 700,
+  cursor: "pointer",
+  color: "white",
+  background: "rgba(255,255,255,0.05)",
 };
 
 const detailsGridStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "1fr 1fr",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
   gap: "12px",
 };
 
@@ -392,4 +550,25 @@ const infoLabelStyle: React.CSSProperties = {
 const infoValueStyle: React.CSSProperties = {
   fontSize: "15px",
   lineHeight: 1.4,
+  wordBreak: "break-word",
+};
+
+const notesBoxStyle: React.CSSProperties = {
+  marginTop: "16px",
+  padding: "16px",
+  borderRadius: "16px",
+  background: "rgba(255,255,255,0.035)",
+  border: "1px solid rgba(255,255,255,0.06)",
+};
+
+const notesLabelStyle: React.CSSProperties = {
+  fontSize: "12px",
+  color: "rgba(216,238,255,0.66)",
+  marginBottom: "8px",
+};
+
+const notesTextStyle: React.CSSProperties = {
+  lineHeight: 1.65,
+  color: "rgba(231,243,255,0.82)",
+  wordBreak: "break-word",
 };

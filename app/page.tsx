@@ -18,10 +18,44 @@ export default function Home() {
 
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
+
   async function handleQuoteSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSubmitting(true);
     setSubmitMessage("");
+
+    const payload = {
+      full_name: form.full_name.trim(),
+      phone: form.phone.trim(),
+      email: form.email.trim(),
+      city: form.city.trim(),
+      square_footage: form.square_footage ? Number(form.square_footage) : null,
+      project_type: form.project_type,
+      details: form.details.trim(),
+    };
+
+    const { error } = await supabase.from("quote_requests").insert([payload]);
+
+    if (error) {
+      console.error(error);
+      setSubmitMessage("Something went wrong. Please try again.");
+      setSubmitting(false);
+      return;
+    }
+
+    setSubmitMessage("Quote request sent successfully.");
+    setForm({
+      full_name: "",
+      phone: "",
+      email: "",
+      city: "",
+      square_footage: "",
+      project_type: "",
+      details: "",
+    });
+    setSubmitting(false);
+  }
+
 
     const payload = {
       full_name: form.full_name.trim(),
@@ -227,7 +261,7 @@ export default function Home() {
                 <button type="submit" className={styles.primaryBtn} disabled={submitting}>
   {submitting ? "Sending..." : "Submit Request"}
 </button>
-{submitMessage ? <p>{submitMessage}</p> : null}
+
                 <Link href="/login" className={styles.secondaryBtn}>
                   Employee Login
                 </Link>

@@ -35,6 +35,7 @@ export default function QuotesPage() {
   const [workingId, setWorkingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
+  const [isMobile, setIsMobile] = useState(false);
 
   const [editForm, setEditForm] = useState<EditForm>({
     full_name: "",
@@ -48,6 +49,16 @@ export default function QuotesPage() {
 
   useEffect(() => {
     loadQuotes();
+  }, []);
+
+  useEffect(() => {
+    function handleResize() {
+      setIsMobile(window.innerWidth <= 900);
+    }
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   async function loadQuotes() {
@@ -306,7 +317,12 @@ export default function QuotesPage() {
                 </div>
 
                 {isEditing ? (
-                  <div style={editGrid}>
+                  <div
+                    style={{
+                      ...editGrid,
+                      ...(isMobile ? editGridMobile : null),
+                    }}
+                  >
                     <input style={editInput} placeholder="Full Name" value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} />
                     <input style={editInput} placeholder="Phone" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
                     <input style={editInput} placeholder="Email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
@@ -317,7 +333,12 @@ export default function QuotesPage() {
                   </div>
                 ) : (
                   <>
-                    <div style={compactInfoGrid}>
+                    <div
+                      style={{
+                        ...compactInfoGrid,
+                        ...(isMobile ? compactInfoGridMobile : null),
+                      }}
+                    >
                       <Field label="Email" value={quote.email} />
                       <Field label="Phone" value={quote.phone} />
                       <Field label="City" value={quote.city} />
@@ -333,12 +354,28 @@ export default function QuotesPage() {
                     </div>
 
                     {photos.length > 0 ? (
-                      <div style={photosWrap}>
-                        {photos.map((url, index) => (
-                          <a key={`${quote.id}-${index}`} href={url} target="_blank" rel="noreferrer" style={photoLink}>
-                            <img src={url} alt={`Quote photo ${index + 1}`} style={photoThumb} />
-                          </a>
-                        ))}
+                      <div style={photosSection}>
+                        <div style={fieldLabel}>Project Photos</div>
+                        <div style={photosWrap}>
+                          {photos.map((url, index) => (
+                            <a
+                              key={`${quote.id}-${index}`}
+                              href={url}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={photoLink}
+                            >
+                              <img
+                                src={url}
+                                alt={`Quote photo ${index + 1}`}
+                                style={{
+                                  ...photoThumb,
+                                  ...(isMobile ? photoThumbMobile : null),
+                                }}
+                              />
+                            </a>
+                          ))}
+                        </div>
                       </div>
                     ) : null}
 
@@ -399,14 +436,18 @@ const primaryButton: React.CSSProperties = { border: "none", borderRadius: "10px
 const ghostButton: React.CSSProperties = { border: "1px solid rgba(255,255,255,0.14)", borderRadius: "10px", padding: "8px 11px", fontWeight: 700, cursor: "pointer", color: "white", background: "rgba(255,255,255,0.05)" };
 const dangerButton: React.CSSProperties = { border: "1px solid rgba(255, 90, 90, 0.24)", borderRadius: "10px", padding: "8px 11px", fontWeight: 700, cursor: "pointer", color: "#ffd3d3", background: "rgba(255, 90, 90, 0.1)" };
 const compactInfoGrid: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "8px" };
+const compactInfoGridMobile: React.CSSProperties = { gridTemplateColumns: "1fr 1fr" };
 const fieldBox: React.CSSProperties = { padding: "9px 10px", borderRadius: "12px", background: "rgba(255,255,255,0.035)", border: "1px solid rgba(255,255,255,0.06)", minWidth: 0, overflow: "hidden" };
 const fieldLabel: React.CSSProperties = { fontSize: "10px", color: "rgba(216,238,255,0.66)", marginBottom: "5px" };
 const fieldValue: React.CSSProperties = { fontSize: "13px", lineHeight: 1.3, color: "white", overflowWrap: "anywhere", wordBreak: "break-word" };
-const photosWrap: React.CSSProperties = { display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "10px" };
+const photosSection: React.CSSProperties = { marginTop: "10px" };
+const photosWrap: React.CSSProperties = { display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "8px" };
 const photoLink: React.CSSProperties = { display: "block" };
-const photoThumb: React.CSSProperties = { width: "88px", height: "88px", objectFit: "cover", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.12)" };
+const photoThumb: React.CSSProperties = { width: "96px", height: "96px", objectFit: "cover", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.12)" };
+const photoThumbMobile: React.CSSProperties = { width: "120px", height: "120px" };
 const notesPanel: React.CSSProperties = { marginTop: "10px", padding: "10px 12px", borderRadius: "12px", background: "rgba(255,255,255,0.035)", border: "1px solid rgba(255,255,255,0.06)" };
 const notesValue: React.CSSProperties = { lineHeight: 1.4, color: "rgba(231,243,255,0.82)", overflowWrap: "anywhere", wordBreak: "break-word" };
 const editGrid: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "10px" };
+const editGridMobile: React.CSSProperties = { gridTemplateColumns: "1fr" };
 const editInput: React.CSSProperties = { width: "100%", padding: "10px 12px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.26)", color: "white", outline: "none" };
 const editTextarea: React.CSSProperties = { gridColumn: "1 / -1", minHeight: "90px", width: "100%", padding: "10px 12px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.26)", color: "white", outline: "none", resize: "vertical" };

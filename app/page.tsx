@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import heic2any from "heic2any";
 import { supabase } from "./lib/supabase";
 import styles from "./page.module.css";
 
@@ -14,6 +15,10 @@ type QuoteFormState = {
   project_type: string;
   details: string;
 };
+
+const MAX_FILES = 10;
+const MAX_DIMENSION = 1600;
+const JPEG_QUALITY = 0.82;
 
 export default function Home() {
   const [form, setForm] = useState<QuoteFormState>({
@@ -30,20 +35,99 @@ export default function Home() {
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
 
+  async function normalizeImage(file: File): Promise<File> {
+    const lowerName = file.name.toLowerCase();
+    const mime = (file.type || "").toLowerCase();
+    const isHeic =
+      mime.includes("heic") ||
+      mime.includes("heif") ||
+      lowerName.endsWith(".heic") ||
+      lowerName.endsWith(".heif");
+
+    let workingBlob: Blob = file;
+    let outputName = file.name.replace(/\.[^/.]+$/, "") || "photo";
+
+    if (isHeic) {
+      const converted = await heic2any({
+        blob: file,
+        toType: "image/jpeg",
+        quality: JPEG_QUALITY,
+      });
+
+      const convertedBlob = Array.isArray(converted) ? converted[0] : converted;
+      workingBlob = convertedBlob as Blob;
+      outputName = outputName.replace(/[^a-zA-Z0-9\-_]/g, "-");
+    }
+
+    const bitmap = await createImageBitmap(workingBlob);
+    const { width, height } = fitWithin(bitmap.width, bitmap.height, MAX_DIMENSION);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      bitmap.close();
+      throw new Error("Could not process image.");
+    }
+
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close();
+
+    const finalBlob = await canvasToJpegBlob(canvas, JPEG_QUALITY);
+
+    return new File([finalBlob], `${outputName}.jpg`, {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
+  }
+
+  function fitWithin(width: number, height: number, maxDimension: number) {
+    if (width <= maxDimension && height <= maxDimension) {
+      return { width, height };
+    }
+
+    const scale = Math.min(maxDimension / width, maxDimension / height);
+
+    return {
+      width: Math.round(width * scale),
+      height: Math.round(height * scale),
+    };
+  }
+
+  function canvasToJpegBlob(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error("Could not create image blob."));
+            return;
+          }
+          resolve(blob);
+        },
+        "image/jpeg",
+        quality
+      );
+    });
+  }
+
   async function uploadQuotePhotos(files: File[]) {
     const uploadedPaths: string[] = [];
 
     for (const file of files) {
-      const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "-");
+      const normalizedFile = await normalizeImage(file);
+      const safeName = normalizedFile.name.replace(/[^a-zA-Z0-9.\-_]/g, "-");
       const filePath = `public/${Date.now()}-${Math.random()
         .toString(36)
         .slice(2)}-${safeName}`;
 
       const { error } = await supabase.storage
         .from("quote-photos")
-        .upload(filePath, file, {
+        .upload(filePath, normalizedFile, {
           cacheControl: "3600",
           upsert: false,
+          contentType: "image/jpeg",
         });
 
       if (error) {
@@ -62,7 +146,13 @@ export default function Home() {
     setSubmitMessage("");
 
     try {
-      const photoUrls =
+      if (selectedFiles.length > MAX_FILES) {
+        setSubmitMessage(`Please upload no more than ${MAX_FILES} photos.`);
+        setSubmitting(false);
+        return;
+      }
+
+      const photoPaths =
         selectedFiles.length > 0 ? await uploadQuotePhotos(selectedFiles) : [];
 
       const payload = {
@@ -75,7 +165,7 @@ export default function Home() {
           : null,
         project_type: form.project_type.trim() || null,
         details: form.details.trim() || null,
-        photo_urls: photoUrls,
+        photo_urls: photoPaths,
       };
 
       const { error } = await supabase.from("quote_requests").insert([payload]);
@@ -97,10 +187,15 @@ export default function Home() {
       setSelectedFiles([]);
     } catch (error) {
       console.error(error);
-      setSubmitMessage("Something went wrong. Please try again.");
+      setSubmitMessage("Something went wrong while uploading photos or sending the quote.");
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    setSelectedFiles(files);
   }
 
   return (
@@ -306,12 +401,20 @@ export default function Home() {
                   id="quote-photos"
                   className={styles.input}
                   type="file"
-                  accept="image/*"
+                  accept="image/*,.heic,.heif"
                   multiple
-                  onChange={(e) =>
-                    setSelectedFiles(Array.from(e.target.files ?? []))
-                  }
+                  onChange={handleFileChange}
                 />
+
+                <p
+                  style={{
+                    marginTop: 8,
+                    fontSize: 12,
+                    color: "rgba(231,243,255,0.7)",
+                  }}
+                >
+                  Upload up to {MAX_FILES} photos. HEIC photos will be converted automatically.
+                </p>
 
                 {selectedFiles.length > 0 ? (
                   <div

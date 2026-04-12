@@ -3,6 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
+function getJobPhotoUrl(pathOrUrl: string) {
+  if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
+    return pathOrUrl;
+  }
+
+  const { data } = supabase.storage.from("quote-photos").getPublicUrl(pathOrUrl);
+  return data.publicUrl;
+}
+
 type Job = {
   id: string;
   quote_request_id: string | null;
@@ -288,13 +297,13 @@ export default function JobsPage() {
                       {photos.map((url, index) => (
                         <a
                           key={`${job.id}-${index}`}
-                          href={url}
+                          href={getJobPhotoUrl(url)}
                           target="_blank"
                           rel="noreferrer"
                           style={photoLinkStyle}
                         >
                           <img
-                            src={url}
+                            src={getJobPhotoUrl(url)}
                             alt={`Job photo ${index + 1}`}
                             style={{
                               ...photoThumbStyle,

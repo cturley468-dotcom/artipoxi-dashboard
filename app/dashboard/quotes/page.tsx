@@ -3,6 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
+function getQuotePhotoUrl(pathOrUrl: string) {
+  if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
+    return pathOrUrl;
+  }
+
+  const { data } = supabase.storage.from("quote-photos").getPublicUrl(pathOrUrl);
+  return data.publicUrl;
+}
+
 type QuoteRequest = {
   id: string;
   full_name: string | null;
@@ -360,14 +369,14 @@ export default function QuotesPage() {
                           {photos.map((url, index) => (
                             <a
                               key={`${quote.id}-${index}`}
-                              href={url}
+                              href={getQuotePhotoUrl(url)}
                               target="_blank"
                               rel="noreferrer"
                               style={photoLink}
                             >
                               <img
-                                src={url}
-                                alt={`Quote photo ${index + 1}`}
+                              src={getQuotePhotoUrl(url)}
+                               alt={`Quote photo ${index + 1}`}
                                 style={{
                                   ...photoThumb,
                                   ...(isMobile ? photoThumbMobile : null),

@@ -113,12 +113,15 @@ export default function Home() {
       <div className={styles.shell}>
         <header className={styles.topbar}>
           <div className={styles.brandCard}>
-            <div className={styles.logo}>AP</div>
-            <div>
-              <p className={styles.brandTop}>ARTIPOXI</p>
-              <h2 className={styles.brandBottom}>Operations</h2>
-            </div>
-          </div>
+  <img
+    src="/branding/ap-logo.png"
+    alt="ArtiPoxi logo"
+    className={styles.logoImage}
+  />
+  <div>
+    <p className={styles.brandTop}>ARTIPOXI</p>
+  </div>
+</div>
 
           <nav className={styles.topNav}>
             <a href="#quote" className={styles.topLink}>

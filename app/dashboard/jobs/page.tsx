@@ -3,15 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
-function getJobPhotoUrl(pathOrUrl: string) {
-  if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
-    return pathOrUrl;
-  }
-
-  const { data } = supabase.storage.from("quote-photos").getPublicUrl(pathOrUrl);
-  return data.publicUrl;
-}
-
 type Job = {
   id: string;
   quote_request_id: string | null;
@@ -28,12 +19,48 @@ type Job = {
   created_at: string;
 };
 
+type NewJobForm = {
+  customer: string;
+  phone: string;
+  email: string;
+  location: string;
+  square_footage: string;
+  system_type: string;
+  notes: string;
+  value: string;
+};
+
+function getPhotoUrl(pathOrUrl: string) {
+  if (!pathOrUrl) return "";
+  if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
+    return pathOrUrl;
+  }
+
+  const { data } = supabase.storage.from("quote-photos").getPublicUrl(pathOrUrl);
+  return data.publicUrl;
+}
+
 export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [isMobile, setIsMobile] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [showNewJobModal, setShowNewJobModal] = useState(false);
+  const [creatingJob, setCreatingJob] = useState(false);
+  const [workingJobId, setWorkingJobId] = useState<string | null>(null);
+
+  const [newJobForm, setNewJobForm] = useState<NewJobForm>({
+    customer: "",
+    phone: "",
+    email: "",
+    location: "",
+    square_footage: "",
+    system_type: "",
+    notes: "",
+    value: "",
+  });
 
   useEffect(() => {
     loadJobs();
@@ -44,9 +71,21 @@ export default function JobsPage() {
       setIsMobile(window.innerWidth <= 900);
     }
 
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setLightboxUrl(null);
+        setShowNewJobModal(false);
+      }
+    }
+
     handleResize();
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("keydown", handleEscape);
+    };
   }, []);
 
   async function loadJobs() {
@@ -68,6 +107,39 @@ export default function JobsPage() {
 
     setJobs((data as Job[]) || []);
     setLoading(false);
+  }
+
+  async function uploadJobPhotos(files: File[]) {
+    const uploadedUrls: string[] = [];
+
+    for (const file of files) {
+      const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "-");
+      const filePath = `${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}-${safeName}`;
+
+      const { error } = await supabase.storage
+        .from("quote-photos")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (error) {
+        console.error("Upload error:", error.message);
+        continue;
+      }
+
+      const { data } = supabase.storage
+        .from("quote-photos")
+        .getPublicUrl(filePath);
+
+      if (data?.publicUrl) {
+        uploadedUrls.push(data.publicUrl);
+      }
+    }
+
+    return uploadedUrls;
   }
 
   const visibleJobs = useMemo(() => {
@@ -100,7 +172,54 @@ export default function JobsPage() {
     .filter((job) => job.status !== "complete")
     .reduce((sum, job) => sum + Number(job.value || 0), 0);
 
+  async function createNewJob(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setCreatingJob(true);
+    setMessage("");
+
+    const payload = {
+      customer: newJobForm.customer.trim() || "New Job",
+      phone: newJobForm.phone.trim() || null,
+      email: newJobForm.email.trim() || null,
+      location: newJobForm.location.trim() || null,
+      square_footage: newJobForm.square_footage
+        ? Number(newJobForm.square_footage)
+        : null,
+      system_type: newJobForm.system_type.trim() || null,
+      notes: newJobForm.notes.trim() || null,
+      value: newJobForm.value ? Number(newJobForm.value) : 0,
+      status: "open",
+      photo_urls: [],
+    };
+
+    const { error } = await supabase.from("jobs").insert([payload]);
+
+    if (error) {
+      console.error(error);
+      setMessage(`Could not create job: ${error.message}`);
+      setCreatingJob(false);
+      return;
+    }
+
+    setNewJobForm({
+      customer: "",
+      phone: "",
+      email: "",
+      location: "",
+      square_footage: "",
+      system_type: "",
+      notes: "",
+      value: "",
+    });
+
+    setCreatingJob(false);
+    setShowNewJobModal(false);
+    setMessage("New job created.");
+    await loadJobs();
+  }
+
   async function updateJobStatus(jobId: string, nextStatus: string) {
+    setWorkingJobId(jobId);
     setMessage("");
 
     const { error } = await supabase
@@ -111,11 +230,59 @@ export default function JobsPage() {
     if (error) {
       console.error(error);
       setMessage("Could not update job status.");
+      setWorkingJobId(null);
       return;
     }
 
+    setWorkingJobId(null);
     setMessage("Job updated.");
     await loadJobs();
+  }
+
+  async function appendPhotosToJob(job: Job, files: FileList | null, label: "progress" | "completion") {
+    if (!files || files.length === 0) return;
+
+    setWorkingJobId(job.id);
+    setMessage("");
+
+    try {
+      const uploadedUrls = await uploadJobPhotos(Array.from(files));
+      const existing = Array.isArray(job.photo_urls) ? job.photo_urls : [];
+      const combined = [...existing, ...uploadedUrls];
+
+      let nextNotes = job.notes?.trim() || "";
+      const stamp = new Date().toLocaleString();
+      const line =
+        label === "progress"
+          ? `[Progress photos added: ${stamp}]`
+          : `[Completion photos added: ${stamp}]`;
+
+      nextNotes = nextNotes ? `${nextNotes}\n${line}` : line;
+
+      const { error } = await supabase
+        .from("jobs")
+        .update({
+          photo_urls: combined,
+          notes: nextNotes,
+        })
+        .eq("id", job.id);
+
+      if (error) {
+        throw error;
+      }
+
+      setMessage(
+        label === "progress"
+          ? "Progress photos added."
+          : "Completion photos added."
+      );
+      await loadJobs();
+    } catch (error: any) {
+      console.error(error);
+      setMessage(`Could not add photos: ${error.message || "unknown error"}`);
+    } finally {
+      setWorkingJobId(null);
+    }
   }
 
   return (
@@ -125,12 +292,16 @@ export default function JobsPage() {
           <div style={eyebrowStyle}>PROJECT TRACKING</div>
           <h1 style={titleStyle}>Jobs</h1>
           <p style={subtitleStyle}>
-            Track saved jobs, update statuses, and move work from quote to production.
+            Track saved jobs, update statuses, add project photos, and keep production moving.
           </p>
         </div>
 
         <div style={topActionsStyle}>
-          <button style={primaryActionStyle} type="button">
+          <button
+            style={primaryActionStyle}
+            type="button"
+            onClick={() => setShowNewJobModal(true)}
+          >
             New Job
           </button>
         </div>
@@ -146,7 +317,7 @@ export default function JobsPage() {
           <div style={heroSmallLabelStyle}>Jobs Snapshot</div>
           <div style={heroBigTextStyle}>Keep production moving.</div>
           <div style={heroTextStyle}>
-            View open jobs, update statuses, and manage active work from one page.
+            View open jobs, update statuses, manage active work, and track job photos from one page.
           </div>
         </div>
 
@@ -194,12 +365,13 @@ export default function JobsPage() {
         <div style={emptyPanelStyle}>Loading jobs...</div>
       ) : visibleJobs.length === 0 ? (
         <div style={emptyPanelStyle}>
-          No jobs yet. Convert a quote into a job and it will appear here.
+          No jobs yet. Convert a quote into a job or create one manually.
         </div>
       ) : (
         <div style={rowsWrapStyle}>
           {visibleJobs.map((job) => {
             const photos = Array.isArray(job.photo_urls) ? job.photo_urls : [];
+            const isWorking = workingJobId === job.id;
 
             return (
               <article key={job.id} style={jobRowCardStyle}>
@@ -233,6 +405,7 @@ export default function JobsPage() {
                     type="button"
                     style={ghostButtonStyle}
                     onClick={() => updateJobStatus(job.id, "open")}
+                    disabled={isWorking}
                   >
                     Open
                   </button>
@@ -240,6 +413,7 @@ export default function JobsPage() {
                     type="button"
                     style={ghostButtonStyle}
                     onClick={() => updateJobStatus(job.id, "scheduled")}
+                    disabled={isWorking}
                   >
                     Scheduled
                   </button>
@@ -247,6 +421,7 @@ export default function JobsPage() {
                     type="button"
                     style={ghostButtonStyle}
                     onClick={() => updateJobStatus(job.id, "in_progress")}
+                    disabled={isWorking}
                   >
                     In Progress
                   </button>
@@ -254,9 +429,34 @@ export default function JobsPage() {
                     type="button"
                     style={primaryButtonStyle}
                     onClick={() => updateJobStatus(job.id, "complete")}
+                    disabled={isWorking}
                   >
                     Complete
                   </button>
+                </div>
+
+                <div style={jobUploadRow}>
+                  <label style={uploadLabelButton}>
+                    Add Progress Photos
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      style={hiddenInput}
+                      onChange={(e) => appendPhotosToJob(job, e.target.files, "progress")}
+                    />
+                  </label>
+
+                  <label style={uploadLabelButton}>
+                    Add Completion Photos
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      style={hiddenInput}
+                      onChange={(e) => appendPhotosToJob(job, e.target.files, "completion")}
+                    />
+                  </label>
                 </div>
 
                 <div
@@ -293,25 +493,24 @@ export default function JobsPage() {
                 {photos.length > 0 ? (
                   <div style={photosSectionStyle}>
                     <div style={notesLabelStyle}>Project Photos</div>
-                    <div style={photosWrapStyle}>
-                      {photos.map((url, index) => (
-                        <a
-                          key={`${job.id}-${index}`}
-                          href={getJobPhotoUrl(url)}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={photoLinkStyle}
-                        >
-                          <img
-                            src={getJobPhotoUrl(url)}
-                            alt={`Job photo ${index + 1}`}
-                            style={{
-                              ...photoThumbStyle,
-                              ...(isMobile ? photoThumbMobileStyle : null),
-                            }}
-                          />
-                        </a>
-                      ))}
+                    <div style={{ ...photoGridStyle, ...(isMobile ? photoGridMobileStyle : null) }}>
+                      {photos.map((raw, index) => {
+                        const url = getPhotoUrl(raw);
+                        return (
+                          <button
+                            key={`${job.id}-${index}`}
+                            type="button"
+                            style={photoButtonStyle}
+                            onClick={() => setLightboxUrl(url)}
+                          >
+                            <img
+                              src={url}
+                              alt={`Job photo ${index + 1}`}
+                              style={photoThumbStyle}
+                            />
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 ) : null}
@@ -327,6 +526,109 @@ export default function JobsPage() {
           })}
         </div>
       )}
+
+      {showNewJobModal ? (
+        <div style={modalOverlay} onClick={() => setShowNewJobModal(false)}>
+          <div style={modalCard} onClick={(e) => e.stopPropagation()}>
+            <div style={modalTop}>
+              <h2 style={modalTitle}>Create New Job</h2>
+              <button
+                type="button"
+                style={modalClose}
+                onClick={() => setShowNewJobModal(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={createNewJob} style={modalForm}>
+              <div style={{ ...newJobGrid, ...(isMobile ? newJobGridMobile : null) }}>
+                <input
+                  style={modalInput}
+                  placeholder="Customer Name"
+                  value={newJobForm.customer}
+                  onChange={(e) => setNewJobForm({ ...newJobForm, customer: e.target.value })}
+                  required
+                />
+                <input
+                  style={modalInput}
+                  placeholder="Phone"
+                  value={newJobForm.phone}
+                  onChange={(e) => setNewJobForm({ ...newJobForm, phone: e.target.value })}
+                />
+                <input
+                  style={modalInput}
+                  placeholder="Email"
+                  value={newJobForm.email}
+                  onChange={(e) => setNewJobForm({ ...newJobForm, email: e.target.value })}
+                />
+                <input
+                  style={modalInput}
+                  placeholder="Location"
+                  value={newJobForm.location}
+                  onChange={(e) => setNewJobForm({ ...newJobForm, location: e.target.value })}
+                />
+                <input
+                  style={modalInput}
+                  placeholder="Square Footage"
+                  value={newJobForm.square_footage}
+                  onChange={(e) => setNewJobForm({ ...newJobForm, square_footage: e.target.value })}
+                />
+                <input
+                  style={modalInput}
+                  placeholder="System Type"
+                  value={newJobForm.system_type}
+                  onChange={(e) => setNewJobForm({ ...newJobForm, system_type: e.target.value })}
+                />
+                <input
+                  style={modalInput}
+                  placeholder="Job Value"
+                  value={newJobForm.value}
+                  onChange={(e) => setNewJobForm({ ...newJobForm, value: e.target.value })}
+                />
+                <textarea
+                  style={modalTextarea}
+                  placeholder="Job notes"
+                  value={newJobForm.notes}
+                  onChange={(e) => setNewJobForm({ ...newJobForm, notes: e.target.value })}
+                />
+              </div>
+
+              <div style={modalActions}>
+                <button type="submit" style={primaryActionStyle} disabled={creatingJob}>
+                  {creatingJob ? "Creating..." : "Create Job"}
+                </button>
+                <button
+                  type="button"
+                  style={ghostButtonStyle}
+                  onClick={() => setShowNewJobModal(false)}
+                  disabled={creatingJob}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
+      {lightboxUrl ? (
+        <div style={lightboxOverlay} onClick={() => setLightboxUrl(null)}>
+          <button
+            type="button"
+            onClick={() => setLightboxUrl(null)}
+            style={lightboxClose}
+          >
+            ×
+          </button>
+          <img
+            src={lightboxUrl}
+            alt="Expanded project photo"
+            style={lightboxImage}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -355,9 +657,7 @@ function formatDate(value: string) {
   return date.toLocaleDateString();
 }
 
-const pageWrap: React.CSSProperties = {
-  width: "100%",
-};
+const pageWrap: React.CSSProperties = { width: "100%" };
 
 const headerStyle: React.CSSProperties = {
   display: "flex",
@@ -644,32 +944,60 @@ const infoValueStyle: React.CSSProperties = {
   wordBreak: "break-word",
 };
 
+const jobUploadRow: React.CSSProperties = {
+  display: "flex",
+  gap: "10px",
+  flexWrap: "wrap",
+  marginBottom: "12px",
+};
+
+const uploadLabelButton: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "9px 12px",
+  borderRadius: "10px",
+  fontWeight: 700,
+  cursor: "pointer",
+  color: "white",
+  background: "rgba(255,255,255,0.05)",
+  border: "1px solid rgba(255,255,255,0.14)",
+};
+
+const hiddenInput: React.CSSProperties = {
+  display: "none",
+};
+
 const photosSectionStyle: React.CSSProperties = {
   marginTop: "12px",
 };
 
-const photosWrapStyle: React.CSSProperties = {
-  display: "flex",
-  gap: "8px",
-  flexWrap: "wrap",
+const photoGridStyle: React.CSSProperties = {
   marginTop: "8px",
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fill, minmax(92px, 1fr))",
+  gap: "10px",
 };
 
-const photoLinkStyle: React.CSSProperties = {
+const photoGridMobileStyle: React.CSSProperties = {
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+};
+
+const photoButtonStyle: React.CSSProperties = {
+  border: "none",
+  background: "transparent",
+  padding: 0,
+  cursor: "pointer",
   display: "block",
 };
 
 const photoThumbStyle: React.CSSProperties = {
-  width: "96px",
-  height: "96px",
+  width: "100%",
+  aspectRatio: "1 / 1",
   objectFit: "cover",
   borderRadius: "12px",
   border: "1px solid rgba(255,255,255,0.12)",
-};
-
-const photoThumbMobileStyle: React.CSSProperties = {
-  width: "120px",
-  height: "120px",
+  display: "block",
 };
 
 const notesBoxStyle: React.CSSProperties = {
@@ -690,4 +1018,129 @@ const notesTextStyle: React.CSSProperties = {
   lineHeight: 1.5,
   color: "rgba(231,243,255,0.82)",
   wordBreak: "break-word",
+};
+
+const modalOverlay: React.CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(0,0,0,0.68)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "20px",
+  zIndex: 9998,
+};
+
+const modalCard: React.CSSProperties = {
+  width: "100%",
+  maxWidth: "860px",
+  borderRadius: "22px",
+  padding: "20px",
+  background: "linear-gradient(180deg, rgba(18,25,38,0.98), rgba(10,16,28,0.96))",
+  border: "1px solid rgba(255,255,255,0.12)",
+  boxShadow: "0 24px 80px rgba(0,0,0,0.45)",
+};
+
+const modalTop: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "12px",
+  marginBottom: "16px",
+};
+
+const modalTitle: React.CSSProperties = {
+  margin: 0,
+  fontSize: "28px",
+  color: "white",
+};
+
+const modalClose: React.CSSProperties = {
+  width: "42px",
+  height: "42px",
+  borderRadius: "999px",
+  border: "1px solid rgba(255,255,255,0.14)",
+  background: "rgba(255,255,255,0.06)",
+  color: "white",
+  fontSize: "28px",
+  lineHeight: 1,
+  cursor: "pointer",
+};
+
+const modalForm: React.CSSProperties = {
+  display: "block",
+};
+
+const newJobGrid: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gap: "10px",
+};
+
+const newJobGridMobile: React.CSSProperties = {
+  gridTemplateColumns: "1fr",
+};
+
+const modalInput: React.CSSProperties = {
+  width: "100%",
+  padding: "12px 14px",
+  borderRadius: "12px",
+  border: "1px solid rgba(255,255,255,0.1)",
+  background: "rgba(255,255,255,0.04)",
+  color: "white",
+  outline: "none",
+};
+
+const modalTextarea: React.CSSProperties = {
+  gridColumn: "1 / -1",
+  minHeight: "110px",
+  width: "100%",
+  padding: "12px 14px",
+  borderRadius: "12px",
+  border: "1px solid rgba(255,255,255,0.1)",
+  background: "rgba(255,255,255,0.04)",
+  color: "white",
+  outline: "none",
+  resize: "vertical",
+};
+
+const modalActions: React.CSSProperties = {
+  display: "flex",
+  gap: "10px",
+  flexWrap: "wrap",
+  marginTop: "16px",
+};
+
+const lightboxOverlay: React.CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(0,0,0,0.82)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "24px",
+  zIndex: 9999,
+};
+
+const lightboxImage: React.CSSProperties = {
+  maxWidth: "92vw",
+  maxHeight: "88vh",
+  borderRadius: "16px",
+  objectFit: "contain",
+  boxShadow: "0 20px 80px rgba(0,0,0,0.45)",
+};
+
+const lightboxClose: React.CSSProperties = {
+  position: "absolute",
+  top: "16px",
+  right: "20px",
+  width: "44px",
+  height: "44px",
+  borderRadius: "999px",
+  border: "1px solid rgba(255,255,255,0.2)",
+  background: "rgba(255,255,255,0.08)",
+  color: "white",
+  fontSize: "28px",
+  lineHeight: 1,
+  cursor: "pointer",
 };

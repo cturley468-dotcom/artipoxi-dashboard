@@ -117,18 +117,17 @@ export default function Home() {
         <header className={styles.topbar}>
           <div className={styles.brandWrap}>
             <div className={styles.brandCard}>
-            <img
-  src="/branding/site-logo.png"
-  alt="ArtiPoxi logo"
-  className={styles.logoImage}
-/>
-            </div>
-
-            <div className={styles.brandText}>
-              <p className={styles.brandTop}>ARTIPOXI</p>
-              <p className={styles.brandSub}>Premium epoxy floor systems</p>
-            </div>
-          </div>
+  <img
+    src="/branding/site-logo.png"
+    alt="ArtiPoxi logo"
+    className={styles.logoImage}
+  />
+  <div className={styles.brandText}>
+    <p className={styles.brandTop}>ARTIPOXI</p>
+    <p className={styles.brandSub}>Premium epoxy floor systems</p>
+  </div>
+</div>
+</div>
 
           <nav className={styles.topNav}>
             <a href="#quote" className={styles.topLinkPrimary}>

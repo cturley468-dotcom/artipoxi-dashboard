@@ -125,7 +125,18 @@ function Sidebar({
   return (
     <>
       <div style={brandWrapStyle}>
-        <div style={brandLogoStyle}>AP</div>
+        <img
+  src="/branding/site-logo.png"
+  alt="ArtiPoxi logo"
+  style={{
+  width: "64px",
+  height: "64px",
+  objectFit: "cover",
+  borderRadius: "18px",
+  display: "block",
+  flexShrink: 0,
+}}
+/>
         <div>
           <div style={brandTopStyle}>ARTIPOXI</div>
           <div style={brandBottomStyle}>Operations</div>

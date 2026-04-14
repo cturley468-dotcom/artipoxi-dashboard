@@ -28,7 +28,7 @@ export default function BrandMark({
         className={`glass-panel-soft ${wrap} relative flex shrink-0 items-center justify-center overflow-hidden border border-white/10 bg-black/40`}
       >
         <Image
-          src="/branding/logo-icon.png"
+          src="/branding/site-logo.png"
           alt="ArtiPoxi"
           width={64}
           height={64}

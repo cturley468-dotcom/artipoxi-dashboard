@@ -26,37 +26,47 @@
   margin-bottom: 28px;
 }
 
+.brandWrap {
+  display: flex;
+  align-items: center;
+}
+
 .brandCard {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
-.logo {
-  width: 54px;
-  height: 54px;
-  border-radius: 16px;
-  display: grid;
-  place-items: center;
-  font-weight: 700;
-  font-size: 1.4rem;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(0, 212, 255, 0.24);
-  backdrop-filter: blur(16px);
+.logoImage {
+  width: 88px;
+  height: 88px;
+  object-fit: cover;
+  border-radius: 22px;
+  display: block;
+  flex-shrink: 0;
+}
+
+.brandText {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
 }
 
 .brandTop {
   margin: 0;
-  font-size: 0.76rem;
-  letter-spacing: 0.2em;
-  color: rgba(216, 240, 255, 0.68);
+  font-size: 0.85rem;
+  letter-spacing: 0.18em;
+  color: #d7ecff;
 }
 
-.brandBottom {
-  margin: 4px 0 0;
-  font-size: 1.7rem;
-  line-height: 1.05;
+.brandSub {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #d0d7df;
 }
+
 
 .topNav {
   display: flex;

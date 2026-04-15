@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getCurrentProfile, type Profile } from "../lib/auth";
+import { supabase } from "../lib/supabase";
 
 export default function DashboardLayout({
   children,
@@ -12,6 +13,11 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+
+const handleLogout = async () => {
+  await supabase.auth.signOut();
+  router.push("/login");
+};
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -103,8 +109,21 @@ export default function DashboardLayout({
           {profile ? (
             <div style={signedInWrapStyle}>
               <span style={signedInTextStyle}>
-                Signed in as {profile.email ?? "user"}
+                Signed in as {profile.full_name ?? profile.email ?? "user"}
               </span>
+              <button
+           onClick={handleLogout}
+              style={{
+              padding: "8px 14px",
+              borderRadius: "10px",
+              background: "rgba(255,255,255,0.08)",
+              color: "white",
+              border: "1px solid rgba(255,255,255,0.15)",
+              cursor: "pointer",
+            }}
+        >
+               Logout
+               </button>
             </div>
           ) : null}
 
@@ -114,6 +133,8 @@ export default function DashboardLayout({
     </main>
   );
 }
+
+
 
 function Sidebar({
   pathname,
@@ -149,6 +170,7 @@ function Sidebar({
           ...(isMobile ? navStackMobileStyle : null),
         }}
       >
+        
         <NavItem href="/" label="Home" pathname={pathname} exact />
         <NavItem href="/dashboard" label="Dashboard" pathname={pathname} exact />
         <NavItem href="/dashboard/jobs" label="Jobs" pathname={pathname} />

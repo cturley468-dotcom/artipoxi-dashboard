@@ -75,7 +75,11 @@ export default function LoginPage() {
     <main className={styles.page}>
       <div className={styles.card}>
         <div className={styles.brandRow}>
-          <div className={styles.logo}>AP</div>
+          <img
+  src="/branding/site-logo.png"
+  alt="ArtiPoxi logo"
+  className={styles.sidebarLogoImage}
+/>
           <div>
             <p className={styles.brandTop}>ARTIPOXI</p>
             <h2 className={styles.brandBottom}>Access Portal</h2>

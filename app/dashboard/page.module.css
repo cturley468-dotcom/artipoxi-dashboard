@@ -420,3 +420,63 @@
     padding: 18px;
   }
 }
+
+.brandWrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.brandLogoImage {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 18px;
+  border: 1px solid rgba(0, 198, 255, 0.22);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+  flex-shrink: 0;
+}
+
+.brandText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.brandTop {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  color: #d7ecff;
+}
+
+.brandBottom {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.05;
+  color: white;
+}
+
+.logoutWrap {
+  margin-top: auto;
+  padding-top: 14px;
+}
+
+.logoutButton {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.logoutButton:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(0, 198, 255, 0.22);
+}

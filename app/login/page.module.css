@@ -155,7 +155,19 @@
 @media (max-width: 640px) {
   .page {
     padding: 14px;
-    place-items: start center;
+    place-items: center;
+    .card {
+  margin: 0 auto;
+}
+
+.brandRow {
+  justify-content: center;
+  text-align: center;
+}
+
+.brandRow > div {
+  text-align: left; /* keeps text clean next to logo */
+}
   }
 
   .card {

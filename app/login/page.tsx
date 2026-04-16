@@ -89,7 +89,7 @@ export default function LoginPage() {
         <p className={styles.eyebrow}>SIGN IN</p>
         <h1 className={styles.title}>Login</h1>
         <p className={styles.subtitle}>
-          Access your dashboard, jobs, and installer tools from one secure workspace.
+          Access your dashboard.
         </p>
 
         <form className={styles.form} onSubmit={handleSubmit}>
@@ -122,16 +122,10 @@ export default function LoginPage() {
         </form>
 
         <div className={styles.links}>
-          <Link href="/" className={styles.linkBtn}>
-            Home
-          </Link>
-          <Link href="/dashboard" className={styles.linkBtn}>
-            Dashboard
-          </Link>
-          <Link href="/installer/work-orders" className={styles.linkBtn}>
-            Work Orders
-          </Link>
-        </div>
+  <Link href="/" className={styles.linkBtn}>
+    Back to Home
+  </Link>
+</div>
       </div>
     </main>
   );

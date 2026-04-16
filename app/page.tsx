@@ -117,17 +117,17 @@ export default function Home() {
         <header className={styles.topbar}>
           <div className={styles.brandWrap}>
             <div className={styles.brandCard}>
-  <img
-    src="/branding/site-logo.png"
-    alt="ArtiPoxi logo"
-    className={styles.logoImage}
-  />
-  <div className={styles.brandText}>
-    <p className={styles.brandTop}>ARTIPOXI</p>
-    <p className={styles.brandSub}>Premium epoxy floor systems</p>
-  </div>
-</div>
-</div>
+              <img
+                src="/branding/site-logo.png"
+                alt="ArtiPoxi logo"
+                className={styles.logoImage}
+              />
+              <div className={styles.brandText}>
+                <p className={styles.brandTop}>ARTIPOXI</p>
+                <p className={styles.brandSub}>Premium epoxy floor systems</p>
+              </div>
+            </div>
+          </div>
 
           <nav className={styles.topNav}>
             <a href="#quote" className={styles.topLinkPrimary}>
@@ -175,12 +175,18 @@ export default function Home() {
             <div className={styles.heroStats}>
               <div className={styles.heroStat}>
                 <span className={styles.heroStatLabel}>Systems</span>
-                <strong className={styles.heroStatValue}>Resin • Flake • Solid</strong>
+                <strong className={styles.heroStatValue}>
+                  Resin • Flake • Solid
+                </strong>
               </div>
+
               <div className={styles.heroStat}>
                 <span className={styles.heroStatLabel}>Best For</span>
-                <strong className={styles.heroStatValue}>Garage • Shop • Patio</strong>
+                <strong className={styles.heroStatValue}>
+                  Garage • Shop • Patio
+                </strong>
               </div>
+
               <div className={styles.heroStat}>
                 <span className={styles.heroStatLabel}>Look</span>
                 <strong className={styles.heroStatValue}>Luxury finish</strong>
@@ -228,7 +234,9 @@ export default function Home() {
           <article className={styles.infoCard}>
             <span className={styles.infoLabel}>Spaces</span>
             <strong className={styles.infoValue}>Garage + Shop + Patio</strong>
-            <span className={styles.infoDetail}>Residential and light commercial</span>
+            <span className={styles.infoDetail}>
+              Residential and light commercial
+            </span>
           </article>
 
           <article className={styles.infoCard}>
@@ -241,7 +249,9 @@ export default function Home() {
         <section id="finishes" className={styles.section}>
           <div className={styles.sectionIntro}>
             <p className={styles.sectionEyebrow}>FINISH OPTIONS</p>
-            <h2 className={styles.sectionTitle}>Choose the look that fits your space</h2>
+            <h2 className={styles.sectionTitle}>
+              Choose the look that fits your space
+            </h2>
             <p className={styles.sectionText}>
               From clean broadcast flake to rich metallic movement, we build
               systems that balance appearance, durability, and easy maintenance.
@@ -271,8 +281,8 @@ export default function Home() {
               <p className={styles.panelTag}>CLEAN LOOK</p>
               <h3 className={styles.panelTitle}>Solid Color Epoxy</h3>
               <p className={styles.panelText}>
-                Modern, practical, and sleek with a uniform appearance and strong
-                protection for everyday use.
+                Modern, practical, and sleek with a uniform appearance and
+                strong protection for everyday use.
               </p>
             </div>
           </div>
@@ -281,11 +291,13 @@ export default function Home() {
         <section className={styles.splitSection}>
           <div className={styles.panelLarge}>
             <p className={styles.panelTag}>WHY CUSTOMERS CHOOSE EPOXY</p>
-            <h3 className={styles.panelTitle}>Cleaner look. Easier maintenance. Stronger finish.</h3>
+            <h3 className={styles.panelTitle}>
+              Cleaner look. Easier maintenance. Stronger finish.
+            </h3>
             <p className={styles.panelText}>
               Epoxy transforms dull concrete into a cleaner, brighter, more
-              professional surface that is easier to maintain and built for
-              real use.
+              professional surface that is easier to maintain and built for real
+              use.
             </p>
 
             <div className={styles.checkList}>
@@ -302,134 +314,239 @@ export default function Home() {
                 <span className={styles.checkIcon}>✔</span>
               </div>
               <div className={styles.checkRow}>
-                <span>Custom finish options</span>
+                <span>Photos of the current floor</span>
                 <span className={styles.checkIcon}>✔</span>
               </div>
             </div>
           </div>
 
           <div className={styles.panelLarge}>
-            <p className={styles.panelTag}>BEFORE &amp; AFTER</p>
-            <h3 className={styles.panelTitle}>A better looking space</h3>
+            <p className={styles.panelTag}>QUOTE PROCESS</p>
+            <h3 className={styles.panelTitle}>
+              Send the basics and we can review your project faster.
+            </h3>
             <p className={styles.panelText}>
-              Bare concrete, staining, old coating failure, and worn surfaces can
-              all be transformed into a finished floor with cleaner appearance,
-              stronger protection, and easier upkeep.
+              The more detail you send up front, the easier it is to review your
+              space, recommend the right system, and follow up with accurate next
+              steps.
             </p>
 
-            <div className={styles.beforeAfterGrid}>
-              <div className={styles.beforeAfterCard}>
-                <span className={styles.beforeAfterLabel}>Before</span>
-                <strong className={styles.beforeAfterTitle}>Worn concrete</strong>
-                <p className={styles.beforeAfterText}>
-                  Stains, tire marks, old coatings, cracks, and a dull unfinished look.
-                </p>
+            <div className={styles.checkList}>
+              <div className={styles.checkRow}>
+                <span>Project location</span>
+                <span className={styles.checkIcon}>✔</span>
               </div>
-
-              <div className={styles.beforeAfterCard}>
-                <span className={styles.beforeAfterLabel}>After</span>
-                <strong className={styles.beforeAfterTitle}>Finished surface</strong>
-                <p className={styles.beforeAfterText}>
-                  Cleaner appearance, stronger protection, easier maintenance, and a
-                  premium custom result.
-                </p>
+              <div className={styles.checkRow}>
+                <span>Approximate square footage</span>
+                <span className={styles.checkIcon}>✔</span>
+              </div>
+              <div className={styles.checkRow}>
+                <span>Garage, patio, shop, or commercial type</span>
+                <span className={styles.checkIcon}>✔</span>
+              </div>
+              <div className={styles.checkRow}>
+                <span>Photos of the current floor</span>
+                <span className={styles.checkIcon}>✔</span>
               </div>
             </div>
           </div>
         </section>
 
-        <section id="quote" className={styles.quoteSection}>
-          <div className={styles.quoteIntro}>
-            <p className={styles.sectionEyebrow}>QUOTE REQUEST</p>
-            <h2 className={styles.sectionTitle}>Tell us about your project</h2>
+        <section id="before-after" className={styles.section}>
+          <div className={styles.sectionIntro}>
+            <p className={styles.sectionEyebrow}>BEFORE &amp; AFTER</p>
+            <h2 className={styles.sectionTitle}>
+              A stronger finish changes the whole space
+            </h2>
             <p className={styles.sectionText}>
-              Share your project details, square footage, and photos so we can
-              review your space and follow up with the right options.
+              Clean presentation, better light reflection, easier maintenance,
+              and a more finished look from edge to edge.
             </p>
           </div>
 
-          <div className={styles.quoteWrap}>
+          <div className={styles.cardGrid}>
+            <div className={styles.panel}>
+              <p className={styles.panelTag}>BEFORE</p>
+              <h3 className={styles.panelTitle}>Bare concrete</h3>
+              <p className={styles.panelText}>
+                Dusty, porous, harder to clean, and more likely to show wear or
+                staining over time.
+              </p>
+            </div>
+
+            <div className={styles.panel}>
+              <p className={styles.panelTag}>AFTER</p>
+              <h3 className={styles.panelTitle}>Protected epoxy surface</h3>
+              <p className={styles.panelText}>
+                Cleaner, brighter, more durable, and easier to maintain for
+                daily residential or light commercial use.
+              </p>
+            </div>
+
+            <div className={styles.panel}>
+              <p className={styles.panelTag}>RESULT</p>
+              <h3 className={styles.panelTitle}>Professional finished space</h3>
+              <p className={styles.panelText}>
+                A surface that looks intentional, performs better, and upgrades
+                the whole room.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="quote" className={styles.section}>
+          <div className={styles.sectionIntro}>
+            <p className={styles.sectionEyebrow}>REQUEST A QUOTE</p>
+            <h2 className={styles.sectionTitle}>
+              Tell us about your project
+            </h2>
+            <p className={styles.sectionText}>
+              Send your project details and photos. We will review the space and
+              follow up with next steps.
+            </p>
+          </div>
+
+          <div className={styles.panelLarge}>
             <form className={styles.quoteForm} onSubmit={handleQuoteSubmit}>
               <div className={styles.formGrid}>
-                <input
-                  className={styles.input}
-                  type="text"
-                  placeholder="Full Name"
-                  value={form.full_name}
-                  onChange={(e) =>
-                    setForm({ ...form, full_name: e.target.value })
-                  }
-                  required
-                />
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="full_name">
+                    Full name
+                  </label>
+                  <input
+                    id="full_name"
+                    className={styles.input}
+                    type="text"
+                    value={form.full_name}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        full_name: e.target.value,
+                      }))
+                    }
+                    required
+                  />
+                </div>
 
-                <input
-                  className={styles.input}
-                  type="tel"
-                  placeholder="Phone Number"
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                />
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="email">
+                    Email
+                  </label>
+                  <input
+                    id="email"
+                    className={styles.input}
+                    type="email"
+                    value={form.email}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        email: e.target.value,
+                      }))
+                    }
+                    required
+                  />
+                </div>
 
-                <input
-                  className={styles.input}
-                  type="email"
-                  placeholder="Email Address"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  required
-                />
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="phone">
+                    Phone
+                  </label>
+                  <input
+                    id="phone"
+                    className={styles.input}
+                    type="tel"
+                    value={form.phone}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        phone: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
 
-                <input
-                  className={styles.input}
-                  type="text"
-                  placeholder="City / Project Location"
-                  value={form.city}
-                  onChange={(e) => setForm({ ...form, city: e.target.value })}
-                />
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="city">
+                    City
+                  </label>
+                  <input
+                    id="city"
+                    className={styles.input}
+                    type="text"
+                    value={form.city}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        city: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
 
-                <input
-                  className={styles.input}
-                  type="number"
-                  placeholder="Approx. Square Footage"
-                  value={form.square_footage}
-                  onChange={(e) =>
-                    setForm({ ...form, square_footage: e.target.value })
-                  }
-                />
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="square_footage">
+                    Approx. square footage
+                  </label>
+                  <input
+                    id="square_footage"
+                    className={styles.input}
+                    type="number"
+                    min="0"
+                    value={form.square_footage}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        square_footage: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
 
-                <select
-                  className={styles.input}
-                  value={form.project_type}
-                  onChange={(e) =>
-                    setForm({ ...form, project_type: e.target.value })
-                  }
-                  required
-                >
-                  <option value="" disabled>
-                    Project Type
-                  </option>
-                  <option>Garage</option>
-                  <option>Shop</option>
-                  <option>Patio</option>
-                  <option>Commercial</option>
-                  <option>Other</option>
-                </select>
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="project_type">
+                    Project type
+                  </label>
+                  <input
+                    id="project_type"
+                    className={styles.input}
+                    type="text"
+                    placeholder="Garage, patio, shop, commercial..."
+                    value={form.project_type}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        project_type: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
               </div>
 
-              <textarea
-                className={styles.textarea}
-                placeholder="Tell us about your floor, preferred finish, timeline, or anything else we should know."
-                value={form.details}
-                onChange={(e) => setForm({ ...form, details: e.target.value })}
-              />
-
-              <div className={styles.uploadBlock}>
-                <label htmlFor="quote-photos" className={styles.uploadLabel}>
-                  Add photos
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="details">
+                  Project details
                 </label>
+                <textarea
+                  id="details"
+                  className={styles.textarea}
+                  rows={5}
+                  value={form.details}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      details: e.target.value,
+                    }))
+                  }
+                  placeholder="Tell us about the space, current condition, finish you want, timeline, and anything else helpful."
+                />
+              </div>
 
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="photos">
+                  Upload project photos
+                </label>
                 <input
-                  id="quote-photos"
+                  id="photos"
                   className={styles.input}
                   type="file"
                   accept="image/*"
@@ -438,71 +555,32 @@ export default function Home() {
                     setSelectedFiles(Array.from(e.target.files ?? []))
                   }
                 />
-
                 {selectedFiles.length > 0 ? (
-                  <div className={styles.filePills}>
-                    {selectedFiles.map((file) => (
-                      <span
-                        key={`${file.name}-${file.size}`}
-                        className={styles.filePill}
-                      >
-                        {file.name}
-                      </span>
-                    ))}
-                  </div>
+                  <p className={styles.formNote}>
+                    {selectedFiles.length} file
+                    {selectedFiles.length === 1 ? "" : "s"} selected
+                  </p>
                 ) : null}
               </div>
 
               <div className={styles.formActions}>
                 <button
                   type="submit"
-                  className={styles.primaryBtn}
+                  className={styles.heroPrimary}
                   disabled={submitting}
                 >
-                  {submitting ? "Sending..." : "Submit Request"}
+                  {submitting ? "Sending..." : "Send Quote Request"}
                 </button>
+
+                <Link href="/login" className={styles.heroSecondary}>
+                  Contractor Login
+                </Link>
               </div>
 
               {submitMessage ? (
-                <p
-                  className={
-                    submitMessage.includes("success")
-                      ? styles.successMessage
-                      : styles.errorMessage
-                  }
-                >
-                  {submitMessage}
-                </p>
+                <p className={styles.formMessage}>{submitMessage}</p>
               ) : null}
             </form>
-
-            <div className={styles.quoteSideCard}>
-              <p className={styles.panelTag}>WHAT TO SEND</p>
-              <h3 className={styles.panelTitle}>Help us quote faster</h3>
-              <p className={styles.panelText}>
-                The more detail you send, the better and faster we can review
-                your project.
-              </p>
-
-              <div className={styles.checkList}>
-                <div className={styles.checkRow}>
-                  <span>Project location</span>
-                  <span className={styles.checkIcon}>✔</span>
-                </div>
-                <div className={styles.checkRow}>
-                  <span>Approximate square footage</span>
-                  <span className={styles.checkIcon}>✔</span>
-                </div>
-                <div className={styles.checkRow}>
-                  <span>Garage, patio, shop, or commercial type</span>
-                  <span className={styles.checkIcon}>✔</span>
-                </div>
-                <div className={styles.checkRow}>
-                  <span>Photos of the current floor</span>
-                  <span className={styles.checkIcon}>✔</span>
-                </div>
-              </div>
-            </div>
           </div>
         </section>
       </div>

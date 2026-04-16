@@ -1,4 +1,5 @@
 .page {
+  position: relative;
   min-height: 100vh;
   background:
     linear-gradient(rgba(2, 6, 17, 0.52), rgba(2, 5, 12, 0.76)),
@@ -7,10 +8,20 @@
   background-position: center center;
   background-repeat: no-repeat;
   color: white;
+  overflow-x: hidden;
+}
+
+.background,
+.overlay {
+  display: none;
 }
 
 .shell {
+  position: relative;
+  z-index: 1;
   min-height: 100vh;
+  max-width: 1440px;
+  margin: 0 auto;
   padding: 28px;
   background:
     radial-gradient(circle at top left, rgba(0, 183, 255, 0.1), transparent 20%),
@@ -42,6 +53,8 @@
   height: 88px;
   object-fit: cover;
   border-radius: 22px;
+  border: 1px solid rgba(0, 198, 255, 0.24);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
   display: block;
   flex-shrink: 0;
 }
@@ -56,6 +69,7 @@
 .brandTop {
   margin: 0;
   font-size: 0.85rem;
+  font-weight: 700;
   letter-spacing: 0.18em;
   color: #d7ecff;
 }
@@ -67,7 +81,6 @@
   color: #d0d7df;
 }
 
-
 .topNav {
   display: flex;
   gap: 10px;
@@ -75,47 +88,72 @@
 }
 
 .topLink,
-.topLinkActive {
+.topLinkPrimary,
+.topLinkGhost {
   text-decoration: none;
-  color: white;
   padding: 12px 16px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
   transition: 0.22s ease;
   backdrop-filter: blur(14px);
+  font-weight: 700;
 }
 
-.topLink:hover,
-.topLinkActive {
+.topLink {
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.topLink:hover {
   border-color: rgba(0, 212, 255, 0.32);
   background: rgba(0, 212, 255, 0.1);
   box-shadow: 0 8px 20px rgba(0, 212, 255, 0.08);
 }
 
-.heroPanel {
+.topLinkPrimary {
+  color: #031019;
+  border: 1px solid rgba(0, 212, 255, 0.24);
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.96), rgba(0, 140, 255, 0.9));
+  box-shadow: 0 10px 24px rgba(0, 153, 255, 0.18);
+}
+
+.topLinkGhost {
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.topLinkGhost:hover,
+.topLinkPrimary:hover {
+  transform: translateY(-1px);
+}
+
+.hero {
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  gap: 16px;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 18px;
   border-radius: 28px;
   padding: 24px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
-  border: 1px solid rgba(255,255,255,0.1);
+  margin-bottom: 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+  border: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(16px);
 }
 
-.heroPanelLeft {
+.heroLeft {
   min-width: 0;
 }
 
-.heroPanelRight {
+.heroRight {
   display: grid;
   gap: 12px;
+  align-content: start;
 }
 
 .eyebrow {
   margin: 0 0 10px;
   font-size: 0.76rem;
+  font-weight: 700;
   letter-spacing: 0.16em;
   color: #8fdfff;
 }
@@ -124,13 +162,14 @@
   margin: 0;
   font-size: clamp(3.2rem, 8vw, 5.6rem);
   line-height: 0.92;
+  letter-spacing: -0.04em;
 }
 
 .subtitle {
   margin-top: 16px;
   max-width: 740px;
   line-height: 1.75;
-  color: rgba(231,243,255,0.78);
+  color: rgba(231, 243, 255, 0.78);
   font-size: 1.08rem;
 }
 
@@ -142,99 +181,146 @@
 }
 
 .heroPrimary,
-.heroGhost {
+.heroSecondary {
   text-decoration: none;
-  padding: 12px 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 12px 18px;
   border-radius: 14px;
   font-weight: 700;
+  font: inherit;
+  cursor: pointer;
+  transition: 0.22s ease;
 }
 
 .heroPrimary {
   color: #031019;
-  background: linear-gradient(135deg, rgba(0,212,255,0.95), rgba(0,140,255,0.9));
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.95), rgba(0, 140, 255, 0.9));
+  border: none;
+  box-shadow: 0 10px 24px rgba(0, 153, 255, 0.16);
 }
 
-.heroGhost {
+.heroSecondary {
   color: white;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
 }
 
-.heroMiniCard {
-  border-radius: 20px;
-  padding: 18px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
+.heroPrimary:hover,
+.heroSecondary:hover {
+  transform: translateY(-1px);
 }
 
-.heroMiniLabel {
-  display: block;
-  font-size: 0.72rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: rgba(216,238,255,0.64);
-  margin-bottom: 8px;
+.heroPrimary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
-.heroMiniValue {
-  font-size: 1.2rem;
-  color: #f4fbff;
-}
-
-.statsGrid {
+.heroStats {
   margin-top: 20px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
 }
 
-.statCard,
+.heroStat,
+.featureCardLarge,
+.featureCardSmall,
+.infoCard,
 .panel,
 .panelLarge {
   border-radius: 22px;
   padding: 20px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
-  border: 1px solid rgba(255,255,255,0.1);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+  border: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(16px);
 }
 
-.statLabel {
+.heroStat {
+  padding: 16px 18px;
+}
+
+.heroStatLabel,
+.cardLabel,
+.infoLabel,
+.panelTag,
+.sectionEyebrow {
   display: block;
-  color: rgba(216,238,255,0.66);
-  font-size: 0.78rem;
-  margin-bottom: 10px;
-}
-
-.statValue {
-  font-size: 1.55rem;
-}
-
-.statDetail {
-  display: block;
-  margin-top: 10px;
-  color: rgba(159,232,255,0.78);
-  font-size: 0.9rem;
-}
-
-.contentGrid {
-  margin-top: 20px;
-  display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
-  gap: 16px;
-}
-
-.bottomGrid {
-  margin-top: 16px;
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 16px;
-}
-
-.panelTag {
   margin: 0 0 10px;
   font-size: 0.76rem;
+  font-weight: 700;
   letter-spacing: 0.16em;
   color: #8fdfff;
+  text-transform: uppercase;
+}
+
+.heroStatValue,
+.infoValue {
+  display: block;
+  font-size: 1.08rem;
+  color: #f4fbff;
+}
+
+.featureCardRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.cardTitle {
+  margin: 0 0 14px;
+  font-size: 1.5rem;
+}
+
+.cardMiniTitle {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.cardText,
+.infoDetail,
+.panelText,
+.sectionText {
+  margin: 0;
+  line-height: 1.7;
+  color: rgba(231, 243, 255, 0.76);
+}
+
+.infoGrid {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.infoCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.section {
+  margin-top: 20px;
+}
+
+.sectionIntro {
+  max-width: 860px;
+  margin-bottom: 16px;
+}
+
+.sectionTitle {
+  margin: 0 0 12px;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
 }
 
 .panelTitle {
@@ -242,28 +328,31 @@
   font-size: 1.5rem;
 }
 
-.panelText {
-  margin: 0;
-  line-height: 1.7;
-  color: rgba(231,243,255,0.76);
+.splitSection {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
 }
 
-.pipelineList {
+.checkList {
   display: grid;
   gap: 12px;
-  margin-top: 16px;
+  margin-top: 18px;
 }
 
-.pipelineRow {
+.checkRow {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
   padding: 12px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.pipelineCount {
+.checkIcon {
   color: #9fe8ff;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -277,25 +366,42 @@
   gap: 12px;
 }
 
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: rgba(226, 241, 255, 0.88);
+}
+
 .input,
 .textarea {
   width: 100%;
   padding: 14px 14px;
   border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(0,0,0,0.26);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.26);
   color: white;
   font: inherit;
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: rgba(216, 230, 243, 0.48);
 }
 
 .input:focus,
 .textarea:focus {
   outline: none;
   border-color: rgba(0, 198, 255, 0.4);
+  box-shadow: 0 0 0 3px rgba(0, 170, 255, 0.08);
 }
 
 .textarea {
-  margin-top: 12px;
   min-height: 120px;
   resize: vertical;
 }
@@ -304,41 +410,35 @@
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.formMessage {
   margin-top: 14px;
+  font-weight: 600;
+  color: #9fe8ff;
 }
 
-.primaryBtn,
-.secondaryBtn {
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 180px;
-  padding: 12px 16px;
-  border-radius: 14px;
-  font-weight: 700;
-  font: inherit;
-  cursor: pointer;
-}
-
-.primaryBtn {
-  color: #031019;
-  background: linear-gradient(135deg, rgba(0,212,255,0.95), rgba(0,140,255,0.9));
-  border: none;
-}
-
-.secondaryBtn {
-  color: white;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.05);
+.formNote {
+  margin: 8px 0 0;
+  font-size: 0.9rem;
+  color: rgba(231, 243, 255, 0.7);
 }
 
 @media (max-width: 1200px) {
-  .heroPanel,
-  .contentGrid,
-  .bottomGrid,
-  .statsGrid,
+  .hero,
+  .splitSection,
+  .cardGrid,
+  .infoGrid,
   .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .heroStats {
+    grid-template-columns: 1fr;
+  }
+
+  .featureCardRow {
     grid-template-columns: 1fr;
   }
 }
@@ -348,8 +448,32 @@
     padding: 18px;
   }
 
-  .brandBottom {
-    font-size: 1.35rem;
+  .topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .topNav {
+    width: 100%;
+  }
+
+  .topLink,
+  .topLinkPrimary,
+  .topLinkGhost,
+  .heroPrimary,
+  .heroSecondary {
+    width: 100%;
+    text-align: center;
+  }
+
+  .brandCard {
+    align-items: center;
+  }
+
+  .logoImage {
+    width: 72px;
+    height: 72px;
+    border-radius: 18px;
   }
 
   .title {
@@ -361,25 +485,13 @@
     line-height: 1.65;
   }
 
-  .heroPrimary,
-  .heroGhost,
-  .primaryBtn,
-  .secondaryBtn {
-    width: 100%;
-    text-align: center;
+  .panelTitle,
+  .cardTitle,
+  .sectionTitle {
+    font-size: 1.8rem;
   }
 
-  .panelTitle {
-    font-size: 1.28rem;
+  .checkRow {
+    align-items: flex-start;
   }
-}
-
-.logoImage {
-  width: 88px;
-  height: 88px;
-  object-fit: cover;
-  border-radius: 22px;
-  border: 1px solid rgba(0, 198, 255, 0.24);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-  flex-shrink: 0;
 }

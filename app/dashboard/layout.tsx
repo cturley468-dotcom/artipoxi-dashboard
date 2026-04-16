@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getCurrentProfile, type Profile } from "../lib/auth";
 import { supabase } from "../lib/supabase";
+import React from "react"; 
 
 export default function DashboardLayout({
   children,
@@ -107,19 +108,18 @@ const handleLogout = async () => {
           }}
         >
           {profile ? (
-            <button
-  onClick={handleLogout}
-  style={{
-    marginLeft: "6px", // 👈 small extra spacing
-    padding: "8px 14px",
-    borderRadius: "12px",
-    background: "rgba(255,255,255,0.08)",
-    color: "white",
-    border: "1px solid rgba(255,255,255,0.15)",
-  }}
->
-  Logout
-</button>
+            <div style={signedInWrapStyle}>
+  <span style={signedInTextStyle}>
+    Signed in as {profile.full_name ?? profile.email ?? "user"}
+  </span>
+
+  <button
+    onClick={handleLogout}
+    style={logoutInlineButtonStyle}
+  >
+    Logout
+  </button>
+</div>
           ) : null}
 
           {children}
@@ -317,14 +317,30 @@ const navItemActiveStyle: React.CSSProperties = {
 };
 
 const signedInWrapStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
   marginBottom: "14px",
+  flexWrap: "nowrap",
 };
 
 const signedInTextStyle: React.CSSProperties = {
   color: "#9fe8ff",
-  fontWeight: 600,
-  overflowWrap: "anywhere",
+  fontWeight: 700,
+  fontSize: "16px",
+  lineHeight: 1.2,
 };
+
+const logoutInlineButtonStyle: React.CSSProperties = {
+  padding: "8px 14px",
+  borderRadius: "12px",
+  background: "rgba(255,255,255,0.08)",
+  color: "white",
+  border: "1px solid rgba(255,255,255,0.15)",
+  cursor: "pointer",
+  flexShrink: 0,
+};
+
 
 const loadingCardStyle: React.CSSProperties = {
   borderRadius: "22px",

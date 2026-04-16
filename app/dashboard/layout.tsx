@@ -107,24 +107,19 @@ const handleLogout = async () => {
           }}
         >
           {profile ? (
-            <div style={signedInWrapStyle}>
-              <span style={signedInTextStyle}>
-                Signed in as {profile.full_name ?? profile.email ?? "user"}
-              </span>
-              <button
-           onClick={handleLogout}
-              style={{
-              padding: "8px 14px",
-              borderRadius: "10px",
-              background: "rgba(255,255,255,0.08)",
-              color: "white",
-              border: "1px solid rgba(255,255,255,0.15)",
-              cursor: "pointer",
-            }}
-        >
-               Logout
-               </button>
-            </div>
+            <button
+  onClick={handleLogout}
+  style={{
+    marginLeft: "6px", // 👈 small extra spacing
+    padding: "8px 14px",
+    borderRadius: "12px",
+    background: "rgba(255,255,255,0.08)",
+    color: "white",
+    border: "1px solid rgba(255,255,255,0.15)",
+  }}
+>
+  Logout
+</button>
           ) : null}
 
           {children}

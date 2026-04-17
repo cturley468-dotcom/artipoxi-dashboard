@@ -29,6 +29,7 @@ export default function Home() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   async function uploadQuotePhotos(files: File[]) {
     const uploadedUrls: string[] = [];
@@ -108,6 +109,10 @@ export default function Home() {
     }
   }
 
+  function closeMenu() {
+    setMenuOpen(false);
+  }
+
   return (
     <main className={styles.page}>
       <div className={styles.background} />
@@ -143,6 +148,51 @@ export default function Home() {
               Login
             </Link>
           </nav>
+
+          <div className={styles.mobileMenuWrap}>
+            <button
+              type="button"
+              className={styles.mobileMenuButton}
+              onClick={() => setMenuOpen((prev) => !prev)}
+              aria-expanded={menuOpen}
+              aria-label="Toggle menu"
+            >
+              {menuOpen ? "Close Menu" : "Menu"}
+            </button>
+
+            {menuOpen ? (
+              <div className={styles.mobileMenuPanel}>
+                <a
+                  href="#quote"
+                  className={styles.mobileMenuLinkPrimary}
+                  onClick={closeMenu}
+                >
+                  Quote Request
+                </a>
+                <a
+                  href="#finishes"
+                  className={styles.mobileMenuLink}
+                  onClick={closeMenu}
+                >
+                  Finishes
+                </a>
+                <a
+                  href="#before-after"
+                  className={styles.mobileMenuLink}
+                  onClick={closeMenu}
+                >
+                  Before &amp; After
+                </a>
+                <Link
+                  href="/login"
+                  className={styles.mobileMenuLink}
+                  onClick={closeMenu}
+                >
+                  Login
+                </Link>
+              </div>
+            ) : null}
+          </div>
         </header>
 
         <section className={styles.hero}>
@@ -397,9 +447,7 @@ export default function Home() {
         <section id="quote" className={styles.section}>
           <div className={styles.sectionIntro}>
             <p className={styles.sectionEyebrow}>REQUEST A QUOTE</p>
-            <h2 className={styles.sectionTitle}>
-              Tell us about your project
-            </h2>
+            <h2 className={styles.sectionTitle}>Tell us about your project</h2>
             <p className={styles.sectionText}>
               Send your project details and photos. We will review the space and
               follow up with next steps.

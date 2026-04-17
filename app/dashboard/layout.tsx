@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getCurrentProfile, type Profile } from "../lib/auth";
 import { supabase } from "../lib/supabase";
-import React from "react"; 
+import React from "react";
 
 export default function DashboardLayout({
   children,
@@ -15,18 +15,24 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
 
-const handleLogout = async () => {
-  await supabase.auth.signOut();
-  router.push("/login");
-};
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     function handleResize() {
-      setIsMobile(window.innerWidth <= 900);
+      const mobile = window.innerWidth <= 900;
+      setIsMobile(mobile);
+
+      if (!mobile) {
+        setMenuOpen(false);
+      }
     }
 
     handleResize();
@@ -73,7 +79,13 @@ const handleLogout = async () => {
               ...(isMobile ? sidebarMobileStyle : sidebarDesktopStyle),
             }}
           >
-            <Sidebar pathname={pathname} isMobile={isMobile} />
+            <Sidebar
+              pathname={pathname}
+              isMobile={isMobile}
+              menuOpen={menuOpen}
+              setMenuOpen={setMenuOpen}
+              onLogout={handleLogout}
+            />
           </aside>
 
           <section style={contentStyle}>
@@ -98,7 +110,13 @@ const handleLogout = async () => {
             ...(isMobile ? sidebarMobileStyle : sidebarDesktopStyle),
           }}
         >
-          <Sidebar pathname={pathname} isMobile={isMobile} />
+          <Sidebar
+            pathname={pathname}
+            isMobile={isMobile}
+            menuOpen={menuOpen}
+            setMenuOpen={setMenuOpen}
+            onLogout={handleLogout}
+          />
         </aside>
 
         <section
@@ -107,19 +125,16 @@ const handleLogout = async () => {
             ...(isMobile ? contentMobileStyle : null),
           }}
         >
-          {profile ? (
+          {profile && !isMobile ? (
             <div style={signedInWrapStyle}>
-  <span style={signedInTextStyle}>
-    Signed in as {profile.full_name ?? profile.email ?? "user"}
-  </span>
+              <span style={signedInTextStyle}>
+                Signed in as {profile.full_name ?? profile.email ?? "user"}
+              </span>
 
-  <button
-    onClick={handleLogout}
-    style={logoutInlineButtonStyle}
-  >
-    Logout
-  </button>
-</div>
+              <button onClick={handleLogout} style={logoutInlineButtonStyle}>
+                Logout
+              </button>
+            </div>
           ) : null}
 
           {children}
@@ -129,53 +144,134 @@ const handleLogout = async () => {
   );
 }
 
-
-
 function Sidebar({
   pathname,
   isMobile,
+  menuOpen,
+  setMenuOpen,
+  onLogout,
 }: {
   pathname: string;
   isMobile: boolean;
+  menuOpen: boolean;
+  setMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  onLogout: () => void | Promise<void>;
 }) {
-  return (
-    <>
-      <div style={brandWrapStyle}>
-        <img
-  src="/branding/site-logo.png"
-  alt="ArtiPoxi logo"
-  style={{
-  width: "64px",
-  height: "64px",
-  objectFit: "cover",
-  borderRadius: "18px",
-  display: "block",
-  flexShrink: 0,
-}}
-/>
-        <div>
-          <div style={brandTopStyle}>ARTIPOXI</div>
-          <div style={brandBottomStyle}>Operations</div>
-        </div>
-      </div>
+  function closeMenu() {
+    setMenuOpen(false);
+  }
 
+  const navContent = (
+    <>
       <div
         style={{
           ...navStackStyle,
           ...(isMobile ? navStackMobileStyle : null),
         }}
       >
-        
-        <NavItem href="/" label="Home" pathname={pathname} exact />
-        <NavItem href="/dashboard" label="Dashboard" pathname={pathname} exact />
-        <NavItem href="/dashboard/jobs" label="Jobs" pathname={pathname} />
-        <NavItem href="/dashboard/leads" label="Leads" pathname={pathname} />
-        <NavItem href="/dashboard/schedule" label="Schedule" pathname={pathname} />
-        <NavItem href="/dashboard/quotes" label="Quotes" pathname={pathname} />
-        <NavItem href="/configurator" label="Configurator" pathname={pathname} />
-        <NavItem href="/dashboard/finance" label="Finance" pathname={pathname} />
-        <NavItem href="/dashboard/inventory" label="Inventory" pathname={pathname} />
+        <NavItem
+          href="/"
+          label="Home"
+          pathname={pathname}
+          exact
+          onNavigate={closeMenu}
+        />
+        <NavItem
+          href="/dashboard"
+          label="Dashboard"
+          pathname={pathname}
+          exact
+          onNavigate={closeMenu}
+        />
+        <NavItem
+          href="/dashboard/jobs"
+          label="Jobs"
+          pathname={pathname}
+          onNavigate={closeMenu}
+        />
+        <NavItem
+          href="/dashboard/leads"
+          label="Leads"
+          pathname={pathname}
+          onNavigate={closeMenu}
+        />
+        <NavItem
+          href="/dashboard/schedule"
+          label="Schedule"
+          pathname={pathname}
+          onNavigate={closeMenu}
+        />
+        <NavItem
+          href="/dashboard/quotes"
+          label="Quotes"
+          pathname={pathname}
+          onNavigate={closeMenu}
+        />
+        <NavItem
+          href="/configurator"
+          label="Configurator"
+          pathname={pathname}
+          onNavigate={closeMenu}
+        />
+        <NavItem
+          href="/dashboard/finance"
+          label="Finance"
+          pathname={pathname}
+          onNavigate={closeMenu}
+        />
+        <NavItem
+          href="/dashboard/inventory"
+          label="Inventory"
+          pathname={pathname}
+          onNavigate={closeMenu}
+        />
       </div>
+
+      {isMobile ? (
+        <button
+          onClick={onLogout}
+          style={{
+            ...mobileLogoutButtonStyle,
+            marginTop: "12px",
+          }}
+        >
+          Logout
+        </button>
+      ) : null}
+    </>
+  );
+
+  return (
+    <>
+      <div style={brandWrapStyle}>
+        <img
+          src="/branding/site-logo.png"
+          alt="ArtiPoxi logo"
+          style={brandImageStyle}
+        />
+        <div>
+          <div style={brandTopStyle}>ARTIPOXI</div>
+          <div style={brandBottomStyle}>Operations</div>
+        </div>
+      </div>
+
+      {isMobile ? (
+        <div style={mobileMenuWrapStyle}>
+          <button
+            type="button"
+            onClick={() => setMenuOpen((prev) => !prev)}
+            aria-expanded={menuOpen}
+            aria-label="Toggle dashboard menu"
+            style={mobileMenuButtonStyle}
+          >
+            {menuOpen ? "Close Menu" : "Menu"}
+          </button>
+
+          {menuOpen ? <div style={mobileMenuPanelStyle}>{navContent}</div> : null}
+        </div>
+      ) : (
+        navContent
+      )}
     </>
   );
 }
@@ -185,17 +281,22 @@ function NavItem({
   label,
   pathname,
   exact = false,
+  onNavigate,
 }: {
   href: string;
   label: string;
   pathname: string;
   exact?: boolean;
+  onNavigate?: () => void;
 }) {
-  const active = exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+  const active = exact
+    ? pathname === href
+    : pathname === href || pathname.startsWith(`${href}/`);
 
   return (
     <Link
       href={href}
+      onClick={onNavigate}
       style={{
         ...navItemStyle,
         ...(active ? navItemActiveStyle : null),
@@ -230,7 +331,8 @@ const shellMobileStyle: React.CSSProperties = {
 };
 
 const sidebarStyle: React.CSSProperties = {
-  background: "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03))",
+  background:
+    "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03))",
   backdropFilter: "blur(14px)",
 };
 
@@ -263,16 +365,13 @@ const brandWrapStyle: React.CSSProperties = {
   marginBottom: "24px",
 };
 
-const brandLogoStyle: React.CSSProperties = {
-  width: "54px",
-  height: "54px",
-  borderRadius: "16px",
-  display: "grid",
-  placeItems: "center",
-  fontWeight: 700,
-  fontSize: "1.4rem",
-  background: "rgba(255, 255, 255, 0.06)",
-  border: "1px solid rgba(0, 212, 255, 0.24)",
+const brandImageStyle: React.CSSProperties = {
+  width: "64px",
+  height: "64px",
+  objectFit: "cover",
+  borderRadius: "18px",
+  display: "block",
+  flexShrink: 0,
 };
 
 const brandTopStyle: React.CSSProperties = {
@@ -288,13 +387,43 @@ const brandBottomStyle: React.CSSProperties = {
   fontWeight: 700,
 };
 
+const mobileMenuWrapStyle: React.CSSProperties = {
+  width: "100%",
+};
+
+const mobileMenuButtonStyle: React.CSSProperties = {
+  width: "100%",
+  minHeight: "52px",
+  padding: "12px 16px",
+  borderRadius: "16px",
+  border: "1px solid rgba(255,255,255,0.12)",
+  background: "rgba(255,255,255,0.05)",
+  color: "white",
+  fontWeight: 700,
+  fontSize: "16px",
+  cursor: "pointer",
+  backdropFilter: "blur(14px)",
+};
+
+const mobileMenuPanelStyle: React.CSSProperties = {
+  display: "grid",
+  gap: "12px",
+  marginTop: "12px",
+  padding: "14px",
+  borderRadius: "22px",
+  background:
+    "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
+  border: "1px solid rgba(255,255,255,0.1)",
+  backdropFilter: "blur(16px)",
+};
+
 const navStackStyle: React.CSSProperties = {
   display: "grid",
   gap: "12px",
 };
 
 const navStackMobileStyle: React.CSSProperties = {
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gridTemplateColumns: "1fr 1fr",
   gap: "10px",
 };
 
@@ -341,11 +470,24 @@ const logoutInlineButtonStyle: React.CSSProperties = {
   flexShrink: 0,
 };
 
+const mobileLogoutButtonStyle: React.CSSProperties = {
+  width: "100%",
+  minHeight: "52px",
+  padding: "12px 16px",
+  borderRadius: "16px",
+  border: "1px solid rgba(255,255,255,0.12)",
+  background: "rgba(255,255,255,0.05)",
+  color: "white",
+  fontWeight: 700,
+  fontSize: "16px",
+  cursor: "pointer",
+};
 
 const loadingCardStyle: React.CSSProperties = {
   borderRadius: "22px",
   padding: "20px",
-  background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
+  background:
+    "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
   border: "1px solid rgba(255,255,255,0.1)",
   backdropFilter: "blur(16px)",
 };

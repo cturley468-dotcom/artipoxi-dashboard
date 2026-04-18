@@ -221,27 +221,6 @@ export default function Home() {
                 View Finishes
               </a>
             </div>
-
-            <div className={styles.heroStats}>
-              <div className={styles.heroStat}>
-                <span className={styles.heroStatLabel}>Systems</span>
-                <strong className={styles.heroStatValue}>
-                  Resin • Flake • Solid
-                </strong>
-              </div>
-
-              <div className={styles.heroStat}>
-                <span className={styles.heroStatLabel}>Best For</span>
-                <strong className={styles.heroStatValue}>
-                  Garage • Shop • Patio
-                </strong>
-              </div>
-
-              <div className={styles.heroStat}>
-                <span className={styles.heroStatLabel}>Look</span>
-                <strong className={styles.heroStatValue}>Luxury finish</strong>
-              </div>
-            </div>
           </div>
 
           <div className={styles.heroRight}>
@@ -308,7 +287,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className={styles.cardGrid}>
+          <div className={styles.beforeAfterGrid}>
             <div className={styles.panel}>
               <p className={styles.panelTag}>POPULAR</p>
               <h3 className={styles.panelTitle}>Flake Finish</h3>
@@ -414,8 +393,8 @@ export default function Home() {
             </p>
           </div>
 
-          <div className={styles.cardGrid}>
-            <div className={styles.panel}>
+          <div className={styles.beforeAfterGrid}>
+            <div className={`${styles.panel} ${styles.beforeCard}`}>
               <p className={styles.panelTag}>BEFORE</p>
               <h3 className={styles.panelTitle}>Bare concrete</h3>
               <p className={styles.panelText}>
@@ -424,7 +403,7 @@ export default function Home() {
               </p>
             </div>
 
-            <div className={styles.panel}>
+            <div className={`${styles.panel} ${styles.afterCard}`}>
               <p className={styles.panelTag}>AFTER</p>
               <h3 className={styles.panelTitle}>Protected epoxy surface</h3>
               <p className={styles.panelText}>
@@ -432,17 +411,9 @@ export default function Home() {
                 daily residential or light commercial use.
               </p>
             </div>
-
-            <div className={styles.panel}>
-              <p className={styles.panelTag}>RESULT</p>
-              <h3 className={styles.panelTitle}>Professional finished space</h3>
-              <p className={styles.panelText}>
-                A surface that looks intentional, performs better, and upgrades
-                the whole room.
-              </p>
-            </div>
           </div>
         </section>
+
 
         <section id="quote" className={styles.section}>
           <div className={styles.sectionIntro}>

@@ -643,27 +643,37 @@
 
 .beforeCard,
 .afterCard {
-  min-height: 260px;
-  padding: 22px;
+  min-height: 340px;
+  padding: 18px;
+  justify-content: flex-end;
 }
 
-.section {
-  margin-top: 28px;
+.beforeCard::before,
+.afterCard::before {
+  background: linear-gradient(
+    to top,
+    rgba(4, 8, 16, 0.94) 0%,
+    rgba(4, 8, 16, 0.84) 38%,
+    rgba(4, 8, 16, 0.28) 72%,
+    rgba(4, 8, 16, 0.12) 100%
+  );
 }
 
-.sectionIntro {
-  margin-bottom: 18px;
+.panelTag {
+  margin-bottom: 8px;
 }
 
 .panelTitle {
-  font-size: 1.6rem;
-  line-height: 1.05;
+  font-size: 1.2rem;
+  line-height: 1.02;
+  margin-bottom: 10px;
 }
 
 .panelText {
-  font-size: 1rem;
-  line-height: 1.7;
+  font-size: 0.92rem;
+  line-height: 1.55;
 }
+
 
 
   .topbar {

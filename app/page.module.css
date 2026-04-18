@@ -422,15 +422,29 @@
   color: rgba(231, 243, 255, 0.76);
 }
 
+.beforeAfterGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+
 .beforeCard,
 .afterCard {
   position: relative;
   overflow: hidden;
-  border-radius: 22px;
-
-  background-size: cover;
-  background-position: center top; /* 👈 key change */
+  min-height: 320px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background-size: contain;
+  background-position: center center;
   background-repeat: no-repeat;
+  background-color: #0b1220;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
 }
 
 .beforeCard::before,
@@ -440,9 +454,10 @@
   inset: 0;
   background: linear-gradient(
     to top,
-    rgba(5, 10, 18, 0.88) 0%,
-    rgba(5, 10, 18, 0.58) 45%,
-    rgba(5, 10, 18, 0.22) 100%
+    rgba(4, 8, 16, 0.72) 0%,
+    rgba(4, 8, 16, 0.46) 40%,
+    rgba(4, 8, 16, 0.14) 75%,
+    rgba(4, 8, 16, 0.04) 100%
   );
   z-index: 0;
 }
@@ -460,6 +475,7 @@
 .afterCard {
   background-image: url("/backgrounds/after-epoxy.png");
 }
+
 
 
 .infoGrid {
@@ -497,11 +513,6 @@
   gap: 16px;
 }
 
-.beforeAfterGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
 
 
 .panelTitle {
@@ -655,19 +666,23 @@
 .afterCard {
   min-height: 340px;
   padding: 18px;
-  justify-content: flex-end;
+  background-size: contain;
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-color: #0b1220;
 }
 
 .beforeCard::before,
 .afterCard::before {
   background: linear-gradient(
     to top,
-    rgba(4, 8, 16, 0.94) 0%,
-    rgba(4, 8, 16, 0.84) 38%,
-    rgba(4, 8, 16, 0.28) 72%,
-    rgba(4, 8, 16, 0.12) 100%
+    rgba(4, 8, 16, 0.78) 0%,
+    rgba(4, 8, 16, 0.54) 38%,
+    rgba(4, 8, 16, 0.16) 72%,
+    rgba(4, 8, 16, 0.05) 100%
   );
 }
+
 
 .panelTag {
   margin-bottom: 8px;

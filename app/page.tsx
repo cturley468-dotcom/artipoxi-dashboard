@@ -590,10 +590,6 @@ export default function Home() {
                 >
                   {submitting ? "Sending..." : "Send Quote Request"}
                 </button>
-
-                <Link href="/login" className={styles.heroSecondary}>
-                  Contractor Login
-                </Link>
               </div>
 
               {submitMessage ? (

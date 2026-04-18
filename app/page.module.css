@@ -426,12 +426,10 @@
 .afterCard {
   position: relative;
   overflow: hidden;
-  min-height: 220px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
+  border-radius: 22px;
+
   background-size: cover;
-  background-position: center;
+  background-position: center top; /* 👈 key change */
   background-repeat: no-repeat;
 }
 
@@ -478,7 +476,7 @@
 }
 
 .section {
-  margin-top: 20px;
+  margin-top: 10px;
 }
 
 .sectionIntro {

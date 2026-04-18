@@ -765,8 +765,8 @@
     ),
     url("/backgrounds/homepage-epoxy-hd.png");
 
-  background-size: cover;
-  background-position: center top;
+  background-size: contain;
+  background-position: center;
   background-repeat: no-repeat;
 }
 
@@ -798,8 +798,8 @@
       ),
       url("/backgrounds/homepage-epoxy-mobile.png");
 
-    background-size: cover;
-    background-position: center top;
+    background-size: contain;
+    background-position: center 35%;
     background-repeat: no-repeat;
   }
 }

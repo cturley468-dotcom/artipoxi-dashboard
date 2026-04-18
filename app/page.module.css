@@ -757,18 +757,30 @@
   }
 }
 
-@media (max-width: 760px) {
-  .page {
-    background:
-      linear-gradient(
-        rgba(6, 12, 22, 0.45),
-        rgba(6, 12, 22, 0.6)
-      ),
-      url("/backgrounds/homepage-epoxy-hd.png");
+.page {
+  background:
+    linear-gradient(
+      rgba(6, 12, 22, 0.28),
+      rgba(6, 12, 22, 0.42)
+    ),
+    url("/backgrounds/homepage-epoxy-hd.png");
 
-    background-size: cover;
-    background-position: center top;
-  }
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+}
+
+.panel,
+.panelLarge,
+.infoCard,
+.featureCardLarge,
+.featureCardSmall {
+  backdrop-filter: blur(8px);
+}
+
+.input,
+.textarea {
+  backdrop-filter: none;
 }
 
 .shell {

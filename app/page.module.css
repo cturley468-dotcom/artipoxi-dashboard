@@ -635,6 +635,13 @@
     padding: 18px;
   }
 
+  .beforeCard,
+.afterCard {
+  background-size: cover;
+  background-position: 8% top;
+  background-color: #363f50;
+}
+
   .beforeAfterGrid {
   gap: 16px;
 }

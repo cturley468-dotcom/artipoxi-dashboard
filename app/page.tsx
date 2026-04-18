@@ -247,6 +247,39 @@ export default function Home() {
           </div>
         </section>
 
+        <section id="before-after" className={styles.section}>
+          <div className={styles.sectionIntro}>
+            <p className={styles.sectionEyebrow}>BEFORE &amp; AFTER</p>
+            <h2 className={styles.sectionTitle}>
+              A stronger finish changes the whole space
+            </h2>
+            <p className={styles.sectionText}>
+              Clean presentation, better light reflection, easier maintenance,
+              and a more finished look from edge to edge.
+            </p>
+          </div>
+
+          <div className={styles.beforeAfterGrid}>
+            <div className={`${styles.panel} ${styles.beforeCard}`}>
+              <p className={styles.panelTag}>BEFORE</p>
+              <h3 className={styles.panelTitle}>Bare concrete</h3>
+              <p className={styles.panelText}>
+                Dusty, porous, harder to clean, and more likely to show wear or
+                staining over time.
+              </p>
+            </div>
+
+            <div className={`${styles.panel} ${styles.afterCard}`}>
+              <p className={styles.panelTag}>AFTER</p>
+              <h3 className={styles.panelTitle}>Protected epoxy surface</h3>
+              <p className={styles.panelText}>
+                Cleaner, brighter, more durable, and easier to maintain for
+                daily residential or light commercial use.
+              </p>
+            </div>
+          </div>
+        </section>
+
         <section className={styles.infoGrid}>
           <article className={styles.infoCard}>
             <span className={styles.infoLabel}>Finish</span>
@@ -377,39 +410,6 @@ export default function Home() {
                 <span>Photos of the current floor</span>
                 <span className={styles.checkIcon}>✔</span>
               </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="before-after" className={styles.section}>
-          <div className={styles.sectionIntro}>
-            <p className={styles.sectionEyebrow}>BEFORE &amp; AFTER</p>
-            <h2 className={styles.sectionTitle}>
-              A stronger finish changes the whole space
-            </h2>
-            <p className={styles.sectionText}>
-              Clean presentation, better light reflection, easier maintenance,
-              and a more finished look from edge to edge.
-            </p>
-          </div>
-
-          <div className={styles.beforeAfterGrid}>
-            <div className={`${styles.panel} ${styles.beforeCard}`}>
-              <p className={styles.panelTag}>BEFORE</p>
-              <h3 className={styles.panelTitle}>Bare concrete</h3>
-              <p className={styles.panelText}>
-                Dusty, porous, harder to clean, and more likely to show wear or
-                staining over time.
-              </p>
-            </div>
-
-            <div className={`${styles.panel} ${styles.afterCard}`}>
-              <p className={styles.panelTag}>AFTER</p>
-              <h3 className={styles.panelTitle}>Protected epoxy surface</h3>
-              <p className={styles.panelText}>
-                Cleaner, brighter, more durable, and easier to maintain for
-                daily residential or light commercial use.
-              </p>
             </div>
           </div>
         </section>

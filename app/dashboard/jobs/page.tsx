@@ -24,6 +24,17 @@ type Job = {
   installer?: string | null;
 };
 
+type WorkOrder = {
+  id: string;
+  job_id: string | null;
+  title: string | null;
+  description: string | null;
+  materials: string | null;
+  scheduled_date: string | null;
+  status: string | null;
+  assigned_installer_name?: string | null;
+};
+
 type NewJobForm = {
   customer: string;
   phone: string;
@@ -64,6 +75,7 @@ function getPhotoUrl(pathOrUrl: string) {
 
 export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -73,6 +85,7 @@ export default function JobsPage() {
   const [creatingJob, setCreatingJob] = useState(false);
   const [workingJobId, setWorkingJobId] = useState<string | null>(null);
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const [newJobForm, setNewJobForm] = useState<NewJobForm>({
     customer: "",
@@ -103,7 +116,7 @@ export default function JobsPage() {
   });
 
   useEffect(() => {
-    loadJobs();
+    loadJobsAndWorkOrders();
   }, []);
 
   useEffect(() => {
@@ -116,18 +129,30 @@ export default function JobsPage() {
         setLightboxUrl(null);
         setShowNewJobModal(false);
         setEditingJobId(null);
+        setOpenMenuId(null);
       }
+    }
+
+    function handleClickAway() {
+      setOpenMenuId(null);
     }
 
     handleResize();
     window.addEventListener("resize", handleResize);
     window.addEventListener("keydown", handleEscape);
+    window.addEventListener("click", handleClickAway);
 
     return () => {
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("keydown", handleEscape);
+      window.removeEventListener("click", handleClickAway);
     };
   }, []);
+
+  function toggleMenu(id: string, e?: React.MouseEvent<HTMLButtonElement>) {
+    e?.stopPropagation();
+    setOpenMenuId((prev) => (prev === id ? null : id));
+  }
 
   function syncJobsToScheduleStorage(nextJobs: Job[]) {
     try {
@@ -162,24 +187,33 @@ export default function JobsPage() {
     }
   }
 
-  async function loadJobs() {
+  async function loadJobsAndWorkOrders() {
     setLoading(true);
     setMessage("");
 
-    const { data, error } = await supabase
-      .from("jobs")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const [
+      { data: jobsData, error: jobsError },
+      { data: workOrdersData, error: workOrdersError },
+    ] = await Promise.all([
+      supabase.from("jobs").select("*").order("created_at", { ascending: false }),
+      supabase
+        .from("work_orders")
+        .select(
+          "id, job_id, title, description, materials, scheduled_date, status, assigned_installer_name"
+        )
+        .order("created_at", { ascending: false }),
+    ]);
 
-    if (error) {
-      console.error("Failed to load jobs:", error);
+    if (jobsError) {
+      console.error("Failed to load jobs:", jobsError);
       setJobs([]);
+      setWorkOrders([]);
       setMessage("Could not load jobs.");
       setLoading(false);
       return;
     }
 
-    const nextJobs = ((data as Job[]) || []).map((job) => ({
+    const nextJobs = ((jobsData as Job[]) || []).map((job) => ({
       ...job,
       scheduled_date: (job as any).scheduled_date ?? null,
       scheduled_time: (job as any).scheduled_time ?? null,
@@ -188,6 +222,15 @@ export default function JobsPage() {
 
     setJobs(nextJobs);
     syncJobsToScheduleStorage(nextJobs);
+
+    if (workOrdersError) {
+      console.error("Failed to load work orders:", workOrdersError);
+      setWorkOrders([]);
+      setMessage("Jobs loaded, but work orders could not load.");
+    } else {
+      setWorkOrders((workOrdersData as WorkOrder[]) || []);
+    }
+
     setLoading(false);
   }
 
@@ -259,6 +302,7 @@ export default function JobsPage() {
 
   function startEditJob(job: Job) {
     setEditingJobId(job.id);
+    setOpenMenuId(null);
     setMessage("");
     setEditJobForm({
       customer: job.customer ?? "",
@@ -321,7 +365,7 @@ export default function JobsPage() {
     setEditingJobId(null);
     setWorkingJobId(null);
     setMessage("Job updated.");
-    await loadJobs();
+    await loadJobsAndWorkOrders();
   }
 
   async function createNewJob(e: React.FormEvent<HTMLFormElement>) {
@@ -373,12 +417,13 @@ export default function JobsPage() {
     setCreatingJob(false);
     setShowNewJobModal(false);
     setMessage("New job created.");
-    await loadJobs();
+    await loadJobsAndWorkOrders();
   }
 
   async function updateJobStatus(jobId: string, nextStatus: string) {
     setWorkingJobId(jobId);
     setMessage("");
+    setOpenMenuId(null);
 
     const { error } = await supabase
       .from("jobs")
@@ -394,14 +439,16 @@ export default function JobsPage() {
 
     setWorkingJobId(null);
     setMessage("Job updated.");
-    await loadJobs();
+    await loadJobsAndWorkOrders();
   }
 
   async function sendJobToSchedule(job: Job) {
     setWorkingJobId(job.id);
     setMessage("");
+    setOpenMenuId(null);
 
-    const nextScheduledDate = job.scheduled_date || new Date().toISOString().split("T")[0];
+    const nextScheduledDate =
+      job.scheduled_date || new Date().toISOString().split("T")[0];
     const nextScheduledTime = job.scheduled_time || "8:00 AM";
 
     const { error } = await supabase
@@ -423,7 +470,7 @@ export default function JobsPage() {
 
     setWorkingJobId(null);
     setMessage("Job is now ready in schedule.");
-    await loadJobs();
+    await loadJobsAndWorkOrders();
   }
 
   async function appendPhotosToJob(
@@ -467,7 +514,7 @@ export default function JobsPage() {
           ? "Progress photos added."
           : "Completion photos added."
       );
-      await loadJobs();
+      await loadJobsAndWorkOrders();
     } catch (error: any) {
       console.error(error);
       setMessage(`Could not add photos: ${error.message || "unknown error"}`);
@@ -484,7 +531,7 @@ export default function JobsPage() {
           <h1 style={titleStyle}>Jobs</h1>
           <p style={subtitleStyle}>
             Track saved jobs, update statuses, edit details, add project photos,
-            and push ready jobs into the schedule without breaking quote conversion.
+            manage linked work orders, and keep quote conversion intact.
           </p>
         </div>
 
@@ -510,7 +557,7 @@ export default function JobsPage() {
           <div style={heroBigTextStyle}>Keep production moving.</div>
           <div style={heroTextStyle}>
             View open jobs, update statuses, assign schedule fields, manage active
-            work, and track job photos from one page.
+            work, and track work orders and invoices from one page.
           </div>
         </div>
 
@@ -566,6 +613,7 @@ export default function JobsPage() {
             const photos = Array.isArray(job.photo_urls) ? job.photo_urls : [];
             const isWorking = workingJobId === job.id;
             const isEditing = editingJobId === job.id;
+            const jobWorkOrders = workOrders.filter((wo) => wo.job_id === job.id);
 
             return (
               <article key={job.id} style={jobRowCardStyle}>
@@ -578,25 +626,95 @@ export default function JobsPage() {
                     </div>
                   </div>
 
-                  <div
-                    style={{
-                      ...statusBadgeStyle,
-                      ...(job.status === "complete"
-                        ? completeBadgeStyle
-                        : job.status === "in_progress"
-                        ? progressBadgeStyle
-                        : job.status === "scheduled"
-                        ? scheduledBadgeStyle
-                        : openBadgeStyle),
-                    }}
-                  >
-                    {formatStatus(job.status)}
+                  <div style={jobTopRightStyle}>
+                    <div
+                      style={{
+                        ...statusBadgeStyle,
+                        ...(job.status === "complete"
+                          ? completeBadgeStyle
+                          : job.status === "in_progress"
+                          ? progressBadgeStyle
+                          : job.status === "scheduled"
+                          ? scheduledBadgeStyle
+                          : openBadgeStyle),
+                      }}
+                    >
+                      {formatStatus(job.status)}
+                    </div>
+
+                    {!isEditing ? (
+                      <div style={dropdownWrap}>
+                        <button
+                          type="button"
+                          style={ghostButtonStyle}
+                          onClick={(e) => toggleMenu(job.id, e)}
+                          disabled={isWorking}
+                        >
+                          Actions ▾
+                        </button>
+
+                        {openMenuId === job.id ? (
+                          <div
+                            style={dropdownMenu}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              type="button"
+                              style={menuButtonStyle}
+                              onClick={() => startEditJob(job)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              style={menuButtonStyle}
+                              onClick={() => updateJobStatus(job.id, "open")}
+                            >
+                              Mark Open
+                            </button>
+                            <button
+                              type="button"
+                              style={menuButtonStyle}
+                              onClick={() => updateJobStatus(job.id, "scheduled")}
+                            >
+                              Mark Scheduled
+                            </button>
+                            <button
+                              type="button"
+                              style={menuButtonStyle}
+                              onClick={() => updateJobStatus(job.id, "in_progress")}
+                            >
+                              Mark In Progress
+                            </button>
+                            <button
+                              type="button"
+                              style={menuButtonStyle}
+                              onClick={() => sendJobToSchedule(job)}
+                            >
+                              Send to Schedule
+                            </button>
+                            <button
+                              type="button"
+                              style={menuButtonStylePrimary}
+                              onClick={() => updateJobStatus(job.id, "complete")}
+                            >
+                              Complete
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
 
-                <div style={actionRowStyle}>
-                  {isEditing ? (
-                    <>
+                {isEditing ? (
+                  <>
+                    <div
+                      style={{
+                        ...actionRowStyle,
+                        marginBottom: "14px",
+                      }}
+                    >
                       <button
                         type="button"
                         style={primaryButtonStyle}
@@ -613,130 +731,119 @@ export default function JobsPage() {
                       >
                         Cancel
                       </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        style={ghostButtonStyle}
-                        onClick={() => startEditJob(job)}
-                        disabled={isWorking}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        style={ghostButtonStyle}
-                        onClick={() => updateJobStatus(job.id, "open")}
-                        disabled={isWorking}
-                      >
-                        Open
-                      </button>
-                      <button
-                        type="button"
-                        style={ghostButtonStyle}
-                        onClick={() => updateJobStatus(job.id, "scheduled")}
-                        disabled={isWorking}
-                      >
-                        Scheduled
-                      </button>
-                      <button
-                        type="button"
-                        style={ghostButtonStyle}
-                        onClick={() => updateJobStatus(job.id, "in_progress")}
-                        disabled={isWorking}
-                      >
-                        In Progress
-                      </button>
-                      <button
-                        type="button"
-                        style={ghostButtonStyle}
-                        onClick={() => sendJobToSchedule(job)}
-                        disabled={isWorking}
-                      >
-                        Send to Schedule
-                      </button>
-                      <button
-                        type="button"
-                        style={primaryButtonStyle}
-                        onClick={() => updateJobStatus(job.id, "complete")}
-                        disabled={isWorking}
-                      >
-                        Complete
-                      </button>
-                    </>
-                  )}
-                </div>
+                    </div>
 
-                {isEditing ? (
-                  <div style={{ ...editGridStyle, ...(isMobile ? editGridMobileStyle : null) }}>
-                    <input
-                      style={editInputStyle}
-                      placeholder="Customer"
-                      value={editJobForm.customer}
-                      onChange={(e) => setEditJobForm({ ...editJobForm, customer: e.target.value })}
-                    />
-                    <input
-                      style={editInputStyle}
-                      placeholder="Phone"
-                      value={editJobForm.phone}
-                      onChange={(e) => setEditJobForm({ ...editJobForm, phone: e.target.value })}
-                    />
-                    <input
-                      style={editInputStyle}
-                      placeholder="Email"
-                      value={editJobForm.email}
-                      onChange={(e) => setEditJobForm({ ...editJobForm, email: e.target.value })}
-                    />
-                    <input
-                      style={editInputStyle}
-                      placeholder="Location"
-                      value={editJobForm.location}
-                      onChange={(e) => setEditJobForm({ ...editJobForm, location: e.target.value })}
-                    />
-                    <input
-                      style={editInputStyle}
-                      placeholder="Square Footage"
-                      value={editJobForm.square_footage}
-                      onChange={(e) => setEditJobForm({ ...editJobForm, square_footage: e.target.value })}
-                    />
-                    <input
-                      style={editInputStyle}
-                      placeholder="System Type"
-                      value={editJobForm.system_type}
-                      onChange={(e) => setEditJobForm({ ...editJobForm, system_type: e.target.value })}
-                    />
-                    <input
-                      style={editInputStyle}
-                      placeholder="Job Value"
-                      value={editJobForm.value}
-                      onChange={(e) => setEditJobForm({ ...editJobForm, value: e.target.value })}
-                    />
-                    <input
-                      style={editInputStyle}
-                      placeholder="Installer / Crew"
-                      value={editJobForm.installer}
-                      onChange={(e) => setEditJobForm({ ...editJobForm, installer: e.target.value })}
-                    />
-                    <input
-                      style={editInputStyle}
-                      type="date"
-                      value={editJobForm.scheduled_date}
-                      onChange={(e) => setEditJobForm({ ...editJobForm, scheduled_date: e.target.value })}
-                    />
-                    <input
-                      style={editInputStyle}
-                      placeholder="Scheduled Time"
-                      value={editJobForm.scheduled_time}
-                      onChange={(e) => setEditJobForm({ ...editJobForm, scheduled_time: e.target.value })}
-                    />
-                    <textarea
-                      style={editTextareaStyle}
-                      placeholder="Notes"
-                      value={editJobForm.notes}
-                      onChange={(e) => setEditJobForm({ ...editJobForm, notes: e.target.value })}
-                    />
-                  </div>
+                    <div
+                      style={{
+                        ...editGridStyle,
+                        ...(isMobile ? editGridMobileStyle : null),
+                      }}
+                    >
+                      <input
+                        style={editInputStyle}
+                        placeholder="Customer"
+                        value={editJobForm.customer}
+                        onChange={(e) =>
+                          setEditJobForm({ ...editJobForm, customer: e.target.value })
+                        }
+                      />
+                      <input
+                        style={editInputStyle}
+                        placeholder="Phone"
+                        value={editJobForm.phone}
+                        onChange={(e) =>
+                          setEditJobForm({ ...editJobForm, phone: e.target.value })
+                        }
+                      />
+                      <input
+                        style={editInputStyle}
+                        placeholder="Email"
+                        value={editJobForm.email}
+                        onChange={(e) =>
+                          setEditJobForm({ ...editJobForm, email: e.target.value })
+                        }
+                      />
+                      <input
+                        style={editInputStyle}
+                        placeholder="Location"
+                        value={editJobForm.location}
+                        onChange={(e) =>
+                          setEditJobForm({ ...editJobForm, location: e.target.value })
+                        }
+                      />
+                      <input
+                        style={editInputStyle}
+                        placeholder="Square Footage"
+                        value={editJobForm.square_footage}
+                        onChange={(e) =>
+                          setEditJobForm({
+                            ...editJobForm,
+                            square_footage: e.target.value,
+                          })
+                        }
+                      />
+                      <input
+                        style={editInputStyle}
+                        placeholder="System Type"
+                        value={editJobForm.system_type}
+                        onChange={(e) =>
+                          setEditJobForm({
+                            ...editJobForm,
+                            system_type: e.target.value,
+                          })
+                        }
+                      />
+                      <input
+                        style={editInputStyle}
+                        placeholder="Job Value"
+                        value={editJobForm.value}
+                        onChange={(e) =>
+                          setEditJobForm({ ...editJobForm, value: e.target.value })
+                        }
+                      />
+                      <input
+                        style={editInputStyle}
+                        placeholder="Installer / Crew"
+                        value={editJobForm.installer}
+                        onChange={(e) =>
+                          setEditJobForm({
+                            ...editJobForm,
+                            installer: e.target.value,
+                          })
+                        }
+                      />
+                      <input
+                        style={editInputStyle}
+                        type="date"
+                        value={editJobForm.scheduled_date}
+                        onChange={(e) =>
+                          setEditJobForm({
+                            ...editJobForm,
+                            scheduled_date: e.target.value,
+                          })
+                        }
+                      />
+                      <input
+                        style={editInputStyle}
+                        placeholder="Scheduled Time"
+                        value={editJobForm.scheduled_time}
+                        onChange={(e) =>
+                          setEditJobForm({
+                            ...editJobForm,
+                            scheduled_time: e.target.value,
+                          })
+                        }
+                      />
+                      <textarea
+                        style={editTextareaStyle}
+                        placeholder="Notes"
+                        value={editJobForm.notes}
+                        onChange={(e) =>
+                          setEditJobForm({ ...editJobForm, notes: e.target.value })
+                        }
+                      />
+                    </div>
+                  </>
                 ) : (
                   <>
                     <div style={jobUploadRow}>
@@ -747,7 +854,9 @@ export default function JobsPage() {
                           accept="image/*"
                           multiple
                           style={hiddenInput}
-                          onChange={(e) => appendPhotosToJob(job, e.target.files, "progress")}
+                          onChange={(e) =>
+                            appendPhotosToJob(job, e.target.files, "progress")
+                          }
                         />
                       </label>
 
@@ -758,7 +867,9 @@ export default function JobsPage() {
                           accept="image/*"
                           multiple
                           style={hiddenInput}
-                          onChange={(e) => appendPhotosToJob(job, e.target.files, "completion")}
+                          onChange={(e) =>
+                            appendPhotosToJob(job, e.target.files, "completion")
+                          }
                         />
                       </label>
                     </div>
@@ -783,7 +894,8 @@ export default function JobsPage() {
                       <Info
                         label="Square Footage"
                         value={
-                          job.square_footage !== null && job.square_footage !== undefined
+                          job.square_footage !== null &&
+                          job.square_footage !== undefined
                             ? String(job.square_footage)
                             : "—"
                         }
@@ -797,10 +909,58 @@ export default function JobsPage() {
                       <Info label="Scheduled Time" value={job.scheduled_time} />
                     </div>
 
+                    <div style={lowerGridWrap}>
+                      <div style={sectionCardStyle}>
+                        <div style={sectionLabelStyle}>Work Orders</div>
+
+                        {jobWorkOrders.length === 0 ? (
+                          <div style={emptyMiniStyle}>No work orders linked yet.</div>
+                        ) : (
+                          <div style={miniCardListStyle}>
+                            {jobWorkOrders.map((wo) => (
+                              <div key={wo.id} style={miniCardStyle}>
+                                <div style={miniCardTitleStyle}>
+                                  {wo.title || "Untitled Work Order"}
+                                </div>
+                                <div style={miniCardMetaStyle}>
+                                  {(wo.status || "Open").toUpperCase()}
+                                  {wo.scheduled_date
+                                    ? ` • ${formatDate(wo.scheduled_date)}`
+                                    : " • Not scheduled"}
+                                </div>
+                                <div style={miniCardTextStyle}>
+                                  {wo.description?.trim() ||
+                                    wo.materials?.trim() ||
+                                    "No details added yet."}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={sectionCardStyle}>
+                        <div style={sectionLabelStyle}>Invoice</div>
+                        <div style={invoicePlaceholderStyle}>
+                          <button type="button" style={ghostButtonStyle}>
+                            Create Invoice
+                          </button>
+                          <div style={invoiceNoteStyle}>
+                            Invoice system is next. This job is ready to connect.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                     {photos.length > 0 ? (
                       <div style={photosSectionStyle}>
                         <div style={notesLabelStyle}>Project Photos</div>
-                        <div style={{ ...photoGridStyle, ...(isMobile ? photoGridMobileStyle : null) }}>
+                        <div
+                          style={{
+                            ...photoGridStyle,
+                            ...(isMobile ? photoGridMobileStyle : null),
+                          }}
+                        >
                           {photos.map((raw, index) => {
                             const url = getPhotoUrl(raw);
                             return (
@@ -856,68 +1016,102 @@ export default function JobsPage() {
                   style={modalInput}
                   placeholder="Customer Name"
                   value={newJobForm.customer}
-                  onChange={(e) => setNewJobForm({ ...newJobForm, customer: e.target.value })}
+                  onChange={(e) =>
+                    setNewJobForm({ ...newJobForm, customer: e.target.value })
+                  }
                   required
                 />
                 <input
                   style={modalInput}
                   placeholder="Phone"
                   value={newJobForm.phone}
-                  onChange={(e) => setNewJobForm({ ...newJobForm, phone: e.target.value })}
+                  onChange={(e) =>
+                    setNewJobForm({ ...newJobForm, phone: e.target.value })
+                  }
                 />
                 <input
                   style={modalInput}
                   placeholder="Email"
                   value={newJobForm.email}
-                  onChange={(e) => setNewJobForm({ ...newJobForm, email: e.target.value })}
+                  onChange={(e) =>
+                    setNewJobForm({ ...newJobForm, email: e.target.value })
+                  }
                 />
                 <input
                   style={modalInput}
                   placeholder="Location"
                   value={newJobForm.location}
-                  onChange={(e) => setNewJobForm({ ...newJobForm, location: e.target.value })}
+                  onChange={(e) =>
+                    setNewJobForm({ ...newJobForm, location: e.target.value })
+                  }
                 />
                 <input
                   style={modalInput}
                   placeholder="Square Footage"
                   value={newJobForm.square_footage}
-                  onChange={(e) => setNewJobForm({ ...newJobForm, square_footage: e.target.value })}
+                  onChange={(e) =>
+                    setNewJobForm({
+                      ...newJobForm,
+                      square_footage: e.target.value,
+                    })
+                  }
                 />
                 <input
                   style={modalInput}
                   placeholder="System Type"
                   value={newJobForm.system_type}
-                  onChange={(e) => setNewJobForm({ ...newJobForm, system_type: e.target.value })}
+                  onChange={(e) =>
+                    setNewJobForm({
+                      ...newJobForm,
+                      system_type: e.target.value,
+                    })
+                  }
                 />
                 <input
                   style={modalInput}
                   placeholder="Job Value"
                   value={newJobForm.value}
-                  onChange={(e) => setNewJobForm({ ...newJobForm, value: e.target.value })}
+                  onChange={(e) =>
+                    setNewJobForm({ ...newJobForm, value: e.target.value })
+                  }
                 />
                 <input
                   style={modalInput}
                   placeholder="Installer / Crew"
                   value={newJobForm.installer}
-                  onChange={(e) => setNewJobForm({ ...newJobForm, installer: e.target.value })}
+                  onChange={(e) =>
+                    setNewJobForm({ ...newJobForm, installer: e.target.value })
+                  }
                 />
                 <input
                   style={modalInput}
                   type="date"
                   value={newJobForm.scheduled_date}
-                  onChange={(e) => setNewJobForm({ ...newJobForm, scheduled_date: e.target.value })}
+                  onChange={(e) =>
+                    setNewJobForm({
+                      ...newJobForm,
+                      scheduled_date: e.target.value,
+                    })
+                  }
                 />
                 <input
                   style={modalInput}
                   placeholder="Scheduled Time"
                   value={newJobForm.scheduled_time}
-                  onChange={(e) => setNewJobForm({ ...newJobForm, scheduled_time: e.target.value })}
+                  onChange={(e) =>
+                    setNewJobForm({
+                      ...newJobForm,
+                      scheduled_time: e.target.value,
+                    })
+                  }
                 />
                 <textarea
                   style={modalTextarea}
                   placeholder="Job notes"
                   value={newJobForm.notes}
-                  onChange={(e) => setNewJobForm({ ...newJobForm, notes: e.target.value })}
+                  onChange={(e) =>
+                    setNewJobForm({ ...newJobForm, notes: e.target.value })
+                  }
                 />
               </div>
 
@@ -1143,7 +1337,7 @@ const jobRowCardStyle: React.CSSProperties = {
   border: "1px solid rgba(255,255,255,0.1)",
   backdropFilter: "blur(16px)",
   minWidth: 0,
-  overflow: "hidden",
+  overflow: "visible",
 };
 
 const jobTopStyle: React.CSSProperties = {
@@ -1158,6 +1352,13 @@ const jobTopStyle: React.CSSProperties = {
 const jobTopLeftStyle: React.CSSProperties = {
   minWidth: 0,
   flex: "1 1 260px",
+};
+
+const jobTopRightStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  flexWrap: "wrap",
 };
 
 const jobIdStyle: React.CSSProperties = {
@@ -1240,6 +1441,47 @@ const ghostButtonStyle: React.CSSProperties = {
   background: "rgba(255,255,255,0.05)",
 };
 
+const dropdownWrap: React.CSSProperties = {
+  position: "relative",
+};
+
+const dropdownMenu: React.CSSProperties = {
+  position: "absolute",
+  top: "42px",
+  right: 0,
+  minWidth: "180px",
+  display: "grid",
+  gap: "6px",
+  padding: "8px",
+  borderRadius: "14px",
+  background: "linear-gradient(180deg, rgba(14,19,30,0.98), rgba(9,13,22,0.98))",
+  border: "1px solid rgba(255,255,255,0.1)",
+  boxShadow: "0 20px 50px rgba(0,0,0,0.35)",
+  zIndex: 50,
+};
+
+const menuButtonStyle: React.CSSProperties = {
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: "10px",
+  padding: "10px 12px",
+  fontWeight: 700,
+  cursor: "pointer",
+  color: "white",
+  background: "rgba(255,255,255,0.04)",
+  textAlign: "left",
+};
+
+const menuButtonStylePrimary: React.CSSProperties = {
+  border: "none",
+  borderRadius: "10px",
+  padding: "10px 12px",
+  fontWeight: 700,
+  cursor: "pointer",
+  color: "#031019",
+  background: "linear-gradient(135deg, rgba(0,212,255,0.95), rgba(0,140,255,0.9))",
+  textAlign: "left",
+};
+
 const editGridStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
@@ -1304,11 +1546,80 @@ const infoValueStyle: React.CSSProperties = {
   wordBreak: "break-word",
 };
 
+const lowerGridWrap: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "12px",
+  marginTop: "12px",
+};
+
+const sectionCardStyle: React.CSSProperties = {
+  padding: "12px",
+  borderRadius: "12px",
+  background: "rgba(255,255,255,0.035)",
+  border: "1px solid rgba(255,255,255,0.06)",
+};
+
+const sectionLabelStyle: React.CSSProperties = {
+  fontSize: "11px",
+  color: "rgba(216,238,255,0.66)",
+  marginBottom: "8px",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+};
+
+const miniCardListStyle: React.CSSProperties = {
+  display: "grid",
+  gap: "8px",
+};
+
+const miniCardStyle: React.CSSProperties = {
+  padding: "10px",
+  borderRadius: "10px",
+  background: "rgba(255,255,255,0.04)",
+  border: "1px solid rgba(255,255,255,0.08)",
+};
+
+const miniCardTitleStyle: React.CSSProperties = {
+  fontWeight: 700,
+  color: "white",
+  marginBottom: "4px",
+};
+
+const miniCardMetaStyle: React.CSSProperties = {
+  fontSize: "12px",
+  color: "#8fdfff",
+  marginBottom: "6px",
+};
+
+const miniCardTextStyle: React.CSSProperties = {
+  fontSize: "13px",
+  lineHeight: 1.45,
+  color: "rgba(231,243,255,0.76)",
+};
+
+const emptyMiniStyle: React.CSSProperties = {
+  color: "rgba(231,243,255,0.66)",
+  fontSize: "13px",
+};
+
+const invoicePlaceholderStyle: React.CSSProperties = {
+  display: "grid",
+  gap: "10px",
+};
+
+const invoiceNoteStyle: React.CSSProperties = {
+  fontSize: "13px",
+  lineHeight: 1.45,
+  color: "rgba(231,243,255,0.66)",
+};
+
 const jobUploadRow: React.CSSProperties = {
   display: "flex",
   gap: "10px",
   flexWrap: "wrap",
   marginBottom: "12px",
+  marginTop: "12px",
 };
 
 const uploadLabelButton: React.CSSProperties = {

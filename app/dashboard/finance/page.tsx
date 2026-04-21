@@ -10,176 +10,50 @@ import styles from "./page.module.css";
 type Job = {
   id: string;
   created_at: string;
-  title: string;
-  client_name: string | null;
+  customer: string | null;
   status: string | null;
-  price: number | null;
-};
-
-type Quote = {
-  id: string;
-  created_at: string;
-  project_name: string | null;
-  customer_name: string | null;
-  status: string | null;
-  total_estimate: number | null;
+  value: number | null;
 };
 
 type Invoice = {
   id: string;
-  created_at: string;
-  invoice_number: string;
-  customer_name: string;
-  status: "draft" | "sent" | "paid" | "overdue";
-  total: number;
+  job_id: string;
+  invoice_number: string | null;
+  status: string | null;
+  issue_date: string | null;
   due_date: string | null;
+  subtotal: number | null;
+  tax: number | null;
+  total: number | null;
+  amount_paid: number | null;
+  balance_due: number | null;
+  notes: string | null;
+  created_at: string;
+};
+
+type InvoicePayment = {
+  id: string;
+  invoice_id: string;
+  payment_date: string | null;
+  amount: number | null;
+  method: string | null;
+  reference_number: string | null;
+  notes: string | null;
+  created_at: string;
+};
+
+type FinancialEntry = {
+  id: string;
   job_id: string | null;
-};
-
-type Expense = {
-  id: string;
+  invoice_id: string | null;
+  entry_type: string | null;
+  category: string | null;
+  description: string | null;
+  amount: number | null;
+  entry_date: string | null;
+  receipt_url: string | null;
   created_at: string;
-  vendor: string;
-  category: string;
-  amount: number;
-  notes: string | null;
 };
-
-type Receipt = {
-  id: string;
-  created_at: string;
-  title: string;
-  amount: number;
-  source: string | null;
-  notes: string | null;
-};
-
-const demoJobs: Job[] = [
-  {
-    id: "JOB-1001",
-    created_at: "2026-04-01T10:00:00Z",
-    title: "Garage Epoxy Install",
-    client_name: "Smith Residence",
-    status: "open",
-    price: 4800,
-  },
-  {
-    id: "JOB-1002",
-    created_at: "2026-04-03T14:00:00Z",
-    title: "Shop Floor Coating",
-    client_name: "Harris Auto",
-    status: "scheduled",
-    price: 9200,
-  },
-  {
-    id: "JOB-1003",
-    created_at: "2026-04-04T09:30:00Z",
-    title: "Patio Seal + Finish",
-    client_name: "Turner Property",
-    status: "complete",
-    price: 3500,
-  },
-];
-
-const demoQuotes: Quote[] = [
-  {
-    id: "Q-1001",
-    created_at: "2026-04-05T11:00:00Z",
-    project_name: "Metallic Garage Floor",
-    customer_name: "Davis Home",
-    status: "draft",
-    total_estimate: 6100,
-  },
-  {
-    id: "Q-1002",
-    created_at: "2026-04-06T13:20:00Z",
-    project_name: "Showroom Coating",
-    customer_name: "Prime Auto",
-    status: "converted",
-    total_estimate: 12400,
-  },
-];
-
-const demoInvoices: Invoice[] = [
-  {
-    id: "INV-1001",
-    created_at: "2026-04-08T09:00:00Z",
-    invoice_number: "AP-1001",
-    customer_name: "Smith Residence",
-    status: "sent",
-    total: 4800,
-    due_date: "2026-04-20",
-    job_id: "JOB-1001",
-  },
-  {
-    id: "INV-1002",
-    created_at: "2026-04-10T15:00:00Z",
-    invoice_number: "AP-1002",
-    customer_name: "Harris Auto",
-    status: "paid",
-    total: 9200,
-    due_date: "2026-04-18",
-    job_id: "JOB-1002",
-  },
-  {
-    id: "INV-1003",
-    created_at: "2026-04-11T13:00:00Z",
-    invoice_number: "AP-1003",
-    customer_name: "Turner Property",
-    status: "draft",
-    total: 3500,
-    due_date: "2026-04-24",
-    job_id: "JOB-1003",
-  },
-];
-
-const demoExpenses: Expense[] = [
-  {
-    id: "EXP-1001",
-    created_at: "2026-04-09T08:00:00Z",
-    vendor: "Sherwin-Williams",
-    category: "Materials",
-    amount: 1250,
-    notes: "Primer + topcoat",
-  },
-  {
-    id: "EXP-1002",
-    created_at: "2026-04-10T12:30:00Z",
-    vendor: "Home Depot",
-    category: "Supplies",
-    amount: 184,
-    notes: "Rollers, tape, plastic",
-  },
-  {
-    id: "EXP-1003",
-    created_at: "2026-04-12T17:00:00Z",
-    vendor: "Shell",
-    category: "Fuel",
-    amount: 96,
-    notes: "Crew truck fuel",
-  },
-];
-
-const demoReceipts: Receipt[] = [
-  {
-    id: "RCT-1001",
-    created_at: "2026-04-12T18:00:00Z",
-    title: "Deposit Received",
-    amount: 2400,
-    source: "Smith Residence",
-    notes: "50% deposit",
-  },
-  {
-    id: "RCT-1002",
-    created_at: "2026-04-13T10:00:00Z",
-    title: "Final Payment",
-    amount: 9200,
-    source: "Harris Auto",
-    notes: "Paid in full",
-  },
-];
-
-type FinanceTab = "overview" | "invoices" | "expenses" | "receipts";
 
 export default function FinancePage() {
   const router = useRouter();
@@ -188,14 +62,12 @@ export default function FinancePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
 
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [quotes, setQuotes] = useState<Quote[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [payments, setPayments] = useState<InvoicePayment[]>([]);
+  const [entries, setEntries] = useState<FinancialEntry[]>([]);
 
   const [message, setMessage] = useState("");
-  const [tab, setTab] = useState<FinanceTab>("overview");
-  const [search, setSearch] = useState("");
+  const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
     let mounted = true;
@@ -233,72 +105,58 @@ export default function FinancePage() {
   }, [checkingAuth]);
 
   async function fetchFinanceData() {
-    let usedDemo = false;
+    setLoadingData(true);
     setMessage("");
 
-    const { data: jobsData, error: jobsError } = await supabase
-      .from("jobs")
-      .select("id, created_at, title, client_name, status, price")
-      .order("created_at", { ascending: false });
+    const [jobsRes, invoicesRes, paymentsRes, entriesRes] = await Promise.all([
+      supabase
+        .from("jobs")
+        .select("id, created_at, customer, status, value")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("invoices")
+        .select("*")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("invoice_payments")
+        .select("*")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("financial_entries")
+        .select("*")
+        .order("created_at", { ascending: false }),
+    ]);
 
-    if (jobsError) {
-      usedDemo = true;
-      setJobs(demoJobs);
+    if (jobsRes.error) {
+      console.error("Jobs finance load error:", jobsRes.error);
+      setJobs([]);
     } else {
-      setJobs((jobsData as Job[]) || []);
+      setJobs((jobsRes.data as Job[]) || []);
     }
 
-    const { data: quotesData, error: quotesError } = await supabase
-      .from("quotes")
-      .select("id, created_at, project_name, customer_name, status, total_estimate")
-      .order("created_at", { ascending: false });
-
-    if (quotesError) {
-      usedDemo = true;
-      setQuotes(demoQuotes);
+    if (invoicesRes.error) {
+      console.error("Invoices finance load error:", invoicesRes.error);
+      setInvoices([]);
+      setMessage("Finance page loaded, but invoices could not be read yet.");
     } else {
-      setQuotes((quotesData as Quote[]) || []);
+      setInvoices((invoicesRes.data as Invoice[]) || []);
     }
 
-    const { data: invoicesData, error: invoicesError } = await supabase
-      .from("invoices")
-      .select("id, created_at, invoice_number, customer_name, status, total, due_date, job_id")
-      .order("created_at", { ascending: false });
-
-    if (invoicesError) {
-      usedDemo = true;
-      setInvoices(demoInvoices);
+    if (paymentsRes.error) {
+      console.error("Payments finance load error:", paymentsRes.error);
+      setPayments([]);
     } else {
-      setInvoices((invoicesData as Invoice[]) || []);
+      setPayments((paymentsRes.data as InvoicePayment[]) || []);
     }
 
-    const { data: expensesData, error: expensesError } = await supabase
-      .from("expenses")
-      .select("id, created_at, vendor, category, amount, notes")
-      .order("created_at", { ascending: false });
-
-    if (expensesError) {
-      usedDemo = true;
-      setExpenses(demoExpenses);
+    if (entriesRes.error) {
+      console.error("Entries finance load error:", entriesRes.error);
+      setEntries([]);
     } else {
-      setExpenses((expensesData as Expense[]) || []);
+      setEntries((entriesRes.data as FinancialEntry[]) || []);
     }
 
-    const { data: receiptsData, error: receiptsError } = await supabase
-      .from("receipts")
-      .select("id, created_at, title, amount, source, notes")
-      .order("created_at", { ascending: false });
-
-    if (receiptsError) {
-      usedDemo = true;
-      setReceipts(demoReceipts);
-    } else {
-      setReceipts((receiptsData as Receipt[]) || []);
-    }
-
-    if (usedDemo) {
-      setMessage("Using demo finance data where live Supabase tables are not ready yet.");
-    }
+    setLoadingData(false);
   }
 
   async function handleLogout() {
@@ -307,138 +165,82 @@ export default function FinancePage() {
     router.refresh();
   }
 
-  const totalJobRevenue = useMemo(
-    () => jobs.reduce((sum, job) => sum + Number(job.price || 0), 0),
-    [jobs]
-  );
+  const totalJobRevenue = useMemo(() => {
+    return jobs.reduce((sum, job) => sum + Number(job.value || 0), 0);
+  }, [jobs]);
 
-  const completedRevenue = useMemo(
-    () =>
-      jobs
-        .filter((job) => {
-          const status = (job.status ?? "").toLowerCase();
-          return status === "complete" || status === "completed";
-        })
-        .reduce((sum, job) => sum + Number(job.price || 0), 0),
-    [jobs]
-  );
+  const totalInvoiced = useMemo(() => {
+    return invoices.reduce((sum, invoice) => sum + Number(invoice.total || 0), 0);
+  }, [invoices]);
 
-  const activePipelineValue = useMemo(
-    () =>
-      jobs
-        .filter((job) => {
-          const status = (job.status ?? "").toLowerCase();
-          return status === "open" || status === "scheduled" || status === "in progress";
-        })
-        .reduce((sum, job) => sum + Number(job.price || 0), 0),
-    [jobs]
-  );
+  const totalCollected = useMemo(() => {
+    return payments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+  }, [payments]);
 
-  const quotePipelineValue = useMemo(
-    () => quotes.reduce((sum, quote) => sum + Number(quote.total_estimate || 0), 0),
-    [quotes]
-  );
-
-  const totalInvoiceValue = useMemo(
-    () => invoices.reduce((sum, invoice) => sum + Number(invoice.total || 0), 0),
-    [invoices]
-  );
-
-  const paidInvoiceValue = useMemo(
-    () =>
-      invoices
-        .filter((invoice) => invoice.status === "paid")
-        .reduce((sum, invoice) => sum + Number(invoice.total || 0), 0),
-    [invoices]
-  );
-
-  const unpaidInvoiceValue = useMemo(
-    () =>
-      invoices
-        .filter((invoice) => invoice.status !== "paid")
-        .reduce((sum, invoice) => sum + Number(invoice.total || 0), 0),
-    [invoices]
-  );
-
-  const totalExpenses = useMemo(
-    () => expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0),
-    [expenses]
-  );
-
-  const totalReceipts = useMemo(
-    () => receipts.reduce((sum, receipt) => sum + Number(receipt.amount || 0), 0),
-    [receipts]
-  );
-
-  const netTrackedCash = useMemo(
-    () => totalReceipts - totalExpenses,
-    [totalReceipts, totalExpenses]
-  );
-
-  const openJobs = jobs.filter((j) => (j.status ?? "").toLowerCase() === "open").length;
-  const scheduledJobs = jobs.filter((j) => (j.status ?? "").toLowerCase() === "scheduled").length;
-  const completeJobs = jobs.filter((j) => {
-    const status = (j.status ?? "").toLowerCase();
-    return status === "complete" || status === "completed";
-  }).length;
-  const convertedQuotes = quotes.filter((q) => (q.status ?? "").toLowerCase() === "converted").length;
-
-  const filteredInvoices = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (!term) return invoices;
-
-    return invoices.filter((invoice) =>
-      [
-        invoice.id,
-        invoice.invoice_number,
-        invoice.customer_name,
-        invoice.status,
-        invoice.job_id,
-        invoice.due_date,
-        String(invoice.total),
-      ]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(term))
+  const totalOutstanding = useMemo(() => {
+    return invoices.reduce(
+      (sum, invoice) => sum + Number(invoice.balance_due || 0),
+      0
     );
-  }, [invoices, search]);
+  }, [invoices]);
 
-  const filteredExpenses = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (!term) return expenses;
+  const totalExpenses = useMemo(() => {
+    return entries
+      .filter((entry) => (entry.entry_type || "").toLowerCase() === "expense")
+      .reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+  }, [entries]);
 
-    return expenses.filter((expense) =>
-      [expense.id, expense.vendor, expense.category, expense.notes, String(expense.amount)]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(term))
-    );
-  }, [expenses, search]);
+  const netTracked = useMemo(() => {
+    return totalCollected - totalExpenses;
+  }, [totalCollected, totalExpenses]);
 
-  const filteredReceipts = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (!term) return receipts;
+  const draftInvoices = useMemo(() => {
+    return invoices.filter(
+      (invoice) => (invoice.status || "").toLowerCase() === "draft"
+    ).length;
+  }, [invoices]);
 
-    return receipts.filter((receipt) =>
-      [receipt.id, receipt.title, receipt.source, receipt.notes, String(receipt.amount)]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(term))
-    );
-  }, [receipts, search]);
+  const sentInvoices = useMemo(() => {
+    return invoices.filter(
+      (invoice) => (invoice.status || "").toLowerCase() === "sent"
+    ).length;
+  }, [invoices]);
 
-  const recentTransactions = [...jobs]
-    .sort((a, b) => b.created_at.localeCompare(a.created_at))
-    .slice(0, 5);
+  const paidInvoices = useMemo(() => {
+    return invoices.filter(
+      (invoice) => (invoice.status || "").toLowerCase() === "paid"
+    ).length;
+  }, [invoices]);
 
-  const recentQuotes = [...quotes]
-    .sort((a, b) => b.created_at.localeCompare(a.created_at))
-    .slice(0, 5);
+  const overdueInvoices = useMemo(() => {
+    return invoices.filter((invoice) => {
+      const status = (invoice.status || "").toLowerCase();
+      if (status === "paid") return false;
+      if (!invoice.due_date) return false;
 
-  const recentInvoices = [...invoices]
-    .sort((a, b) => b.created_at.localeCompare(a.created_at))
-    .slice(0, 5);
+      const due = new Date(invoice.due_date);
+      const today = new Date();
 
-  const recentExpenses = [...expenses]
-    .sort((a, b) => b.created_at.localeCompare(a.created_at))
-    .slice(0, 5);
+      due.setHours(0, 0, 0, 0);
+      today.setHours(0, 0, 0, 0);
+
+      return due < today;
+    }).length;
+  }, [invoices]);
+
+  const recentInvoices = useMemo(() => {
+    return [...invoices].slice(0, 6);
+  }, [invoices]);
+
+  const recentPayments = useMemo(() => {
+    return [...payments].slice(0, 6);
+  }, [payments]);
+
+  const recentExpenses = useMemo(() => {
+    return entries
+      .filter((entry) => (entry.entry_type || "").toLowerCase() === "expense")
+      .slice(0, 6);
+  }, [entries]);
 
   if (checkingAuth) {
     return (
@@ -463,339 +265,310 @@ export default function FinancePage() {
           </div>
 
           <nav className={styles.sideNav}>
-            <Link href="/" className={styles.sideLink}>Home</Link>
-            <Link href="/dashboard" className={styles.sideLink}>Dashboard</Link>
-            <Link href="/dashboard/jobs" className={styles.sideLink}>Jobs</Link>
-            <Link href="/dashboard/leads" className={styles.sideLink}>Leads</Link>
-            <Link href="/dashboard/schedule" className={styles.sideLink}>Schedule</Link>
-            <Link href="/dashboard/quotes" className={styles.sideLink}>Quotes</Link>
-            <Link href="/configurator" className={styles.sideLink}>Configurator</Link>
-            <Link href="/dashboard/finance" className={styles.sideLinkActive}>Finance</Link>
-            <Link href="/dashboard/inventory" className={styles.sideLink}>Inventory</Link>
+            <Link href="/" className={styles.sideLink}>
+              Home
+            </Link>
+            <Link href="/dashboard" className={styles.sideLink}>
+              Dashboard
+            </Link>
+            <Link href="/dashboard/jobs" className={styles.sideLink}>
+              Jobs
+            </Link>
+            <Link href="/dashboard/leads" className={styles.sideLink}>
+              Leads
+            </Link>
+            <Link href="/dashboard/schedule" className={styles.sideLink}>
+              Schedule
+            </Link>
+            <Link href="/dashboard/quotes" className={styles.sideLink}>
+              Quotes
+            </Link>
+            <Link href="/configurator" className={styles.sideLink}>
+              Configurator
+            </Link>
+            <Link href="/dashboard/finance" className={styles.sideLinkActive}>
+              Finance
+            </Link>
+            <Link href="/dashboard/inventory" className={styles.sideLink}>
+              Inventory
+            </Link>
           </nav>
 
           <div className={styles.sideFooter}>
-            {profile?.email ? <p className={styles.userEmail}>Signed in as {profile.email}</p> : null}
-            <button className={styles.logoutBtn} onClick={handleLogout}>Logout</button>
+            {profile?.email ? (
+              <p className={styles.userEmail}>Signed in as {profile.email}</p>
+            ) : null}
+            <button className={styles.logoutBtn} onClick={handleLogout}>
+              Logout
+            </button>
           </div>
         </aside>
 
         <section className={styles.main}>
           <header className={styles.topbar}>
             <div>
-              <p className={styles.eyebrow}>FINANCE CENTER</p>
+              <p className={styles.eyebrow}>REVENUE + INVOICES + EXPENSES</p>
               <h1 className={styles.title}>Finance</h1>
               <p className={styles.subtitle}>
-                Track invoices, expenses, receipts, completed revenue, and active pipeline from one place.
+                Track invoices, collected payments, expenses, and overall job value
+                from one place.
               </p>
             </div>
 
             <div className={styles.topActions}>
-              <Link href="/dashboard/quotes" className={styles.primaryBtn}>Open Quotes</Link>
-              <Link href="/dashboard/jobs" className={styles.secondaryBtn}>Open Jobs</Link>
+              <Link href="/dashboard/jobs" className={styles.primaryBtn}>
+                Open Jobs
+              </Link>
+              <Link href="/dashboard/quotes" className={styles.secondaryBtn}>
+                Open Quotes
+              </Link>
             </div>
           </header>
 
           <section className={styles.heroPanel}>
             <div>
               <p className={styles.heroTag}>Finance Snapshot</p>
-              <h2 className={styles.heroTitle}>See what is billed, paid, spent, and still in pipeline.</h2>
+              <h2 className={styles.heroTitle}>
+                See what is invoiced, collected, outstanding, and spent.
+              </h2>
               <p className={styles.heroText}>
-                This page is now the base for your finance hub. Next step after this is wiring invoice creation directly from jobs.
+                This is the operating money view for ArtiPoxi. Jobs feed invoice
+                creation, invoices feed collections, and expenses round out the
+                real picture.
               </p>
             </div>
 
             <div className={styles.heroStats}>
               <div className={styles.heroMiniCard}>
-                <span className={styles.heroMiniLabel}>Invoice Value</span>
-                <strong className={styles.heroMiniValue}>${totalInvoiceValue.toLocaleString()}</strong>
+                <span className={styles.heroMiniLabel}>Total Job Value</span>
+                <strong className={styles.heroMiniValue}>
+                  ${totalJobRevenue.toLocaleString()}
+                </strong>
               </div>
+
               <div className={styles.heroMiniCard}>
-                <span className={styles.heroMiniLabel}>Paid Invoices</span>
-                <strong className={styles.heroMiniValue}>${paidInvoiceValue.toLocaleString()}</strong>
+                <span className={styles.heroMiniLabel}>Total Invoiced</span>
+                <strong className={styles.heroMiniValue}>
+                  ${totalInvoiced.toLocaleString()}
+                </strong>
               </div>
+
               <div className={styles.heroMiniCard}>
-                <span className={styles.heroMiniLabel}>Expenses</span>
-                <strong className={styles.heroMiniValue}>${totalExpenses.toLocaleString()}</strong>
+                <span className={styles.heroMiniLabel}>Collected</span>
+                <strong className={styles.heroMiniValue}>
+                  ${totalCollected.toLocaleString()}
+                </strong>
               </div>
+
               <div className={styles.heroMiniCard}>
-                <span className={styles.heroMiniLabel}>Net Tracked Cash</span>
-                <strong className={styles.heroMiniValue}>${netTrackedCash.toLocaleString()}</strong>
+                <span className={styles.heroMiniLabel}>Outstanding</span>
+                <strong className={styles.heroMiniValue}>
+                  ${totalOutstanding.toLocaleString()}
+                </strong>
               </div>
             </div>
           </section>
 
           {message ? <p className={styles.message}>{message}</p> : null}
 
-          <section className={styles.statsGrid}>
-            <article className={styles.statCard}>
-              <span className={styles.statLabel}>Open Jobs</span>
-              <strong className={styles.statValue}>{openJobs}</strong>
-              <span className={styles.statDetail}>Waiting for production movement</span>
-            </article>
-
-            <article className={styles.statCard}>
-              <span className={styles.statLabel}>Scheduled Jobs</span>
-              <strong className={styles.statValue}>{scheduledJobs}</strong>
-              <span className={styles.statDetail}>Ready to hit the calendar</span>
-            </article>
-
-            <article className={styles.statCard}>
-              <span className={styles.statLabel}>Completed Jobs</span>
-              <strong className={styles.statValue}>{completeJobs}</strong>
-              <span className={styles.statDetail}>Closed revenue work</span>
-            </article>
-
-            <article className={styles.statCard}>
-              <span className={styles.statLabel}>Converted Quotes</span>
-              <strong className={styles.statValue}>{convertedQuotes}</strong>
-              <span className={styles.statDetail}>Moved from estimate to job</span>
-            </article>
-          </section>
-
-          <section className={styles.bottomGrid}>
-            <div className={styles.panel}>
-              <p className={styles.panelTag}>Finance Views</p>
-              <h3 className={styles.panelTitle}>Switch sections</h3>
-
-              <div className={styles.linkList}>
-                <button className={styles.actionLink} onClick={() => setTab("overview")}>Overview</button>
-                <button className={styles.actionLink} onClick={() => setTab("invoices")}>Invoices</button>
-                <button className={styles.actionLink} onClick={() => setTab("expenses")}>Expenses</button>
-                <button className={styles.actionLink} onClick={() => setTab("receipts")}>Receipts</button>
-              </div>
+          {loadingData ? (
+            <div className={styles.panel} style={{ marginTop: "20px" }}>
+              Loading finance data...
             </div>
-
-            <div className={styles.panel}>
-              <p className={styles.panelTag}>Search</p>
-              <h3 className={styles.panelTitle}>Find financial records</h3>
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search invoices, expenses, receipts"
-                className={styles.searchInput}
-              />
-            </div>
-          </section>
-
-          {tab === "overview" && (
+          ) : (
             <>
-              <section className={styles.contentGrid}>
-                <div className={styles.panel}>
-                  <p className={styles.panelTag}>Recent Job Values</p>
-                  <h3 className={styles.panelTitle}>Latest revenue items</h3>
+              <section className={styles.statsGrid}>
+                <article className={styles.statCard}>
+                  <span className={styles.statLabel}>Draft Invoices</span>
+                  <strong className={styles.statValue}>{draftInvoices}</strong>
+                  <span className={styles.statDetail}>Not sent yet</span>
+                </article>
 
-                  <div className={styles.list}>
-                    {recentTransactions.map((job) => (
-                      <div key={job.id} className={styles.listRow}>
-                        <div>
-                          <div className={styles.listTitle}>{job.title}</div>
-                          <div className={styles.listMeta}>
-                            {job.client_name || "No client"} • {(job.status || "open").toUpperCase()}
-                          </div>
-                        </div>
-                        <div className={styles.listValue}>${Number(job.price || 0).toLocaleString()}</div>
-                      </div>
-                    ))}
+                <article className={styles.statCard}>
+                  <span className={styles.statLabel}>Sent Invoices</span>
+                  <strong className={styles.statValue}>{sentInvoices}</strong>
+                  <span className={styles.statDetail}>Waiting for payment</span>
+                </article>
 
-                    {!recentTransactions.length ? (
-                      <p className={styles.emptyText}>No job revenue items yet.</p>
-                    ) : null}
-                  </div>
-                </div>
+                <article className={styles.statCard}>
+                  <span className={styles.statLabel}>Paid Invoices</span>
+                  <strong className={styles.statValue}>{paidInvoices}</strong>
+                  <span className={styles.statDetail}>Closed billing</span>
+                </article>
 
-                <div className={styles.panel}>
-                  <p className={styles.panelTag}>Recent Quotes</p>
-                  <h3 className={styles.panelTitle}>Estimate pipeline</h3>
-
-                  <div className={styles.list}>
-                    {recentQuotes.map((quote) => (
-                      <div key={quote.id} className={styles.listRow}>
-                        <div>
-                          <div className={styles.listTitle}>{quote.project_name || "Untitled Quote"}</div>
-                          <div className={styles.listMeta}>
-                            {quote.customer_name || "No customer"} • {(quote.status || "draft").toUpperCase()}
-                          </div>
-                        </div>
-                        <div className={styles.listValue}>${Number(quote.total_estimate || 0).toLocaleString()}</div>
-                      </div>
-                    ))}
-
-                    {!recentQuotes.length ? (
-                      <p className={styles.emptyText}>No quotes yet.</p>
-                    ) : null}
-                  </div>
-                </div>
+                <article className={styles.statCard}>
+                  <span className={styles.statLabel}>Overdue</span>
+                  <strong className={styles.statValue}>{overdueInvoices}</strong>
+                  <span className={styles.statDetail}>Needs follow-up</span>
+                </article>
               </section>
 
               <section className={styles.contentGrid}>
                 <div className={styles.panel}>
                   <p className={styles.panelTag}>Recent Invoices</p>
-                  <h3 className={styles.panelTitle}>Billing activity</h3>
+                  <h3 className={styles.panelTitle}>Latest billing activity</h3>
 
                   <div className={styles.list}>
-                    {recentInvoices.map((invoice) => (
-                      <div key={invoice.id} className={styles.listRow}>
-                        <div>
-                          <div className={styles.listTitle}>{invoice.invoice_number}</div>
-                          <div className={styles.listMeta}>
-                            {invoice.customer_name} • {invoice.status.toUpperCase()}
+                    {recentInvoices.length > 0 ? (
+                      recentInvoices.map((invoice) => (
+                        <div key={invoice.id} className={styles.listRow}>
+                          <div>
+                            <div className={styles.listTitle}>
+                              {invoice.invoice_number || "Invoice"}
+                            </div>
+                            <div className={styles.listMeta}>
+                              Job: {invoice.job_id} •{" "}
+                              {(invoice.status || "draft").toUpperCase()}
+                            </div>
+                          </div>
+                          <div className={styles.listValue}>
+                            ${Number(invoice.total || 0).toLocaleString()}
                           </div>
                         </div>
-                        <div className={styles.listValue}>${Number(invoice.total || 0).toLocaleString()}</div>
-                      </div>
-                    ))}
-
-                    {!recentInvoices.length ? (
+                      ))
+                    ) : (
                       <p className={styles.emptyText}>No invoices yet.</p>
-                    ) : null}
+                    )}
                   </div>
                 </div>
 
                 <div className={styles.panel}>
-                  <p className={styles.panelTag}>Recent Expenses</p>
-                  <h3 className={styles.panelTitle}>Outgoing money</h3>
+                  <p className={styles.panelTag}>Recent Payments</p>
+                  <h3 className={styles.panelTitle}>Money received</h3>
 
                   <div className={styles.list}>
-                    {recentExpenses.map((expense) => (
-                      <div key={expense.id} className={styles.listRow}>
-                        <div>
-                          <div className={styles.listTitle}>{expense.vendor}</div>
-                          <div className={styles.listMeta}>
-                            {expense.category} • {formatDate(expense.created_at)}
+                    {recentPayments.length > 0 ? (
+                      recentPayments.map((payment) => (
+                        <div key={payment.id} className={styles.listRow}>
+                          <div>
+                            <div className={styles.listTitle}>
+                              {payment.method || "Payment"}
+                            </div>
+                            <div className={styles.listMeta}>
+                              Invoice: {payment.invoice_id} •{" "}
+                              {formatDate(payment.payment_date)}
+                            </div>
+                          </div>
+                          <div className={styles.listValue}>
+                            ${Number(payment.amount || 0).toLocaleString()}
                           </div>
                         </div>
-                        <div className={styles.listValue}>-${Number(expense.amount || 0).toLocaleString()}</div>
-                      </div>
-                    ))}
-
-                    {!recentExpenses.length ? (
-                      <p className={styles.emptyText}>No expenses yet.</p>
-                    ) : null}
+                      ))
+                    ) : (
+                      <p className={styles.emptyText}>No payments recorded yet.</p>
+                    )}
                   </div>
                 </div>
               </section>
 
               <section className={styles.bottomGrid}>
                 <div className={styles.panel}>
+                  <p className={styles.panelTag}>Recent Expenses</p>
+                  <h3 className={styles.panelTitle}>Costs and receipts</h3>
+
+                  <div className={styles.list}>
+                    {recentExpenses.length > 0 ? (
+                      recentExpenses.map((entry) => (
+                        <div key={entry.id} className={styles.listRow}>
+                          <div>
+                            <div className={styles.listTitle}>
+                              {entry.category || "Expense"}
+                            </div>
+                            <div className={styles.listMeta}>
+                              {entry.description || "No description"} •{" "}
+                              {formatDate(entry.entry_date)}
+                            </div>
+                          </div>
+                          <div className={styles.listValue}>
+                            ${Number(entry.amount || 0).toLocaleString()}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className={styles.emptyText}>No expenses recorded yet.</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className={styles.panel}>
                   <p className={styles.panelTag}>Value Breakdown</p>
-                  <h3 className={styles.panelTitle}>Where the money sits</h3>
+                  <h3 className={styles.panelTitle}>Tracked money picture</h3>
 
                   <div className={styles.breakdownList}>
                     <div className={styles.breakdownRow}>
-                      <span>Completed Revenue</span>
-                      <strong>${completedRevenue.toLocaleString()}</strong>
+                      <span>Total Job Value</span>
+                      <strong>${totalJobRevenue.toLocaleString()}</strong>
                     </div>
                     <div className={styles.breakdownRow}>
-                      <span>Active Job Value</span>
-                      <strong>${activePipelineValue.toLocaleString()}</strong>
+                      <span>Total Invoiced</span>
+                      <strong>${totalInvoiced.toLocaleString()}</strong>
                     </div>
                     <div className={styles.breakdownRow}>
-                      <span>Quote Pipeline</span>
-                      <strong>${quotePipelineValue.toLocaleString()}</strong>
-                    </div>
-                    <div className={styles.breakdownRow}>
-                      <span>Unpaid Invoices</span>
-                      <strong>${unpaidInvoiceValue.toLocaleString()}</strong>
+                      <span>Total Collected</span>
+                      <strong>${totalCollected.toLocaleString()}</strong>
                     </div>
                     <div className={styles.breakdownRow}>
                       <span>Total Expenses</span>
                       <strong>${totalExpenses.toLocaleString()}</strong>
                     </div>
+                    <div className={styles.breakdownRow}>
+                      <span>Net Tracked</span>
+                      <strong>${netTracked.toLocaleString()}</strong>
+                    </div>
                   </div>
                 </div>
+              </section>
 
+              <section className={styles.bottomGrid}>
                 <div className={styles.panel}>
                   <p className={styles.panelTag}>Quick Actions</p>
                   <h3 className={styles.panelTitle}>Move faster</h3>
 
                   <div className={styles.linkList}>
-                    <Link href="/dashboard/quotes" className={styles.actionLink}>View Saved Quotes</Link>
-                    <Link href="/dashboard/jobs" className={styles.actionLink}>Review Jobs</Link>
-                    <Link href="/configurator" className={styles.actionLink}>Create New Quote</Link>
-                    <Link href="/dashboard/schedule" className={styles.actionLink}>Check Schedule</Link>
+                    <Link href="/dashboard/jobs" className={styles.actionLink}>
+                      Open Jobs
+                    </Link>
+                    <Link href="/dashboard/schedule" className={styles.actionLink}>
+                      Open Schedule
+                    </Link>
+                    <Link href="/dashboard/inventory" className={styles.actionLink}>
+                      Open Inventory
+                    </Link>
+                    <Link href="/dashboard/quotes" className={styles.actionLink}>
+                      Open Quotes
+                    </Link>
+                  </div>
+                </div>
+
+                <div className={styles.panel}>
+                  <p className={styles.panelTag}>Foundation Status</p>
+                  <h3 className={styles.panelTitle}>What is live now</h3>
+
+                  <div className={styles.breakdownList}>
+                    <div className={styles.breakdownRow}>
+                      <span>Jobs table feeding finance</span>
+                      <strong>Live</strong>
+                    </div>
+                    <div className={styles.breakdownRow}>
+                      <span>Invoice records</span>
+                      <strong>Live</strong>
+                    </div>
+                    <div className={styles.breakdownRow}>
+                      <span>Payment tracking</span>
+                      <strong>Live</strong>
+                    </div>
+                    <div className={styles.breakdownRow}>
+                      <span>Expense ledger</span>
+                      <strong>Live</strong>
+                    </div>
+                    <div className={styles.breakdownRow}>
+                      <span>Printable invoice PDF</span>
+                      <strong>Next</strong>
+                    </div>
                   </div>
                 </div>
               </section>
             </>
-          )}
-
-          {tab === "invoices" && (
-            <section className={styles.panel}>
-              <p className={styles.panelTag}>Invoices</p>
-              <h3 className={styles.panelTitle}>Billing records</h3>
-
-              <div className={styles.list}>
-                {filteredInvoices.map((invoice) => (
-                  <div key={invoice.id} className={styles.listRow}>
-                    <div>
-                      <div className={styles.listTitle}>
-                        {invoice.invoice_number} • {invoice.customer_name}
-                      </div>
-                      <div className={styles.listMeta}>
-                        {invoice.status.toUpperCase()} • Due {invoice.due_date || "No due date"}
-                      </div>
-                    </div>
-                    <div className={styles.listValue}>${invoice.total.toLocaleString()}</div>
-                  </div>
-                ))}
-
-                {!filteredInvoices.length ? (
-                  <p className={styles.emptyText}>No invoices found.</p>
-                ) : null}
-              </div>
-            </section>
-          )}
-
-          {tab === "expenses" && (
-            <section className={styles.panel}>
-              <p className={styles.panelTag}>Expenses</p>
-              <h3 className={styles.panelTitle}>Cost records</h3>
-
-              <div className={styles.list}>
-                {filteredExpenses.map((expense) => (
-                  <div key={expense.id} className={styles.listRow}>
-                    <div>
-                      <div className={styles.listTitle}>{expense.vendor}</div>
-                      <div className={styles.listMeta}>
-                        {expense.category} • {expense.notes || "No notes"}
-                      </div>
-                    </div>
-                    <div className={styles.listValue}>-${expense.amount.toLocaleString()}</div>
-                  </div>
-                ))}
-
-                {!filteredExpenses.length ? (
-                  <p className={styles.emptyText}>No expenses found.</p>
-                ) : null}
-              </div>
-            </section>
-          )}
-
-          {tab === "receipts" && (
-            <section className={styles.panel}>
-              <p className={styles.panelTag}>Receipts</p>
-              <h3 className={styles.panelTitle}>Incoming money records</h3>
-
-              <div className={styles.list}>
-                {filteredReceipts.map((receipt) => (
-                  <div key={receipt.id} className={styles.listRow}>
-                    <div>
-                      <div className={styles.listTitle}>{receipt.title}</div>
-                      <div className={styles.listMeta}>
-                        {receipt.source || "Unknown source"} • {receipt.notes || "No notes"}
-                      </div>
-                    </div>
-                    <div className={styles.listValue}>${receipt.amount.toLocaleString()}</div>
-                  </div>
-                ))}
-
-                {!filteredReceipts.length ? (
-                  <p className={styles.emptyText}>No receipts found.</p>
-                ) : null}
-              </div>
-            </section>
           )}
         </section>
       </div>
@@ -803,7 +576,8 @@ export default function FinancePage() {
   );
 }
 
-function formatDate(value: string) {
+function formatDate(value?: string | null) {
+  if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString();

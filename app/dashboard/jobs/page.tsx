@@ -24,14 +24,28 @@ type Job = {
   installer?: string | null;
 };
 
-type WorkOrder = {
+type Invoice = {
+  id: string;
+  job_id: string;
+  invoice_number: string | null;
+  status: string | null;
+  issue_date: string | null;
+  due_date: string | null;
+  subtotal: number | null;
+  tax: number | null;
+  total: number | null;
+  amount_paid: number | null;
+  balance_due: number | null;
+  notes: string | null;
+  created_at: string;
+};
+
+type WorkOrderLite = {
   id: string;
   job_id: string | null;
   title: string | null;
-  description: string | null;
-  materials: string | null;
-  scheduled_date: string | null;
   status: string | null;
+  scheduled_date: string | null;
   assigned_installer_name?: string | null;
 };
 
@@ -75,7 +89,8 @@ function getPhotoUrl(pathOrUrl: string) {
 
 export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [workOrders, setWorkOrders] = useState<WorkOrderLite[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -85,7 +100,7 @@ export default function JobsPage() {
   const [creatingJob, setCreatingJob] = useState(false);
   const [workingJobId, setWorkingJobId] = useState<string | null>(null);
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [openActionsId, setOpenActionsId] = useState<string | null>(null);
 
   const [newJobForm, setNewJobForm] = useState<NewJobForm>({
     customer: "",
@@ -116,7 +131,7 @@ export default function JobsPage() {
   });
 
   useEffect(() => {
-    loadJobsAndWorkOrders();
+    loadJobs();
   }, []);
 
   useEffect(() => {
@@ -129,30 +144,19 @@ export default function JobsPage() {
         setLightboxUrl(null);
         setShowNewJobModal(false);
         setEditingJobId(null);
-        setOpenMenuId(null);
+        setOpenActionsId(null);
       }
-    }
-
-    function handleClickAway() {
-      setOpenMenuId(null);
     }
 
     handleResize();
     window.addEventListener("resize", handleResize);
     window.addEventListener("keydown", handleEscape);
-    window.addEventListener("click", handleClickAway);
 
     return () => {
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("keydown", handleEscape);
-      window.removeEventListener("click", handleClickAway);
     };
   }, []);
-
-  function toggleMenu(id: string, e?: React.MouseEvent<HTMLButtonElement>) {
-    e?.stopPropagation();
-    setOpenMenuId((prev) => (prev === id ? null : id));
-  }
 
   function syncJobsToScheduleStorage(nextJobs: Job[]) {
     try {
@@ -187,33 +191,28 @@ export default function JobsPage() {
     }
   }
 
-  async function loadJobsAndWorkOrders() {
+  async function loadJobs() {
     setLoading(true);
     setMessage("");
 
-    const [
-      { data: jobsData, error: jobsError },
-      { data: workOrdersData, error: workOrdersError },
-    ] = await Promise.all([
+    const [jobsRes, invoicesRes, workOrdersRes] = await Promise.all([
       supabase.from("jobs").select("*").order("created_at", { ascending: false }),
+      supabase.from("invoices").select("*").order("created_at", { ascending: false }),
       supabase
         .from("work_orders")
-        .select(
-          "id, job_id, title, description, materials, scheduled_date, status, assigned_installer_name"
-        )
+        .select("id, job_id, title, status, scheduled_date, assigned_installer_name")
         .order("created_at", { ascending: false }),
     ]);
 
-    if (jobsError) {
-      console.error("Failed to load jobs:", jobsError);
+    if (jobsRes.error) {
+      console.error("Failed to load jobs:", jobsRes.error);
       setJobs([]);
-      setWorkOrders([]);
       setMessage("Could not load jobs.");
       setLoading(false);
       return;
     }
 
-    const nextJobs = ((jobsData as Job[]) || []).map((job) => ({
+    const nextJobs = ((jobsRes.data as Job[]) || []).map((job) => ({
       ...job,
       scheduled_date: (job as any).scheduled_date ?? null,
       scheduled_time: (job as any).scheduled_time ?? null,
@@ -223,12 +222,18 @@ export default function JobsPage() {
     setJobs(nextJobs);
     syncJobsToScheduleStorage(nextJobs);
 
-    if (workOrdersError) {
-      console.error("Failed to load work orders:", workOrdersError);
-      setWorkOrders([]);
-      setMessage("Jobs loaded, but work orders could not load.");
+    if (invoicesRes.error) {
+      console.error("Failed to load invoices:", invoicesRes.error);
+      setInvoices([]);
     } else {
-      setWorkOrders((workOrdersData as WorkOrder[]) || []);
+      setInvoices((invoicesRes.data as Invoice[]) || []);
+    }
+
+    if (workOrdersRes.error) {
+      console.error("Failed to load work orders:", workOrdersRes.error);
+      setWorkOrders([]);
+    } else {
+      setWorkOrders((workOrdersRes.data as WorkOrderLite[]) || []);
     }
 
     setLoading(false);
@@ -255,9 +260,7 @@ export default function JobsPage() {
         continue;
       }
 
-      const { data } = supabase.storage
-        .from("quote-photos")
-        .getPublicUrl(filePath);
+      const { data } = supabase.storage.from("quote-photos").getPublicUrl(filePath);
 
       if (data?.publicUrl) {
         uploadedUrls.push(data.publicUrl);
@@ -300,10 +303,18 @@ export default function JobsPage() {
     .filter((job) => job.status !== "complete")
     .reduce((sum, job) => sum + Number(job.value || 0), 0);
 
+  function getInvoiceForJob(jobId: string) {
+    return invoices.find((invoice) => invoice.job_id === jobId) || null;
+  }
+
+  function getWorkOrdersForJob(jobId: string) {
+    return workOrders.filter((order) => order.job_id === jobId);
+  }
+
   function startEditJob(job: Job) {
     setEditingJobId(job.id);
-    setOpenMenuId(null);
     setMessage("");
+    setOpenActionsId(null);
     setEditJobForm({
       customer: job.customer ?? "",
       phone: job.phone ?? "",
@@ -339,9 +350,7 @@ export default function JobsPage() {
       phone: editJobForm.phone.trim() || null,
       email: editJobForm.email.trim() || null,
       location: editJobForm.location.trim() || null,
-      square_footage: editJobForm.square_footage
-        ? Number(editJobForm.square_footage)
-        : null,
+      square_footage: editJobForm.square_footage ? Number(editJobForm.square_footage) : null,
       system_type: editJobForm.system_type.trim() || null,
       notes: editJobForm.notes.trim() || null,
       value: editJobForm.value ? Number(editJobForm.value) : 0,
@@ -350,10 +359,7 @@ export default function JobsPage() {
       scheduled_time: editJobForm.scheduled_time || null,
     };
 
-    const { error } = await supabase
-      .from("jobs")
-      .update(payload)
-      .eq("id", jobId);
+    const { error } = await supabase.from("jobs").update(payload).eq("id", jobId);
 
     if (error) {
       console.error(error);
@@ -365,7 +371,7 @@ export default function JobsPage() {
     setEditingJobId(null);
     setWorkingJobId(null);
     setMessage("Job updated.");
-    await loadJobsAndWorkOrders();
+    await loadJobs();
   }
 
   async function createNewJob(e: React.FormEvent<HTMLFormElement>) {
@@ -378,9 +384,7 @@ export default function JobsPage() {
       phone: newJobForm.phone.trim() || null,
       email: newJobForm.email.trim() || null,
       location: newJobForm.location.trim() || null,
-      square_footage: newJobForm.square_footage
-        ? Number(newJobForm.square_footage)
-        : null,
+      square_footage: newJobForm.square_footage ? Number(newJobForm.square_footage) : null,
       system_type: newJobForm.system_type.trim() || null,
       notes: newJobForm.notes.trim() || null,
       value: newJobForm.value ? Number(newJobForm.value) : 0,
@@ -417,18 +421,14 @@ export default function JobsPage() {
     setCreatingJob(false);
     setShowNewJobModal(false);
     setMessage("New job created.");
-    await loadJobsAndWorkOrders();
+    await loadJobs();
   }
 
   async function updateJobStatus(jobId: string, nextStatus: string) {
     setWorkingJobId(jobId);
     setMessage("");
-    setOpenMenuId(null);
 
-    const { error } = await supabase
-      .from("jobs")
-      .update({ status: nextStatus })
-      .eq("id", jobId);
+    const { error } = await supabase.from("jobs").update({ status: nextStatus }).eq("id", jobId);
 
     if (error) {
       console.error(error);
@@ -438,17 +438,16 @@ export default function JobsPage() {
     }
 
     setWorkingJobId(null);
+    setOpenActionsId(null);
     setMessage("Job updated.");
-    await loadJobsAndWorkOrders();
+    await loadJobs();
   }
 
   async function sendJobToSchedule(job: Job) {
     setWorkingJobId(job.id);
     setMessage("");
-    setOpenMenuId(null);
 
-    const nextScheduledDate =
-      job.scheduled_date || new Date().toISOString().split("T")[0];
+    const nextScheduledDate = job.scheduled_date || new Date().toISOString().split("T")[0];
     const nextScheduledTime = job.scheduled_time || "8:00 AM";
 
     const { error } = await supabase
@@ -469,8 +468,85 @@ export default function JobsPage() {
     }
 
     setWorkingJobId(null);
+    setOpenActionsId(null);
     setMessage("Job is now ready in schedule.");
-    await loadJobsAndWorkOrders();
+    await loadJobs();
+  }
+
+  async function createInvoiceForJob(job: Job) {
+    setWorkingJobId(job.id);
+    setMessage("");
+
+    const existing = getInvoiceForJob(job.id);
+    if (existing) {
+      setWorkingJobId(null);
+      setMessage("This job already has an invoice.");
+      return;
+    }
+
+    const today = new Date();
+    const due = new Date();
+    due.setDate(today.getDate() + 14);
+
+    const subtotal = Number(job.value || 0);
+    const tax = 0;
+    const total = subtotal + tax;
+
+    const invoiceNumber = `INV-${String(Date.now()).slice(-6)}`;
+
+    const { error } = await supabase.from("invoices").insert([
+      {
+        job_id: job.id,
+        invoice_number: invoiceNumber,
+        status: "draft",
+        issue_date: today.toISOString().split("T")[0],
+        due_date: due.toISOString().split("T")[0],
+        subtotal,
+        tax,
+        total,
+        amount_paid: 0,
+        balance_due: total,
+        notes: `Invoice created from job ${job.customer || job.id}.`,
+      },
+    ]);
+
+    if (error) {
+      console.error(error);
+      setMessage(`Could not create invoice: ${error.message}`);
+      setWorkingJobId(null);
+      return;
+    }
+
+    setWorkingJobId(null);
+    setMessage("Invoice created.");
+    await loadJobs();
+  }
+
+  async function cycleInvoiceStatus(invoice: Invoice) {
+    const current = (invoice.status || "draft").toLowerCase();
+    const next =
+      current === "draft" ? "sent" : current === "sent" ? "paid" : "draft";
+
+    const nextAmountPaid = next === "paid" ? Number(invoice.total || 0) : Number(invoice.amount_paid || 0);
+    const nextBalance = next === "paid" ? 0 : Number(invoice.total || 0) - Number(invoice.amount_paid || 0);
+
+    const { error } = await supabase
+      .from("invoices")
+      .update({
+        status: next,
+        amount_paid: nextAmountPaid,
+        balance_due: nextBalance,
+      })
+      .eq("id", invoice.id);
+
+    if (error) {
+      console.error(error);
+      setMessage(`Could not update invoice: ${error.message}`);
+      return;
+    }
+
+    setMessage(`Invoice marked ${next}.`);
+    await loadJobs();
   }
 
   async function appendPhotosToJob(
@@ -509,12 +585,8 @@ export default function JobsPage() {
         throw error;
       }
 
-      setMessage(
-        label === "progress"
-          ? "Progress photos added."
-          : "Completion photos added."
-      );
-      await loadJobsAndWorkOrders();
+      setMessage(label === "progress" ? "Progress photos added." : "Completion photos added.");
+      await loadJobs();
     } catch (error: any) {
       console.error(error);
       setMessage(`Could not add photos: ${error.message || "unknown error"}`);
@@ -530,8 +602,8 @@ export default function JobsPage() {
           <div style={eyebrowStyle}>PROJECT TRACKING</div>
           <h1 style={titleStyle}>Jobs</h1>
           <p style={subtitleStyle}>
-            Track saved jobs, update statuses, edit details, add project photos,
-            manage linked work orders, and keep quote conversion intact.
+            Track saved jobs, work orders, invoice foundation, schedule fields,
+            and project photos from one page.
           </p>
         </div>
 
@@ -546,27 +618,17 @@ export default function JobsPage() {
         </div>
       </div>
 
-      <div
-        style={{
-          ...heroCardStyle,
-          ...(isMobile ? heroCardMobileStyle : null),
-        }}
-      >
+      <div style={{ ...heroCardStyle, ...(isMobile ? heroCardMobileStyle : null) }}>
         <div style={heroLeftStyle}>
           <div style={heroSmallLabelStyle}>Jobs Snapshot</div>
           <div style={heroBigTextStyle}>Keep production moving.</div>
           <div style={heroTextStyle}>
-            View open jobs, update statuses, assign schedule fields, manage active
-            work, and track work orders and invoices from one page.
+            View open jobs, update statuses, assign schedule fields, connect work orders,
+            and start invoice tracking now.
           </div>
         </div>
 
-        <div
-          style={{
-            ...heroRightStyle,
-            ...(isMobile ? heroRightMobileStyle : null),
-          }}
-        >
+        <div style={{ ...heroRightStyle, ...(isMobile ? heroRightMobileStyle : null) }}>
           <div style={miniStatStyle}>
             <div style={miniStatLabelStyle}>OPEN</div>
             <div style={miniStatValueStyle}>{openCount}</div>
@@ -613,7 +675,9 @@ export default function JobsPage() {
             const photos = Array.isArray(job.photo_urls) ? job.photo_urls : [];
             const isWorking = workingJobId === job.id;
             const isEditing = editingJobId === job.id;
-            const jobWorkOrders = workOrders.filter((wo) => wo.job_id === job.id);
+            const invoice = getInvoiceForJob(job.id);
+            const linkedWorkOrders = getWorkOrdersForJob(job.id);
+            const actionsOpen = openActionsId === job.id;
 
             return (
               <article key={job.id} style={jobRowCardStyle}>
@@ -642,79 +706,143 @@ export default function JobsPage() {
                       {formatStatus(job.status)}
                     </div>
 
-                    {!isEditing ? (
-                      <div style={dropdownWrap}>
-                        <button
-                          type="button"
-                          style={ghostButtonStyle}
-                          onClick={(e) => toggleMenu(job.id, e)}
-                          disabled={isWorking}
-                        >
-                          Actions ▾
-                        </button>
+                    <div style={actionsMenuWrapStyle}>
+                      <button
+                        type="button"
+                        style={ghostButtonStyle}
+                        onClick={() =>
+                          setOpenActionsId(actionsOpen ? null : job.id)
+                        }
+                      >
+                        Actions ▾
+                      </button>
 
-                        {openMenuId === job.id ? (
-                          <div
-                            style={dropdownMenu}
-                            onClick={(e) => e.stopPropagation()}
+                      {actionsOpen ? (
+                        <div style={actionsDropdownStyle}>
+                          <button
+                            type="button"
+                            style={dropdownButtonStyle}
+                            onClick={() => startEditJob(job)}
+                            disabled={isWorking}
                           >
-                            <button
-                              type="button"
-                              style={menuButtonStyle}
-                              onClick={() => startEditJob(job)}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              style={menuButtonStyle}
-                              onClick={() => updateJobStatus(job.id, "open")}
-                            >
-                              Mark Open
-                            </button>
-                            <button
-                              type="button"
-                              style={menuButtonStyle}
-                              onClick={() => updateJobStatus(job.id, "scheduled")}
-                            >
-                              Mark Scheduled
-                            </button>
-                            <button
-                              type="button"
-                              style={menuButtonStyle}
-                              onClick={() => updateJobStatus(job.id, "in_progress")}
-                            >
-                              Mark In Progress
-                            </button>
-                            <button
-                              type="button"
-                              style={menuButtonStyle}
-                              onClick={() => sendJobToSchedule(job)}
-                            >
-                              Send to Schedule
-                            </button>
-                            <button
-                              type="button"
-                              style={menuButtonStylePrimary}
-                              onClick={() => updateJobStatus(job.id, "complete")}
-                            >
-                              Complete
-                            </button>
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : null}
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            style={dropdownButtonStyle}
+                            onClick={() => updateJobStatus(job.id, "open")}
+                            disabled={isWorking}
+                          >
+                            Mark Open
+                          </button>
+                          <button
+                            type="button"
+                            style={dropdownButtonStyle}
+                            onClick={() => updateJobStatus(job.id, "scheduled")}
+                            disabled={isWorking}
+                          >
+                            Mark Scheduled
+                          </button>
+                          <button
+                            type="button"
+                            style={dropdownButtonStyle}
+                            onClick={() => updateJobStatus(job.id, "in_progress")}
+                            disabled={isWorking}
+                          >
+                            Mark In Progress
+                          </button>
+                          <button
+                            type="button"
+                            style={dropdownButtonStyle}
+                            onClick={() => sendJobToSchedule(job)}
+                            disabled={isWorking}
+                          >
+                            Send to Schedule
+                          </button>
+                          <button
+                            type="button"
+                            style={dropdownButtonPrimaryStyle}
+                            onClick={() => updateJobStatus(job.id, "complete")}
+                            disabled={isWorking}
+                          >
+                            Complete
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
 
                 {isEditing ? (
-                  <>
-                    <div
-                      style={{
-                        ...actionRowStyle,
-                        marginBottom: "14px",
-                      }}
-                    >
+                  <div style={{ ...editGridStyle, ...(isMobile ? editGridMobileStyle : null) }}>
+                    <input
+                      style={editInputStyle}
+                      placeholder="Customer"
+                      value={editJobForm.customer}
+                      onChange={(e) => setEditJobForm({ ...editJobForm, customer: e.target.value })}
+                    />
+                    <input
+                      style={editInputStyle}
+                      placeholder="Phone"
+                      value={editJobForm.phone}
+                      onChange={(e) => setEditJobForm({ ...editJobForm, phone: e.target.value })}
+                    />
+                    <input
+                      style={editInputStyle}
+                      placeholder="Email"
+                      value={editJobForm.email}
+                      onChange={(e) => setEditJobForm({ ...editJobForm, email: e.target.value })}
+                    />
+                    <input
+                      style={editInputStyle}
+                      placeholder="Location"
+                      value={editJobForm.location}
+                      onChange={(e) => setEditJobForm({ ...editJobForm, location: e.target.value })}
+                    />
+                    <input
+                      style={editInputStyle}
+                      placeholder="Square Footage"
+                      value={editJobForm.square_footage}
+                      onChange={(e) => setEditJobForm({ ...editJobForm, square_footage: e.target.value })}
+                    />
+                    <input
+                      style={editInputStyle}
+                      placeholder="System Type"
+                      value={editJobForm.system_type}
+                      onChange={(e) => setEditJobForm({ ...editJobForm, system_type: e.target.value })}
+                    />
+                    <input
+                      style={editInputStyle}
+                      placeholder="Job Value"
+                      value={editJobForm.value}
+                      onChange={(e) => setEditJobForm({ ...editJobForm, value: e.target.value })}
+                    />
+                    <input
+                      style={editInputStyle}
+                      placeholder="Installer / Crew"
+                      value={editJobForm.installer}
+                      onChange={(e) => setEditJobForm({ ...editJobForm, installer: e.target.value })}
+                    />
+                    <input
+                      style={editInputStyle}
+                      type="date"
+                      value={editJobForm.scheduled_date}
+                      onChange={(e) => setEditJobForm({ ...editJobForm, scheduled_date: e.target.value })}
+                    />
+                    <input
+                      style={editInputStyle}
+                      placeholder="Scheduled Time"
+                      value={editJobForm.scheduled_time}
+                      onChange={(e) => setEditJobForm({ ...editJobForm, scheduled_time: e.target.value })}
+                    />
+                    <textarea
+                      style={editTextareaStyle}
+                      placeholder="Notes"
+                      value={editJobForm.notes}
+                      onChange={(e) => setEditJobForm({ ...editJobForm, notes: e.target.value })}
+                    />
+
+                    <div style={editActionsRowStyle}>
                       <button
                         type="button"
                         style={primaryButtonStyle}
@@ -732,118 +860,7 @@ export default function JobsPage() {
                         Cancel
                       </button>
                     </div>
-
-                    <div
-                      style={{
-                        ...editGridStyle,
-                        ...(isMobile ? editGridMobileStyle : null),
-                      }}
-                    >
-                      <input
-                        style={editInputStyle}
-                        placeholder="Customer"
-                        value={editJobForm.customer}
-                        onChange={(e) =>
-                          setEditJobForm({ ...editJobForm, customer: e.target.value })
-                        }
-                      />
-                      <input
-                        style={editInputStyle}
-                        placeholder="Phone"
-                        value={editJobForm.phone}
-                        onChange={(e) =>
-                          setEditJobForm({ ...editJobForm, phone: e.target.value })
-                        }
-                      />
-                      <input
-                        style={editInputStyle}
-                        placeholder="Email"
-                        value={editJobForm.email}
-                        onChange={(e) =>
-                          setEditJobForm({ ...editJobForm, email: e.target.value })
-                        }
-                      />
-                      <input
-                        style={editInputStyle}
-                        placeholder="Location"
-                        value={editJobForm.location}
-                        onChange={(e) =>
-                          setEditJobForm({ ...editJobForm, location: e.target.value })
-                        }
-                      />
-                      <input
-                        style={editInputStyle}
-                        placeholder="Square Footage"
-                        value={editJobForm.square_footage}
-                        onChange={(e) =>
-                          setEditJobForm({
-                            ...editJobForm,
-                            square_footage: e.target.value,
-                          })
-                        }
-                      />
-                      <input
-                        style={editInputStyle}
-                        placeholder="System Type"
-                        value={editJobForm.system_type}
-                        onChange={(e) =>
-                          setEditJobForm({
-                            ...editJobForm,
-                            system_type: e.target.value,
-                          })
-                        }
-                      />
-                      <input
-                        style={editInputStyle}
-                        placeholder="Job Value"
-                        value={editJobForm.value}
-                        onChange={(e) =>
-                          setEditJobForm({ ...editJobForm, value: e.target.value })
-                        }
-                      />
-                      <input
-                        style={editInputStyle}
-                        placeholder="Installer / Crew"
-                        value={editJobForm.installer}
-                        onChange={(e) =>
-                          setEditJobForm({
-                            ...editJobForm,
-                            installer: e.target.value,
-                          })
-                        }
-                      />
-                      <input
-                        style={editInputStyle}
-                        type="date"
-                        value={editJobForm.scheduled_date}
-                        onChange={(e) =>
-                          setEditJobForm({
-                            ...editJobForm,
-                            scheduled_date: e.target.value,
-                          })
-                        }
-                      />
-                      <input
-                        style={editInputStyle}
-                        placeholder="Scheduled Time"
-                        value={editJobForm.scheduled_time}
-                        onChange={(e) =>
-                          setEditJobForm({
-                            ...editJobForm,
-                            scheduled_time: e.target.value,
-                          })
-                        }
-                      />
-                      <textarea
-                        style={editTextareaStyle}
-                        placeholder="Notes"
-                        value={editJobForm.notes}
-                        onChange={(e) =>
-                          setEditJobForm({ ...editJobForm, notes: e.target.value })
-                        }
-                      />
-                    </div>
-                  </>
+                  </div>
                 ) : (
                   <>
                     <div style={jobUploadRow}>
@@ -854,9 +871,7 @@ export default function JobsPage() {
                           accept="image/*"
                           multiple
                           style={hiddenInput}
-                          onChange={(e) =>
-                            appendPhotosToJob(job, e.target.files, "progress")
-                          }
+                          onChange={(e) => appendPhotosToJob(job, e.target.files, "progress")}
                         />
                       </label>
 
@@ -867,19 +882,12 @@ export default function JobsPage() {
                           accept="image/*"
                           multiple
                           style={hiddenInput}
-                          onChange={(e) =>
-                            appendPhotosToJob(job, e.target.files, "completion")
-                          }
+                          onChange={(e) => appendPhotosToJob(job, e.target.files, "completion")}
                         />
                       </label>
                     </div>
 
-                    <div
-                      style={{
-                        ...detailsGridStyle,
-                        ...(isMobile ? detailsGridMobileStyle : null),
-                      }}
-                    >
+                    <div style={{ ...detailsGridStyle, ...(isMobile ? detailsGridMobileStyle : null) }}>
                       <Info label="System" value={job.system_type} />
                       <Info
                         label="Value"
@@ -894,8 +902,7 @@ export default function JobsPage() {
                       <Info
                         label="Square Footage"
                         value={
-                          job.square_footage !== null &&
-                          job.square_footage !== undefined
+                          job.square_footage !== null && job.square_footage !== undefined
                             ? String(job.square_footage)
                             : "—"
                         }
@@ -909,29 +916,21 @@ export default function JobsPage() {
                       <Info label="Scheduled Time" value={job.scheduled_time} />
                     </div>
 
-                    <div style={lowerGridWrap}>
-                      <div style={sectionCardStyle}>
-                        <div style={sectionLabelStyle}>Work Orders</div>
-
-                        {jobWorkOrders.length === 0 ? (
-                          <div style={emptyMiniStyle}>No work orders linked yet.</div>
+                    <div style={{ ...systemBlocksGridStyle, ...(isMobile ? systemBlocksGridMobileStyle : null) }}>
+                      <div style={systemBlockStyle}>
+                        <div style={notesLabelStyle}>WORK ORDERS</div>
+                        {linkedWorkOrders.length === 0 ? (
+                          <div style={notesTextStyle}>No work orders linked yet.</div>
                         ) : (
-                          <div style={miniCardListStyle}>
-                            {jobWorkOrders.map((wo) => (
-                              <div key={wo.id} style={miniCardStyle}>
-                                <div style={miniCardTitleStyle}>
-                                  {wo.title || "Untitled Work Order"}
-                                </div>
-                                <div style={miniCardMetaStyle}>
-                                  {(wo.status || "Open").toUpperCase()}
-                                  {wo.scheduled_date
-                                    ? ` • ${formatDate(wo.scheduled_date)}`
-                                    : " • Not scheduled"}
-                                </div>
-                                <div style={miniCardTextStyle}>
-                                  {wo.description?.trim() ||
-                                    wo.materials?.trim() ||
-                                    "No details added yet."}
+                          <div style={miniListStyle}>
+                            {linkedWorkOrders.map((order) => (
+                              <div key={order.id} style={miniListRowStyle}>
+                                <div>
+                                  <div style={miniListTitleStyle}>{order.title || "Untitled Work Order"}</div>
+                                  <div style={miniListMetaStyle}>
+                                    {(order.status || "open").toUpperCase()}
+                                    {order.scheduled_date ? ` • ${formatDate(order.scheduled_date)}` : ""}
+                                  </div>
                                 </div>
                               </div>
                             ))}
@@ -939,28 +938,54 @@ export default function JobsPage() {
                         )}
                       </div>
 
-                      <div style={sectionCardStyle}>
-                        <div style={sectionLabelStyle}>Invoice</div>
-                        <div style={invoicePlaceholderStyle}>
-                          <button type="button" style={ghostButtonStyle}>
-                            Create Invoice
-                          </button>
-                          <div style={invoiceNoteStyle}>
+                      <div style={systemBlockStyle}>
+                        <div style={invoiceBlockTopStyle}>
+                          <div style={notesLabelStyle}>INVOICE</div>
+                          {invoice ? (
+                            <button
+                              type="button"
+                              style={ghostButtonStyle}
+                              onClick={() => cycleInvoiceStatus(invoice)}
+                            >
+                              Cycle Status
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              style={primaryButtonStyle}
+                              onClick={() => createInvoiceForJob(job)}
+                              disabled={isWorking}
+                            >
+                              {isWorking ? "Creating..." : "Create Invoice"}
+                            </button>
+                          )}
+                        </div>
+
+                        {invoice ? (
+                          <div style={invoiceSummaryGridStyle}>
+                            <Info label="Invoice #" value={invoice.invoice_number || "Draft"} />
+                            <Info label="Status" value={invoice.status || "draft"} />
+                            <Info
+                              label="Total"
+                              value={`$${Number(invoice.total || 0).toLocaleString()}`}
+                            />
+                            <Info
+                              label="Balance Due"
+                              value={`$${Number(invoice.balance_due || 0).toLocaleString()}`}
+                            />
+                          </div>
+                        ) : (
+                          <div style={notesTextStyle}>
                             Invoice system is next. This job is ready to connect.
                           </div>
-                        </div>
+                        )}
                       </div>
                     </div>
 
                     {photos.length > 0 ? (
                       <div style={photosSectionStyle}>
                         <div style={notesLabelStyle}>Project Photos</div>
-                        <div
-                          style={{
-                            ...photoGridStyle,
-                            ...(isMobile ? photoGridMobileStyle : null),
-                          }}
-                        >
+                        <div style={{ ...photoGridStyle, ...(isMobile ? photoGridMobileStyle : null) }}>
                           {photos.map((raw, index) => {
                             const url = getPhotoUrl(raw);
                             return (
@@ -1016,102 +1041,68 @@ export default function JobsPage() {
                   style={modalInput}
                   placeholder="Customer Name"
                   value={newJobForm.customer}
-                  onChange={(e) =>
-                    setNewJobForm({ ...newJobForm, customer: e.target.value })
-                  }
+                  onChange={(e) => setNewJobForm({ ...newJobForm, customer: e.target.value })}
                   required
                 />
                 <input
                   style={modalInput}
                   placeholder="Phone"
                   value={newJobForm.phone}
-                  onChange={(e) =>
-                    setNewJobForm({ ...newJobForm, phone: e.target.value })
-                  }
+                  onChange={(e) => setNewJobForm({ ...newJobForm, phone: e.target.value })}
                 />
                 <input
                   style={modalInput}
                   placeholder="Email"
                   value={newJobForm.email}
-                  onChange={(e) =>
-                    setNewJobForm({ ...newJobForm, email: e.target.value })
-                  }
+                  onChange={(e) => setNewJobForm({ ...newJobForm, email: e.target.value })}
                 />
                 <input
                   style={modalInput}
                   placeholder="Location"
                   value={newJobForm.location}
-                  onChange={(e) =>
-                    setNewJobForm({ ...newJobForm, location: e.target.value })
-                  }
+                  onChange={(e) => setNewJobForm({ ...newJobForm, location: e.target.value })}
                 />
                 <input
                   style={modalInput}
                   placeholder="Square Footage"
                   value={newJobForm.square_footage}
-                  onChange={(e) =>
-                    setNewJobForm({
-                      ...newJobForm,
-                      square_footage: e.target.value,
-                    })
-                  }
+                  onChange={(e) => setNewJobForm({ ...newJobForm, square_footage: e.target.value })}
                 />
                 <input
                   style={modalInput}
                   placeholder="System Type"
                   value={newJobForm.system_type}
-                  onChange={(e) =>
-                    setNewJobForm({
-                      ...newJobForm,
-                      system_type: e.target.value,
-                    })
-                  }
+                  onChange={(e) => setNewJobForm({ ...newJobForm, system_type: e.target.value })}
                 />
                 <input
                   style={modalInput}
                   placeholder="Job Value"
                   value={newJobForm.value}
-                  onChange={(e) =>
-                    setNewJobForm({ ...newJobForm, value: e.target.value })
-                  }
+                  onChange={(e) => setNewJobForm({ ...newJobForm, value: e.target.value })}
                 />
                 <input
                   style={modalInput}
                   placeholder="Installer / Crew"
                   value={newJobForm.installer}
-                  onChange={(e) =>
-                    setNewJobForm({ ...newJobForm, installer: e.target.value })
-                  }
+                  onChange={(e) => setNewJobForm({ ...newJobForm, installer: e.target.value })}
                 />
                 <input
                   style={modalInput}
                   type="date"
                   value={newJobForm.scheduled_date}
-                  onChange={(e) =>
-                    setNewJobForm({
-                      ...newJobForm,
-                      scheduled_date: e.target.value,
-                    })
-                  }
+                  onChange={(e) => setNewJobForm({ ...newJobForm, scheduled_date: e.target.value })}
                 />
                 <input
                   style={modalInput}
                   placeholder="Scheduled Time"
                   value={newJobForm.scheduled_time}
-                  onChange={(e) =>
-                    setNewJobForm({
-                      ...newJobForm,
-                      scheduled_time: e.target.value,
-                    })
-                  }
+                  onChange={(e) => setNewJobForm({ ...newJobForm, scheduled_time: e.target.value })}
                 />
                 <textarea
                   style={modalTextarea}
                   placeholder="Job notes"
                   value={newJobForm.notes}
-                  onChange={(e) =>
-                    setNewJobForm({ ...newJobForm, notes: e.target.value })
-                  }
+                  onChange={(e) => setNewJobForm({ ...newJobForm, notes: e.target.value })}
                 />
               </div>
 
@@ -1135,11 +1126,7 @@ export default function JobsPage() {
 
       {lightboxUrl ? (
         <div style={lightboxOverlay} onClick={() => setLightboxUrl(null)}>
-          <button
-            type="button"
-            onClick={() => setLightboxUrl(null)}
-            style={lightboxClose}
-          >
+          <button type="button" onClick={() => setLightboxUrl(null)} style={lightboxClose}>
             ×
           </button>
           <img
@@ -1172,7 +1159,8 @@ function formatStatus(status: string) {
   }
 }
 
-function formatDate(value: string) {
+function formatDate(value?: string | null) {
+  if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString();
@@ -1356,9 +1344,10 @@ const jobTopLeftStyle: React.CSSProperties = {
 
 const jobTopRightStyle: React.CSSProperties = {
   display: "flex",
-  alignItems: "center",
+  alignItems: "flex-start",
   gap: "10px",
   flexWrap: "wrap",
+  position: "relative",
 };
 
 const jobIdStyle: React.CSSProperties = {
@@ -1414,11 +1403,45 @@ const completeBadgeStyle: React.CSSProperties = {
   border: "1px solid rgba(52, 199, 89, 0.22)",
 };
 
-const actionRowStyle: React.CSSProperties = {
-  display: "flex",
+const actionsMenuWrapStyle: React.CSSProperties = {
+  position: "relative",
+};
+
+const actionsDropdownStyle: React.CSSProperties = {
+  position: "absolute",
+  top: "44px",
+  right: 0,
+  minWidth: "190px",
+  display: "grid",
   gap: "8px",
-  flexWrap: "wrap",
-  marginBottom: "12px",
+  padding: "10px",
+  borderRadius: "14px",
+  background: "rgba(10,16,28,0.96)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  boxShadow: "0 18px 40px rgba(0,0,0,0.35)",
+  zIndex: 50,
+};
+
+const dropdownButtonStyle: React.CSSProperties = {
+  border: "1px solid rgba(255,255,255,0.14)",
+  borderRadius: "10px",
+  padding: "10px 12px",
+  fontWeight: 700,
+  cursor: "pointer",
+  color: "white",
+  background: "rgba(255,255,255,0.05)",
+  textAlign: "left",
+};
+
+const dropdownButtonPrimaryStyle: React.CSSProperties = {
+  border: "none",
+  borderRadius: "10px",
+  padding: "10px 12px",
+  fontWeight: 700,
+  cursor: "pointer",
+  color: "#031019",
+  background: "linear-gradient(135deg, rgba(0,212,255,0.95), rgba(0,140,255,0.9))",
+  textAlign: "left",
 };
 
 const primaryButtonStyle: React.CSSProperties = {
@@ -1439,47 +1462,6 @@ const ghostButtonStyle: React.CSSProperties = {
   cursor: "pointer",
   color: "white",
   background: "rgba(255,255,255,0.05)",
-};
-
-const dropdownWrap: React.CSSProperties = {
-  position: "relative",
-};
-
-const dropdownMenu: React.CSSProperties = {
-  position: "absolute",
-  top: "42px",
-  right: 0,
-  minWidth: "180px",
-  display: "grid",
-  gap: "6px",
-  padding: "8px",
-  borderRadius: "14px",
-  background: "linear-gradient(180deg, rgba(14,19,30,0.98), rgba(9,13,22,0.98))",
-  border: "1px solid rgba(255,255,255,0.1)",
-  boxShadow: "0 20px 50px rgba(0,0,0,0.35)",
-  zIndex: 50,
-};
-
-const menuButtonStyle: React.CSSProperties = {
-  border: "1px solid rgba(255,255,255,0.08)",
-  borderRadius: "10px",
-  padding: "10px 12px",
-  fontWeight: 700,
-  cursor: "pointer",
-  color: "white",
-  background: "rgba(255,255,255,0.04)",
-  textAlign: "left",
-};
-
-const menuButtonStylePrimary: React.CSSProperties = {
-  border: "none",
-  borderRadius: "10px",
-  padding: "10px 12px",
-  fontWeight: 700,
-  cursor: "pointer",
-  color: "#031019",
-  background: "linear-gradient(135deg, rgba(0,212,255,0.95), rgba(0,140,255,0.9))",
-  textAlign: "left",
 };
 
 const editGridStyle: React.CSSProperties = {
@@ -1515,6 +1497,14 @@ const editTextareaStyle: React.CSSProperties = {
   resize: "vertical",
 };
 
+const editActionsRowStyle: React.CSSProperties = {
+  gridColumn: "1 / -1",
+  display: "flex",
+  gap: "10px",
+  flexWrap: "wrap",
+  marginTop: "6px",
+};
+
 const detailsGridStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
@@ -1546,80 +1536,11 @@ const infoValueStyle: React.CSSProperties = {
   wordBreak: "break-word",
 };
 
-const lowerGridWrap: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "1fr 1fr",
-  gap: "12px",
-  marginTop: "12px",
-};
-
-const sectionCardStyle: React.CSSProperties = {
-  padding: "12px",
-  borderRadius: "12px",
-  background: "rgba(255,255,255,0.035)",
-  border: "1px solid rgba(255,255,255,0.06)",
-};
-
-const sectionLabelStyle: React.CSSProperties = {
-  fontSize: "11px",
-  color: "rgba(216,238,255,0.66)",
-  marginBottom: "8px",
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
-};
-
-const miniCardListStyle: React.CSSProperties = {
-  display: "grid",
-  gap: "8px",
-};
-
-const miniCardStyle: React.CSSProperties = {
-  padding: "10px",
-  borderRadius: "10px",
-  background: "rgba(255,255,255,0.04)",
-  border: "1px solid rgba(255,255,255,0.08)",
-};
-
-const miniCardTitleStyle: React.CSSProperties = {
-  fontWeight: 700,
-  color: "white",
-  marginBottom: "4px",
-};
-
-const miniCardMetaStyle: React.CSSProperties = {
-  fontSize: "12px",
-  color: "#8fdfff",
-  marginBottom: "6px",
-};
-
-const miniCardTextStyle: React.CSSProperties = {
-  fontSize: "13px",
-  lineHeight: 1.45,
-  color: "rgba(231,243,255,0.76)",
-};
-
-const emptyMiniStyle: React.CSSProperties = {
-  color: "rgba(231,243,255,0.66)",
-  fontSize: "13px",
-};
-
-const invoicePlaceholderStyle: React.CSSProperties = {
-  display: "grid",
-  gap: "10px",
-};
-
-const invoiceNoteStyle: React.CSSProperties = {
-  fontSize: "13px",
-  lineHeight: 1.45,
-  color: "rgba(231,243,255,0.66)",
-};
-
 const jobUploadRow: React.CSSProperties = {
   display: "flex",
   gap: "10px",
   flexWrap: "wrap",
   marginBottom: "12px",
-  marginTop: "12px",
 };
 
 const uploadLabelButton: React.CSSProperties = {
@@ -1637,6 +1558,63 @@ const uploadLabelButton: React.CSSProperties = {
 
 const hiddenInput: React.CSSProperties = {
   display: "none",
+};
+
+const systemBlocksGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "12px",
+  marginTop: "12px",
+};
+
+const systemBlocksGridMobileStyle: React.CSSProperties = {
+  gridTemplateColumns: "1fr",
+};
+
+const systemBlockStyle: React.CSSProperties = {
+  padding: "12px",
+  borderRadius: "12px",
+  background: "rgba(255,255,255,0.035)",
+  border: "1px solid rgba(255,255,255,0.06)",
+};
+
+const invoiceBlockTopStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "10px",
+  flexWrap: "wrap",
+  marginBottom: "10px",
+};
+
+const invoiceSummaryGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "10px",
+};
+
+const miniListStyle: React.CSSProperties = {
+  display: "grid",
+  gap: "8px",
+};
+
+const miniListRowStyle: React.CSSProperties = {
+  padding: "10px",
+  borderRadius: "10px",
+  background: "rgba(255,255,255,0.03)",
+  border: "1px solid rgba(255,255,255,0.06)",
+};
+
+const miniListTitleStyle: React.CSSProperties = {
+  fontSize: "14px",
+  fontWeight: 700,
+  color: "white",
+};
+
+const miniListMetaStyle: React.CSSProperties = {
+  marginTop: "4px",
+  fontSize: "12px",
+  color: "rgba(216,238,255,0.66)",
 };
 
 const photosSectionStyle: React.CSSProperties = {

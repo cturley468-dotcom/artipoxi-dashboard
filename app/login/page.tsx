@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
+import { getCurrentProfile } from "../lib/auth";
 import styles from "./page.module.css";
 
 export default function LoginPage() {
@@ -15,6 +16,38 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
 
+  async function redirectByRole() {
+    try {
+      const profile = await getCurrentProfile();
+
+      if (!profile) {
+        router.replace("/dashboard");
+        router.refresh();
+        return;
+      }
+
+      const role = String(profile.role ?? "").toLowerCase();
+
+      if (role === "installer") {
+        router.replace("/installer");
+        router.refresh();
+        return;
+      }
+
+      if (role === "customer") {
+        router.replace("/portal");
+        router.refresh();
+        return;
+      }
+
+      router.replace("/dashboard");
+      router.refresh();
+    } catch {
+      router.replace("/dashboard");
+      router.refresh();
+    }
+  }
+
   useEffect(() => {
     let mounted = true;
 
@@ -24,7 +57,7 @@ export default function LoginPage() {
       if (!mounted) return;
 
       if (data.session) {
-        router.replace("/dashboard");
+        await redirectByRole();
       }
     }
 
@@ -62,8 +95,7 @@ export default function LoginPage() {
       }
 
       setStatusMessage("Success. Redirecting...");
-      router.replace("/dashboard");
-      router.refresh();
+      await redirectByRole();
     } catch {
       setErrorMessage("Unexpected login error.");
       setStatusMessage("");
@@ -76,10 +108,10 @@ export default function LoginPage() {
       <div className={styles.card}>
         <div className={styles.brandRow}>
           <img
-  src="/branding/site-logo.png"
-  alt="ArtiPoxi logo"
-  className={styles.sidebarLogoImage}
-/>
+            src="/branding/site-logo.png"
+            alt="ArtiPoxi logo"
+            className={styles.sidebarLogoImage}
+          />
           <div>
             <p className={styles.brandTop}>ARTIPOXI</p>
             <h2 className={styles.brandBottom}>Access Portal</h2>
@@ -88,9 +120,7 @@ export default function LoginPage() {
 
         <p className={styles.eyebrow}>SIGN IN</p>
         <h1 className={styles.title}>Login</h1>
-        <p className={styles.subtitle}>
-          Access your dashboard.
-        </p>
+        <p className={styles.subtitle}>Access your dashboard.</p>
 
         <form className={styles.form} onSubmit={handleSubmit}>
           <input
@@ -122,10 +152,10 @@ export default function LoginPage() {
         </form>
 
         <div className={styles.links}>
-  <Link href="/" className={styles.linkBtn}>
-    Back to Home
-  </Link>
-</div>
+          <Link href="/" className={styles.linkBtn}>
+            Back to Home
+          </Link>
+        </div>
       </div>
     </main>
   );

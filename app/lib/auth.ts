@@ -38,13 +38,28 @@ export async function getCurrentProfile(): Promise<Profile | null> {
     return null;
   }
 
-  return data as Profile;
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    email: data.email ?? userData.user.email ?? null,
+    full_name: data.full_name ?? null,
+    role: String(data.role ?? "").toLowerCase() as UserRole,
+  };
 }
 
 export function isInstaller(role?: string | null) {
-  return role === "installer";
+  return String(role ?? "").toLowerCase() === "installer";
 }
 
 export function isAdmin(role?: string | null) {
-  return role === "admin";
+  return String(role ?? "").toLowerCase() === "admin";
+}
+
+export function isStaff(role?: string | null) {
+  return String(role ?? "").toLowerCase() === "staff";
+}
+
+export function isCustomer(role?: string | null) {
+  return String(role ?? "").toLowerCase() === "customer";
 }

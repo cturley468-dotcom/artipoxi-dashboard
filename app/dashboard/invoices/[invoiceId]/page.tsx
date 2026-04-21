@@ -37,6 +37,17 @@ type InvoiceItem = {
   sort_order?: number | null;
 };
 
+type InvoicePayment = {
+  id: string;
+  invoice_id: string;
+  amount: number | null;
+  payment_date: string | null;
+  method: string | null;
+  reference_number?: string | null;
+  notes?: string | null;
+  created_at: string;
+};
+
 type Job = {
   id: string;
   customer: string | null;
@@ -56,6 +67,7 @@ export default function InvoiceDetailPage() {
 
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [items, setItems] = useState<InvoiceItem[]>([]);
+  const [payments, setPayments] = useState<InvoicePayment[]>([]);
   const [job, setJob] = useState<Job | null>(null);
 
   const [loading, setLoading] = useState(true);
@@ -71,6 +83,15 @@ export default function InvoiceDetailPage() {
   const [issueDate, setIssueDate] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
+
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentDate, setPaymentDate] = useState(() =>
+    new Date().toISOString().split("T")[0]
+  );
+  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [paymentReference, setPaymentReference] = useState("");
+  const [paymentNotes, setPaymentNotes] = useState("");
+  const [addingPayment, setAddingPayment] = useState(false);
 
   useEffect(() => {
     if (!invoiceId) return;
@@ -107,17 +128,31 @@ export default function InvoiceDetailPage() {
     setDueDate(loadedInvoice.due_date || "");
     setNotes(loadedInvoice.notes || "");
 
-    const itemsRes = await supabase
-      .from("invoice_items")
-      .select("*")
-      .eq("invoice_id", loadedInvoice.id)
-      .order("sort_order", { ascending: true });
+    const [itemsRes, paymentsRes] = await Promise.all([
+      supabase
+        .from("invoice_items")
+        .select("*")
+        .eq("invoice_id", loadedInvoice.id)
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("invoice_payments")
+        .select("*")
+        .eq("invoice_id", loadedInvoice.id)
+        .order("payment_date", { ascending: false }),
+    ]);
 
     if (itemsRes.error) {
       console.error(itemsRes.error);
       setItems([]);
     } else {
       setItems((itemsRes.data as InvoiceItem[]) || []);
+    }
+
+    if (paymentsRes.error) {
+      console.error(paymentsRes.error);
+      setPayments([]);
+    } else {
+      setPayments((paymentsRes.data as InvoicePayment[]) || []);
     }
 
     if (loadedInvoice.job_id) {
@@ -135,23 +170,33 @@ export default function InvoiceDetailPage() {
     setLoading(false);
   }
 
+  const computedSubtotal = useMemo(() => {
+    return items.reduce((sum, item) => sum + Number(item.line_total || 0), 0);
+  }, [items]);
+
+  const computedTax = Number(invoice?.tax || 0);
+  const computedDiscount = Number(invoice?.discount || 0);
+  const computedTotal = computedSubtotal + computedTax - computedDiscount;
+  const computedPaid = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+  const computedBalance = computedTotal - computedPaid;
+
+  function getAutoStatus(balance: number, paid: number, total: number) {
+    if (total <= 0) return "draft";
+    if (paid <= 0) return status === "draft" ? "draft" : "sent";
+    if (balance <= 0) return "paid";
+    return "partial";
+  }
+
   async function saveInvoiceHeader() {
     if (!invoice) return;
 
     setSaving(true);
     setMessage("");
 
-    const subtotal = items.reduce(
-      (sum, item) =>
-        sum + Number(item.line_total ?? (Number(item.quantity || 0) * Number(item.unit_price || 0))),
-      0
-    );
-
-    const taxValue = Number(invoice.tax || 0);
-    const discountValue = Number(invoice.discount || 0);
-    const total = subtotal + taxValue - discountValue;
-    const amountPaid = Number(invoice.amount_paid || 0);
-    const balanceDue = total - amountPaid;
+    const total = computedTotal;
+    const amountPaid = computedPaid;
+    const balanceDue = computedBalance;
+    const nextStatus = getAutoStatus(balanceDue, amountPaid, total);
 
     const { error } = await supabase
       .from("invoices")
@@ -161,12 +206,13 @@ export default function InvoiceDetailPage() {
         customer_phone: customerPhone || null,
         billing_address: billingAddress || null,
         project_address: projectAddress || null,
-        status,
+        status: nextStatus,
         issue_date: issueDate || null,
         due_date: dueDate || null,
         notes: notes || null,
-        subtotal,
+        subtotal: computedSubtotal,
         total,
+        amount_paid: amountPaid,
         balance_due: balanceDue,
       })
       .eq("id", invoice.id);
@@ -206,10 +252,7 @@ export default function InvoiceDetailPage() {
     await loadInvoice();
   }
 
-  async function updateLineItem(
-    itemId: string,
-    changes: Partial<InvoiceItem>
-  ) {
+  async function updateLineItem(itemId: string, changes: Partial<InvoiceItem>) {
     const current = items.find((item) => item.id === itemId);
     if (!current) return;
 
@@ -259,15 +302,94 @@ export default function InvoiceDetailPage() {
     await loadInvoice();
   }
 
-  const computedSubtotal = useMemo(() => {
-    return items.reduce((sum, item) => sum + Number(item.line_total || 0), 0);
-  }, [items]);
+  async function addPayment() {
+    if (!invoice) return;
 
-  const computedTax = Number(invoice?.tax || 0);
-  const computedDiscount = Number(invoice?.discount || 0);
-  const computedTotal = computedSubtotal + computedTax - computedDiscount;
-  const computedPaid = Number(invoice?.amount_paid || 0);
-  const computedBalance = computedTotal - computedPaid;
+    const amount = Number(paymentAmount || 0);
+
+    if (amount <= 0) {
+      setMessage("Payment amount must be greater than 0.");
+      return;
+    }
+
+    setAddingPayment(true);
+    setMessage("");
+
+    const paymentInsert = await supabase.from("invoice_payments").insert([
+      {
+        invoice_id: invoice.id,
+        amount,
+        payment_date: paymentDate || new Date().toISOString().split("T")[0],
+        method: paymentMethod || null,
+        reference_number: paymentReference || null,
+        notes: paymentNotes || null,
+      },
+    ]);
+
+    if (paymentInsert.error) {
+      console.error(paymentInsert.error);
+      setMessage(`Could not add payment: ${paymentInsert.error.message}`);
+      setAddingPayment(false);
+      return;
+    }
+
+    const nextPaid = computedPaid + amount;
+    const nextBalance = computedTotal - nextPaid;
+    const nextStatus = nextBalance <= 0 ? "paid" : "partial";
+
+    const invoiceUpdate = await supabase
+      .from("invoices")
+      .update({
+        amount_paid: nextPaid,
+        balance_due: nextBalance,
+        status: nextStatus,
+        subtotal: computedSubtotal,
+        total: computedTotal,
+      })
+      .eq("id", invoice.id);
+
+    if (invoiceUpdate.error) {
+      console.error(invoiceUpdate.error);
+      setMessage(`Payment saved, but invoice update failed: ${invoiceUpdate.error.message}`);
+      setAddingPayment(false);
+      await loadInvoice();
+      return;
+    }
+
+    const financeInsert = await supabase.from("financial_entries").insert([
+      {
+        entry_type: "income",
+        category: "invoice_payment",
+        source_type: "invoice",
+        source_id: invoice.id,
+        job_id: invoice.job_id || null,
+        invoice_id: invoice.id,
+        title: `Payment for ${invoice.invoice_number || "Invoice"}`,
+        description:
+          paymentNotes ||
+          `Payment recorded by ${paymentMethod || "payment"} on ${paymentDate || new Date().toISOString().split("T")[0]}`,
+        amount,
+        entry_date: paymentDate || new Date().toISOString().split("T")[0],
+      },
+    ]);
+
+    if (financeInsert.error) {
+      console.error(financeInsert.error);
+      setMessage(`Payment added, but finance entry failed: ${financeInsert.error.message}`);
+      setAddingPayment(false);
+      await loadInvoice();
+      return;
+    }
+
+    setPaymentAmount("");
+    setPaymentDate(new Date().toISOString().split("T")[0]);
+    setPaymentMethod("cash");
+    setPaymentReference("");
+    setPaymentNotes("");
+    setAddingPayment(false);
+    setMessage("Payment recorded.");
+    await loadInvoice();
+  }
 
   if (loading) {
     return <main style={pageStyle}>Loading invoice...</main>;
@@ -288,7 +410,12 @@ export default function InvoiceDetailPage() {
           <button type="button" style={ghostButtonStyle} onClick={() => window.print()}>
             Print Invoice
           </button>
-          <button type="button" style={primaryButtonStyle} onClick={saveInvoiceHeader} disabled={saving}>
+          <button
+            type="button"
+            style={primaryButtonStyle}
+            onClick={saveInvoiceHeader}
+            disabled={saving}
+          >
             {saving ? "Saving..." : "Save Invoice"}
           </button>
         </div>
@@ -465,6 +592,83 @@ export default function InvoiceDetailPage() {
           </table>
         </div>
 
+        <div style={paymentSectionStyle}>
+          <div style={paymentHeaderStyle}>
+            <div style={sectionLabelStyle}>Payments</div>
+          </div>
+
+          <div style={paymentFormGridStyle}>
+            <input
+              type="number"
+              value={paymentAmount}
+              onChange={(e) => setPaymentAmount(e.target.value)}
+              placeholder="Payment amount"
+              style={inputStyleNoMargin}
+            />
+            <input
+              type="date"
+              value={paymentDate}
+              onChange={(e) => setPaymentDate(e.target.value)}
+              style={inputStyleNoMargin}
+            />
+            <select
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value)}
+              style={inputStyleNoMargin}
+            >
+              <option value="cash">cash</option>
+              <option value="card">card</option>
+              <option value="check">check</option>
+              <option value="transfer">transfer</option>
+            </select>
+            <input
+              value={paymentReference}
+              onChange={(e) => setPaymentReference(e.target.value)}
+              placeholder="Reference #"
+              style={inputStyleNoMargin}
+            />
+            <input
+              value={paymentNotes}
+              onChange={(e) => setPaymentNotes(e.target.value)}
+              placeholder="Payment note"
+              style={{ ...inputStyleNoMargin, gridColumn: "span 2" }}
+            />
+          </div>
+
+          <div style={paymentButtonRowStyle}>
+            <button
+              type="button"
+              style={primaryButtonStyle}
+              onClick={addPayment}
+              disabled={addingPayment}
+            >
+              {addingPayment ? "Adding..." : "Add Payment"}
+            </button>
+          </div>
+
+          <div style={paymentHistoryWrapStyle}>
+            {payments.length === 0 ? (
+              <div style={notesTextStyle}>No payments recorded yet.</div>
+            ) : (
+              payments.map((payment) => (
+                <div key={payment.id} style={paymentRowStyle}>
+                  <div>
+                    <div style={paymentTitleStyle}>
+                      ${Number(payment.amount || 0).toLocaleString()}
+                    </div>
+                    <div style={paymentMetaStyle}>
+                      {(payment.method || "payment").toUpperCase()} •{" "}
+                      {formatDate(payment.payment_date)}
+                      {payment.reference_number ? ` • Ref ${payment.reference_number}` : ""}
+                    </div>
+                  </div>
+                  <div style={paymentMetaStyle}>{payment.notes || ""}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
         <div style={bottomGridStyle}>
           <div style={notesCardStyle}>
             <div style={sectionLabelStyle}>Notes</div>
@@ -506,6 +710,13 @@ export default function InvoiceDetailPage() {
       </section>
     </main>
   );
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString();
 }
 
 const pageStyle: React.CSSProperties = {
@@ -684,6 +895,15 @@ const inputStyle: React.CSSProperties = {
   color: "#111827",
 };
 
+const inputStyleNoMargin: React.CSSProperties = {
+  width: "100%",
+  padding: "10px 12px",
+  borderRadius: "10px",
+  border: "1px solid #d1d5db",
+  background: "white",
+  color: "#111827",
+};
+
 const textareaStyle: React.CSSProperties = {
   width: "100%",
   minHeight: "92px",
@@ -765,6 +985,57 @@ const emptyCellStyle: React.CSSProperties = {
   color: "#6b7280",
 };
 
+const paymentSectionStyle: React.CSSProperties = {
+  marginTop: "20px",
+  border: "1px solid #e5e7eb",
+  borderRadius: "14px",
+  padding: "14px",
+  background: "#f9fafb",
+};
+
+const paymentHeaderStyle: React.CSSProperties = {
+  marginBottom: "10px",
+};
+
+const paymentFormGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: "10px",
+};
+
+const paymentButtonRowStyle: React.CSSProperties = {
+  marginTop: "12px",
+  display: "flex",
+  justifyContent: "flex-end",
+};
+
+const paymentHistoryWrapStyle: React.CSSProperties = {
+  marginTop: "16px",
+  display: "grid",
+  gap: "10px",
+};
+
+const paymentRowStyle: React.CSSProperties = {
+  padding: "10px 12px",
+  borderRadius: "10px",
+  border: "1px solid #e5e7eb",
+  background: "white",
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "10px",
+  flexWrap: "wrap",
+};
+
+const paymentTitleStyle: React.CSSProperties = {
+  fontSize: "15px",
+  fontWeight: 700,
+};
+
+const paymentMetaStyle: React.CSSProperties = {
+  fontSize: "13px",
+  color: "#6b7280",
+};
+
 const bottomGridStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "1.2fr 0.8fr",
@@ -777,6 +1048,12 @@ const notesCardStyle: React.CSSProperties = {
   borderRadius: "14px",
   padding: "14px",
   background: "#f9fafb",
+};
+
+const notesTextStyle: React.CSSProperties = {
+  color: "#9ca3af",
+  fontSize: "14px",
+  padding: "8px 0",
 };
 
 const notesTextareaStyle: React.CSSProperties = {

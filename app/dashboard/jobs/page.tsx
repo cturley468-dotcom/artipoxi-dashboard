@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 
 const JOBS_STORAGE_KEY = "artipoxi_jobs";
@@ -28,11 +29,17 @@ type Invoice = {
   id: string;
   job_id: string;
   invoice_number: string | null;
+  customer_name?: string | null;
+  customer_email?: string | null;
+  customer_phone?: string | null;
+  billing_address?: string | null;
+  project_address?: string | null;
   status: string | null;
   issue_date: string | null;
   due_date: string | null;
   subtotal: number | null;
   tax: number | null;
+  discount?: number | null;
   total: number | null;
   amount_paid: number | null;
   balance_due: number | null;
@@ -88,6 +95,8 @@ function getPhotoUrl(pathOrUrl: string) {
 }
 
 export default function JobsPage() {
+  const router = useRouter();
+
   const [jobs, setJobs] = useState<Job[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [workOrders, setWorkOrders] = useState<WorkOrderLite[]>([]);
@@ -131,7 +140,7 @@ export default function JobsPage() {
   });
 
   useEffect(() => {
-    loadJobs();
+    void loadJobs();
   }, []);
 
   useEffect(() => {
@@ -148,13 +157,19 @@ export default function JobsPage() {
       }
     }
 
+    function handleWindowClick() {
+      setOpenActionsId(null);
+    }
+
     handleResize();
     window.addEventListener("resize", handleResize);
     window.addEventListener("keydown", handleEscape);
+    window.addEventListener("click", handleWindowClick);
 
     return () => {
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("keydown", handleEscape);
+      window.removeEventListener("click", handleWindowClick);
     };
   }, []);
 
@@ -315,6 +330,7 @@ export default function JobsPage() {
     setEditingJobId(job.id);
     setMessage("");
     setOpenActionsId(null);
+
     setEditJobForm({
       customer: job.customer ?? "",
       phone: job.phone ?? "",
@@ -481,6 +497,7 @@ export default function JobsPage() {
     if (existing) {
       setWorkingJobId(null);
       setMessage("This job already has an invoice.");
+      router.push(`/dashboard/invoices/${existing.id}`);
       return;
     }
 
@@ -490,25 +507,36 @@ export default function JobsPage() {
 
     const subtotal = Number(job.value || 0);
     const tax = 0;
-    const total = subtotal + tax;
+    const discount = 0;
+    const total = subtotal + tax - discount;
 
     const invoiceNumber = `INV-${String(Date.now()).slice(-6)}`;
 
-    const { error } = await supabase.from("invoices").insert([
-      {
-        job_id: job.id,
-        invoice_number: invoiceNumber,
-        status: "draft",
-        issue_date: today.toISOString().split("T")[0],
-        due_date: due.toISOString().split("T")[0],
-        subtotal,
-        tax,
-        total,
-        amount_paid: 0,
-        balance_due: total,
-        notes: `Invoice created from job ${job.customer || job.id}.`,
-      },
-    ]);
+    const { data, error } = await supabase
+      .from("invoices")
+      .insert([
+        {
+          job_id: job.id,
+          invoice_number: invoiceNumber,
+          customer_name: job.customer || null,
+          customer_email: job.email || null,
+          customer_phone: job.phone || null,
+          billing_address: job.location || null,
+          project_address: job.location || null,
+          status: "draft",
+          issue_date: today.toISOString().split("T")[0],
+          due_date: due.toISOString().split("T")[0],
+          subtotal,
+          tax,
+          discount,
+          total,
+          amount_paid: 0,
+          balance_due: total,
+          notes: `Invoice created from job ${job.customer || job.id}.`,
+        },
+      ])
+      .select("id")
+      .single();
 
     if (error) {
       console.error(error);
@@ -519,16 +547,25 @@ export default function JobsPage() {
 
     setWorkingJobId(null);
     setMessage("Invoice created.");
+
+    if (data?.id) {
+      router.push(`/dashboard/invoices/${data.id}`);
+      return;
+    }
+
     await loadJobs();
   }
 
   async function cycleInvoiceStatus(invoice: Invoice) {
     const current = (invoice.status || "draft").toLowerCase();
-    const next =
-      current === "draft" ? "sent" : current === "sent" ? "paid" : "draft";
+    const next = current === "draft" ? "sent" : current === "sent" ? "paid" : "draft";
 
-    const nextAmountPaid = next === "paid" ? Number(invoice.total || 0) : Number(invoice.amount_paid || 0);
-    const nextBalance = next === "paid" ? 0 : Number(invoice.total || 0) - Number(invoice.amount_paid || 0);
+    const nextAmountPaid =
+      next === "paid" ? Number(invoice.total || 0) : Number(invoice.amount_paid || 0);
+    const nextBalance =
+      next === "paid"
+        ? 0
+        : Number(invoice.total || 0) - Number(invoice.amount_paid || 0);
 
     const { error } = await supabase
       .from("invoices")
@@ -706,13 +743,14 @@ export default function JobsPage() {
                       {formatStatus(job.status)}
                     </div>
 
-                    <div style={actionsMenuWrapStyle}>
+                    <div
+                      style={actionsMenuWrapStyle}
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <button
                         type="button"
                         style={ghostButtonStyle}
-                        onClick={() =>
-                          setOpenActionsId(actionsOpen ? null : job.id)
-                        }
+                        onClick={() => setOpenActionsId(actionsOpen ? null : job.id)}
                       >
                         Actions ▾
                       </button>
@@ -926,7 +964,9 @@ export default function JobsPage() {
                             {linkedWorkOrders.map((order) => (
                               <div key={order.id} style={miniListRowStyle}>
                                 <div>
-                                  <div style={miniListTitleStyle}>{order.title || "Untitled Work Order"}</div>
+                                  <div style={miniListTitleStyle}>
+                                    {order.title || "Untitled Work Order"}
+                                  </div>
                                   <div style={miniListMetaStyle}>
                                     {(order.status || "open").toUpperCase()}
                                     {order.scheduled_date ? ` • ${formatDate(order.scheduled_date)}` : ""}
@@ -941,14 +981,24 @@ export default function JobsPage() {
                       <div style={systemBlockStyle}>
                         <div style={invoiceBlockTopStyle}>
                           <div style={notesLabelStyle}>INVOICE</div>
+
                           {invoice ? (
-                            <button
-                              type="button"
-                              style={ghostButtonStyle}
-                              onClick={() => cycleInvoiceStatus(invoice)}
-                            >
-                              Cycle Status
-                            </button>
+                            <div style={invoiceActionWrapStyle}>
+                              <button
+                                type="button"
+                                style={ghostButtonStyle}
+                                onClick={() => cycleInvoiceStatus(invoice)}
+                              >
+                                Cycle Status
+                              </button>
+                              <button
+                                type="button"
+                                style={primaryButtonStyle}
+                                onClick={() => router.push(`/dashboard/invoices/${invoice.id}`)}
+                              >
+                                Open Invoice
+                              </button>
+                            </div>
                           ) : (
                             <button
                               type="button"
@@ -1585,6 +1635,12 @@ const invoiceBlockTopStyle: React.CSSProperties = {
   gap: "10px",
   flexWrap: "wrap",
   marginBottom: "10px",
+};
+
+const invoiceActionWrapStyle: React.CSSProperties = {
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap",
 };
 
 const invoiceSummaryGridStyle: React.CSSProperties = {

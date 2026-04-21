@@ -22,6 +22,16 @@ type InventoryItem = {
   unitCost: number;
 };
 
+const CATEGORY_OPTIONS: InventoryCategory[] = [
+  "Coatings",
+  "Primers",
+  "Topcoats",
+  "Flakes",
+  "Pigments",
+  "Tools",
+  "Supplies",
+];
+
 export default function InventoryPage() {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [ready, setReady] = useState(false);
@@ -31,6 +41,10 @@ export default function InventoryPage() {
   const [stock, setStock] = useState(0);
   const [reorderLevel, setReorderLevel] = useState(0);
   const [unitCost, setUnitCost] = useState(0);
+
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<"All" | InventoryCategory>("All");
+  const [lowStockOnly, setLowStockOnly] = useState(false);
 
   useEffect(() => {
     try {
@@ -101,6 +115,30 @@ export default function InventoryPage() {
     };
   }, [items]);
 
+  const visibleItems = useMemo(() => {
+    let next = [...items];
+
+    const term = search.trim().toLowerCase();
+    if (term) {
+      next = next.filter((item) =>
+        [item.name, item.category, item.stock.toString(), item.unitCost.toString()]
+          .join(" ")
+          .toLowerCase()
+          .includes(term)
+      );
+    }
+
+    if (categoryFilter !== "All") {
+      next = next.filter((item) => item.category === categoryFilter);
+    }
+
+    if (lowStockOnly) {
+      next = next.filter((item) => item.stock <= item.reorderLevel);
+    }
+
+    return next.sort((a, b) => a.name.localeCompare(b.name));
+  }, [items, search, categoryFilter, lowStockOnly]);
+
   function slugify(value: string) {
     return value
       .toLowerCase()
@@ -158,25 +196,35 @@ export default function InventoryPage() {
     );
   }
 
+  function updateUnitCost(id: string, value: number) {
+    setItems((current) =>
+      current.map((item) =>
+        item.id === id ? { ...item, unitCost: value } : item
+      )
+    );
+  }
+
   function removeItem(id: string) {
     setItems((current) => current.filter((item) => item.id !== id));
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <p className="text-sm uppercase tracking-[0.25em] text-cyan-300">
+    <div className="space-y-6 md:space-y-8">
+      <div className="rounded-[28px] border border-white/10 bg-black/25 p-5 backdrop-blur-md md:p-7">
+        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300 md:text-sm">
           Inventory
         </p>
-        <h1 className="mt-2 text-3xl font-bold text-white">Inventory Tracking</h1>
-        <p className="mt-2 text-zinc-400">
-          Monitor stock levels, reorder alerts, and material value.
+        <h1 className="mt-2 text-4xl font-bold leading-none text-white md:text-5xl">
+          Inventory Tracking
+        </h1>
+        <p className="mt-3 max-w-2xl text-base leading-7 text-zinc-300">
+          Monitor stock levels, reorder alerts, and material value across your business.
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard title="Total Items" value={`${stats.totalItems}`} tone="cyan" />
-        <StatCard title="Low Stock Alerts" value={`${stats.lowStock}`} tone="lime" />
+        <StatCard title="Low Stock Alerts" value={`${stats.lowStock}`} tone="red" />
         <StatCard title="Units On Hand" value={`${stats.totalUnits}`} />
         <StatCard
           title="Inventory Value"
@@ -185,40 +233,111 @@ export default function InventoryPage() {
         />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <section className="rounded-2xl border border-white/10 bg-zinc-900 p-6">
-          <h2 className="text-xl font-semibold text-white">Current Stock</h2>
+      <div className="rounded-[28px] border border-white/10 bg-black/25 p-5 backdrop-blur-md md:p-6">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <input
+            type="text"
+            placeholder="Search inventory"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full max-w-xl rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-cyan-400"
+          />
+
+          <div className="grid gap-3 sm:grid-cols-3 xl:flex xl:flex-wrap">
+            <select
+              value={categoryFilter}
+              onChange={(e) =>
+                setCategoryFilter(e.target.value as "All" | InventoryCategory)
+              }
+              className="rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-cyan-400"
+            >
+              <option value="All">All Categories</option>
+              {CATEGORY_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="button"
+              onClick={() => setLowStockOnly((prev) => !prev)}
+              className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                lowStockOnly
+                  ? "border-red-400/30 bg-red-400/12 text-red-300"
+                  : "border-white/10 bg-black/40 text-zinc-300"
+              }`}
+            >
+              {lowStockOnly ? "Showing Low Stock" : "Low Stock Only"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSearch("");
+                setCategoryFilter("All");
+                setLowStockOnly(false);
+              }}
+              className="rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm font-semibold text-zinc-300 transition hover:border-cyan-400/20"
+            >
+              Clear Filters
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
+        <section className="rounded-[28px] border border-white/10 bg-black/25 p-5 backdrop-blur-md md:p-6">
+          <h2 className="text-xl font-semibold text-white md:text-2xl">
+            Current Stock
+          </h2>
           <p className="mt-1 text-sm text-zinc-400">
             Update counts as materials are used or restocked.
           </p>
 
           <div className="mt-6 space-y-4">
-            {items.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-white/10 p-6 text-zinc-400">
-                No inventory items yet. Add your first material on the right.
+            {visibleItems.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 p-6 text-zinc-400">
+                No inventory items match your filters.
               </div>
             ) : (
-              items.map((item) => {
+              visibleItems.map((item) => {
                 const isLow = item.stock <= item.reorderLevel;
 
                 return (
                   <div
                     key={item.id}
-                    className="rounded-2xl border border-white/10 bg-black/20 p-5"
+                    className="rounded-[24px] border border-white/10 bg-black/30 p-4 backdrop-blur-sm md:p-5"
                   >
-                    <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                      <div>
-                        <h3 className="text-lg font-semibold text-white">
-                          {item.name}
-                        </h3>
-                        <p className="mt-1 text-sm text-zinc-400">
-                          {item.category}
-                        </p>
-                        <StockBadge isLow={isLow} />
+                    <div className="flex flex-col gap-4">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div className="min-w-0">
+                          <h3 className="text-xl font-semibold text-white">
+                            {item.name}
+                          </h3>
+                          <p className="mt-1 text-sm text-zinc-400">
+                            {item.category}
+                          </p>
+                          <StockBadge isLow={isLow} />
+                        </div>
+
+                        <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+                          <div className="text-xs uppercase tracking-[0.18em] text-zinc-400">
+                            Item Value
+                          </div>
+                          <div className="mt-2 text-lg font-semibold text-cyan-300">
+                            ${(item.stock * item.unitCost).toLocaleString()}
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                        <Metric label="Unit Cost" value={`$${item.unitCost}`} />
+                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        <EditableMetric
+                          label="Unit Cost"
+                          value={item.unitCost}
+                          prefix="$"
+                          onChange={(value) => updateUnitCost(item.id, value)}
+                        />
                         <EditableMetric
                           label="Stock"
                           value={item.stock}
@@ -230,9 +349,9 @@ export default function InventoryPage() {
                           onChange={(value) => updateReorderLevel(item.id, value)}
                         />
                         <Metric
-                          label="Value"
-                          value={`$${(item.stock * item.unitCost).toLocaleString()}`}
-                          tone="cyan"
+                          label="Status"
+                          value={isLow ? "Low Stock" : "Healthy"}
+                          tone={isLow ? "red" : "cyan"}
                         />
                       </div>
                     </div>
@@ -241,7 +360,7 @@ export default function InventoryPage() {
                       <button
                         type="button"
                         onClick={() => removeItem(item.id)}
-                        className="rounded-lg border border-red-400/20 bg-red-400/10 px-4 py-2 text-sm text-red-300 hover:bg-red-400/20"
+                        className="rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-2 text-sm font-medium text-red-300 transition hover:bg-red-400/20"
                       >
                         Delete
                       </button>
@@ -255,9 +374,11 @@ export default function InventoryPage() {
 
         <form
           onSubmit={handleAddItem}
-          className="rounded-2xl border border-white/10 bg-zinc-900 p-6"
+          className="rounded-[28px] border border-white/10 bg-black/25 p-5 backdrop-blur-md md:p-6"
         >
-          <h2 className="text-xl font-semibold text-white">Add Inventory Item</h2>
+          <h2 className="text-xl font-semibold text-white md:text-2xl">
+            Add Inventory Item
+          </h2>
           <p className="mt-1 text-sm text-zinc-400">
             Create a new material and start tracking stock.
           </p>
@@ -267,7 +388,7 @@ export default function InventoryPage() {
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-cyan-400"
+                className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-cyan-400"
                 placeholder="Polyaspartic Topcoat"
               />
             </Field>
@@ -276,49 +397,47 @@ export default function InventoryPage() {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as InventoryCategory)}
-                className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-cyan-400"
+                className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-cyan-400"
               >
-                <option>Coatings</option>
-                <option>Primers</option>
-                <option>Topcoats</option>
-                <option>Flakes</option>
-                <option>Pigments</option>
-                <option>Tools</option>
-                <option>Supplies</option>
+                {CATEGORY_OPTIONS.map((option) => (
+                  <option key={option}>{option}</option>
+                ))}
               </select>
             </Field>
 
-            <Field label="Stock">
-              <input
-                type="number"
-                value={stock}
-                onChange={(e) => setStock(Number(e.target.value) || 0)}
-                className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-cyan-400"
-              />
-            </Field>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Field label="Stock">
+                <input
+                  type="number"
+                  value={stock}
+                  onChange={(e) => setStock(Number(e.target.value) || 0)}
+                  className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-cyan-400"
+                />
+              </Field>
 
-            <Field label="Reorder Level">
-              <input
-                type="number"
-                value={reorderLevel}
-                onChange={(e) => setReorderLevel(Number(e.target.value) || 0)}
-                className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-cyan-400"
-              />
-            </Field>
+              <Field label="Reorder Level">
+                <input
+                  type="number"
+                  value={reorderLevel}
+                  onChange={(e) => setReorderLevel(Number(e.target.value) || 0)}
+                  className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-cyan-400"
+                />
+              </Field>
 
-            <Field label="Unit Cost">
-              <input
-                type="number"
-                value={unitCost}
-                onChange={(e) => setUnitCost(Number(e.target.value) || 0)}
-                className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-cyan-400"
-              />
-            </Field>
+              <Field label="Unit Cost">
+                <input
+                  type="number"
+                  value={unitCost}
+                  onChange={(e) => setUnitCost(Number(e.target.value) || 0)}
+                  className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-cyan-400"
+                />
+              </Field>
+            </div>
           </div>
 
           <button
             type="submit"
-            className="mt-6 w-full rounded-xl bg-cyan-400 px-5 py-3 font-semibold text-black hover:bg-cyan-300"
+            className="mt-6 w-full rounded-xl bg-cyan-400 px-5 py-3 font-semibold text-black transition hover:bg-cyan-300"
           >
             Save Item
           </button>
@@ -335,18 +454,20 @@ function StatCard({
 }: {
   title: string;
   value: string;
-  tone?: "default" | "cyan" | "lime";
+  tone?: "default" | "cyan" | "red";
 }) {
   const toneClass =
     tone === "cyan"
       ? "text-cyan-300"
-      : tone === "lime"
-      ? "text-lime-300"
+      : tone === "red"
+      ? "text-red-300"
       : "text-white";
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-zinc-900 p-5">
-      <div className="text-sm text-zinc-400">{title}</div>
+    <div className="rounded-[24px] border border-white/10 bg-black/25 p-5 backdrop-blur-md">
+      <div className="text-xs uppercase tracking-[0.18em] text-zinc-400">
+        {title}
+      </div>
       <div className={`mt-3 text-3xl font-bold ${toneClass}`}>{value}</div>
     </div>
   );
@@ -359,13 +480,20 @@ function Metric({
 }: {
   label: string;
   value: string;
-  tone?: "default" | "cyan";
+  tone?: "default" | "cyan" | "red";
 }) {
-  const toneClass = tone === "cyan" ? "text-cyan-300" : "text-white";
+  const toneClass =
+    tone === "cyan"
+      ? "text-cyan-300"
+      : tone === "red"
+      ? "text-red-300"
+      : "text-white";
 
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-      <div className="text-xs text-zinc-400">{label}</div>
+      <div className="text-xs uppercase tracking-[0.14em] text-zinc-400">
+        {label}
+      </div>
       <div className={`mt-2 text-sm font-semibold ${toneClass}`}>{value}</div>
     </div>
   );
@@ -375,20 +503,27 @@ function EditableMetric({
   label,
   value,
   onChange,
+  prefix = "",
 }: {
   label: string;
   value: number;
   onChange: (value: number) => void;
+  prefix?: string;
 }) {
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-      <div className="text-xs text-zinc-400">{label}</div>
-      <input
-        type="number"
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value) || 0)}
-        className="mt-2 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
-      />
+      <div className="text-xs uppercase tracking-[0.14em] text-zinc-400">
+        {label}
+      </div>
+      <div className="mt-2 flex items-center gap-2">
+        {prefix ? <span className="text-sm text-zinc-400">{prefix}</span> : null}
+        <input
+          type="number"
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value) || 0)}
+          className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-400"
+        />
+      </div>
     </div>
   );
 }
@@ -398,8 +533,8 @@ function StockBadge({ isLow }: { isLow: boolean }) {
     <div
       className={
         isLow
-          ? "mt-3 inline-flex rounded-full border border-red-400/20 bg-red-400/10 px-3 py-1 text-xs text-red-300"
-          : "mt-3 inline-flex rounded-full border border-lime-400/20 bg-lime-400/10 px-3 py-1 text-xs text-lime-300"
+          ? "mt-3 inline-flex rounded-full border border-red-400/20 bg-red-400/10 px-3 py-1 text-xs font-medium text-red-300"
+          : "mt-3 inline-flex rounded-full border border-lime-400/20 bg-lime-400/10 px-3 py-1 text-xs font-medium text-lime-300"
       }
     >
       {isLow ? "Low Stock" : "Healthy"}

@@ -1,33 +1,55 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../../lib/supabase";
+import { getCurrentProfile } from "../../lib/auth";
 
-export default function AuthCallbackPage() {
+export default function DashboardPage() {
   const router = useRouter();
+  const [checkingAccess, setCheckingAccess] = useState(true);
 
   useEffect(() => {
     let mounted = true;
 
-    async function checkSession() {
-      const { data } = await supabase.auth.getSession();
+    async function checkAccess() {
+      const profile = await getCurrentProfile();
 
       if (!mounted) return;
 
-      if (data.session) {
-        router.replace("/dashboard");
-      } else {
+      if (!profile) {
         router.replace("/login");
+        return;
       }
+
+      const role = String(profile.role || "").toLowerCase();
+
+      if (role === "installer") {
+        router.replace("/installer");
+        return;
+      }
+
+      if (role === "customer") {
+        router.replace("/portal");
+        return;
+      }
+
+      setCheckingAccess(false);
     }
 
-    checkSession();
+    checkAccess();
 
     return () => {
       mounted = false;
     };
   }, [router]);
 
-  return null;
+  if (checkingAccess) {
+    return <div className="text-white p-6">Checking access...</div>;
+  }
+
+  return (
+    <div>
+      {/* existing dashboard content */}
+    </div>
+  );
 }

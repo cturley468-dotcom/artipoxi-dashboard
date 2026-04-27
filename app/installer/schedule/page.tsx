@@ -67,7 +67,7 @@ export default function InstallerSchedulePage() {
     const { data, error } = await supabase
       .from("schedule_assignments")
       .select("*")
-      .eq("assigned_installer_id", installerId)
+      .eq("installer_user_id", installerId)
       .order("assignment_date", { ascending: true });
 
     if (error) {

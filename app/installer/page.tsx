@@ -106,8 +106,8 @@ export default function InstallerPage() {
     setMessage("Work order updated.");
   }
 
-  const installerDisplayName =
-    profile?.full_name ||
+  const installerName =
+    profile?.full_name?.trim() ||
     profile?.email?.split("@")[0] ||
     "Installer";
 
@@ -126,13 +126,7 @@ export default function InstallerPage() {
       return new Date(item.scheduled_date).toDateString() === todayKey;
     }).length;
 
-    return {
-      open,
-      inProgress,
-      completed,
-      todayCount,
-      total: workOrders.length,
-    };
+    return { open, inProgress, completed, todayCount, total: workOrders.length };
   }, [workOrders]);
 
   const visibleWorkOrders = useMemo(() => {
@@ -164,304 +158,263 @@ export default function InstallerPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#020711] p-5 text-white">
-        <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5">
-          Loading installer portal...
-        </div>
+      <main style={styles.page}>
+        <div style={styles.loadingCard}>Loading installer portal...</div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(0,153,255,0.18),transparent_32%),linear-gradient(135deg,#020711,#06111f_55%,#020711)] text-white">
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col md:flex-row">
-        <aside className="flex items-center justify-between border-b border-white/10 bg-black/20 p-4 md:sticky md:top-0 md:min-h-screen md:w-[230px] md:flex-col md:items-start md:border-b-0 md:border-r md:p-5">
-          <div className="flex items-center gap-3 md:block">
-            <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-white p-2 md:h-20 md:w-20">
+    <main style={styles.page}>
+      <div style={styles.wrap}>
+        <header style={styles.topBar}>
+          <div style={styles.brandBlock}>
+            <div style={styles.logoBox}>
               <Image
                 src="/branding/app-logo.png"
                 alt="ArtiPoxi Logo"
-                width={100}
-                height={100}
-                className="h-full w-full object-contain"
+                width={96}
+                height={96}
+                style={styles.logo}
                 priority
               />
             </div>
 
-            <div className="md:mt-5">
-              <h2 className="text-xl font-black md:text-2xl">ArtiPoxi</h2>
-              <p className="text-xs font-semibold text-zinc-400">
-                Installer Portal
-              </p>
+            <div>
+              <div style={styles.brandName}>ARTIPOXI</div>
+              <div style={styles.brandSub}>Installer Portal</div>
             </div>
           </div>
 
-          <div className="hidden w-full md:mt-8 md:block">
-            <div className="rounded-2xl bg-cyan-400 px-4 py-3 text-sm font-black text-white shadow-[0_0_30px_rgba(34,211,238,0.2)]">
-              Assigned Work
-            </div>
-          </div>
-
-          <button
-            onClick={handleLogout}
-            className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm font-black text-white transition hover:border-cyan-400/30 md:mt-auto md:w-full"
-          >
+          <button onClick={handleLogout} style={styles.logoutButton}>
             Logout
           </button>
-        </aside>
+        </header>
 
-        <section className="flex-1 px-4 py-5 md:px-6 md:py-8">
-          <header className="mb-6">
-            <div className="text-[11px] font-black uppercase tracking-[0.22em] text-cyan-300">
-              Installer Access
+        <section style={styles.heroCard}>
+          <div style={styles.kicker}>INSTALLER ACCESS</div>
+
+          <div style={styles.heroTop}>
+            <div>
+              <h1 style={styles.title}>{installerName} Workspace</h1>
+              <p style={styles.subtitle}>
+                View assigned work orders, track today’s jobs, update progress,
+                and stay locked in from the field.
+              </p>
             </div>
 
-            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <h1 className="text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">
-                  {installerDisplayName} Workspace
-                </h1>
-                <p className="mt-3 max-w-2xl text-sm leading-7 text-zinc-400 sm:text-base">
-                  View assigned work orders, track today’s jobs, update progress,
-                  and stay locked in from the field.
-                </p>
-              </div>
-
-              <span className="w-fit rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-xs font-black text-cyan-200">
-                {stats.total} Work Order{stats.total === 1 ? "" : "s"}
-              </span>
+            <div style={styles.totalPill}>
+              {stats.total} Work Order{stats.total === 1 ? "" : "s"}
             </div>
-          </header>
+          </div>
+        </section>
 
-          <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <StatCard label="Today" value={String(stats.todayCount)} />
-            <StatCard label="Open" value={String(stats.open)} />
-            <StatCard label="In Progress" value={String(stats.inProgress)} />
-            <StatCard label="Completed" value={String(stats.completed)} />
-          </section>
+        <section style={styles.statsGrid}>
+          <StatCard label="Today" value={stats.todayCount} />
+          <StatCard label="Open" value={stats.open} />
+          <StatCard label="In Progress" value={stats.inProgress} />
+          <StatCard label="Completed" value={stats.completed} />
+        </section>
 
-          <section className="mt-5 rounded-[24px] border border-white/10 bg-white/[0.05] p-4 shadow-2xl">
-            <input
-              type="text"
-              placeholder="Search work orders"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-500 focus:border-cyan-400/40"
-            />
+        <section style={styles.controlCard}>
+          <input
+            type="text"
+            placeholder="Search work orders"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={styles.searchInput}
+          />
 
-            <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-              <FilterButton
-                active={filter === "all"}
-                label="All"
-                onClick={() => setFilter("all")}
-              />
-              <FilterButton
-                active={filter === "open"}
-                label="Open"
-                onClick={() => setFilter("open")}
-              />
-              <FilterButton
-                active={filter === "in_progress"}
-                label="In Progress"
-                onClick={() => setFilter("in_progress")}
-              />
-              <FilterButton
-                active={filter === "completed"}
-                label="Completed"
-                onClick={() => setFilter("completed")}
-              />
+          <div style={styles.filterRow}>
+            <FilterButton active={filter === "all"} onClick={() => setFilter("all")}>
+              All
+            </FilterButton>
+            <FilterButton active={filter === "open"} onClick={() => setFilter("open")}>
+              Open
+            </FilterButton>
+            <FilterButton
+              active={filter === "in_progress"}
+              onClick={() => setFilter("in_progress")}
+            >
+              In Progress
+            </FilterButton>
+            <FilterButton
+              active={filter === "completed"}
+              onClick={() => setFilter("completed")}
+            >
+              Completed
+            </FilterButton>
+          </div>
+        </section>
+
+        {message && <div style={styles.message}>{message}</div>}
+
+        <section style={styles.orders}>
+          {visibleWorkOrders.length === 0 ? (
+            <div style={styles.emptyCard}>
+              <h2 style={styles.emptyTitle}>No matching work orders found.</h2>
+              <p style={styles.emptyText}>
+                Assigned jobs will appear here once they are scheduled.
+              </p>
             </div>
-          </section>
+          ) : (
+            visibleWorkOrders.map((order) => {
+              const isWorking = workingId === order.id;
 
-          {message && (
-            <div className="mt-5 rounded-[20px] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-zinc-300">
-              {message}
-            </div>
-          )}
+              return (
+                <article key={order.id} style={styles.orderCard}>
+                  <div style={styles.orderHeader}>
+                    <div>
+                      <h2 style={styles.orderTitle}>
+                        {order.title || "Untitled Work Order"}
+                      </h2>
 
-          <section className="mt-5 space-y-4">
-            {visibleWorkOrders.length === 0 ? (
-              <div className="rounded-[24px] border border-white/10 bg-white/[0.06] p-6 text-zinc-400">
-                <h3 className="text-lg font-black text-white">
-                  No matching work orders found.
-                </h3>
-                <p className="mt-2 text-sm">
-                  Assigned jobs will appear here once they are scheduled.
-                </p>
-              </div>
-            ) : (
-              visibleWorkOrders.map((order) => {
-                const isWorking = workingId === order.id;
-
-                return (
-                  <div
-                    key={order.id}
-                    className="rounded-[26px] border border-white/10 bg-white/[0.06] p-5 shadow-2xl"
-                  >
-                    <div className="flex flex-col gap-5">
-                      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                        <div className="min-w-0">
-                          <div className="text-2xl font-black tracking-tight text-white md:text-3xl">
-                            {order.title || "Untitled Work Order"}
-                          </div>
-
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            <span className="rounded-full border border-white/10 bg-black/20 px-3 py-2 text-xs font-bold text-zinc-300">
-                              {order.assigned_installer_name ||
-                                installerDisplayName}
-                            </span>
-                            <StatusPill status={order.status} />
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
-                          <StatusButton
-                            active={order.status === "Open"}
-                            label={
-                              isWorking && order.status !== "Open"
-                                ? "Updating..."
-                                : "Open"
-                            }
-                            onClick={() => updateStatus(order.id, "Open")}
-                          />
-                          <StatusButton
-                            active={order.status === "In Progress"}
-                            label={
-                              isWorking && order.status !== "In Progress"
-                                ? "Updating..."
-                                : "In Progress"
-                            }
-                            onClick={() =>
-                              updateStatus(order.id, "In Progress")
-                            }
-                          />
-                          <StatusButton
-                            active={order.status === "Completed"}
-                            label={
-                              isWorking && order.status !== "Completed"
-                                ? "Updating..."
-                                : "Completed"
-                            }
-                            onClick={() =>
-                              updateStatus(order.id, "Completed")
-                            }
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                        <InfoCard
-                          title="Scheduled Date"
-                          value={
-                            order.scheduled_date
-                              ? formatDate(order.scheduled_date)
-                              : "Not scheduled"
-                          }
-                        />
-                        <InfoCard title="Status" value={order.status} />
-                        <InfoCard
-                          title="Description"
-                          value={order.description || "No description provided."}
-                        />
-                        <InfoCard
-                          title="Materials"
-                          value={order.materials || "No materials listed."}
-                        />
+                      <div style={styles.pillRow}>
+                        <span style={styles.darkPill}>
+                          {order.assigned_installer_name || installerName}
+                        </span>
+                        <StatusPill status={order.status} />
                       </div>
                     </div>
                   </div>
-                );
-              })
-            )}
-          </section>
+
+                  <div style={styles.statusButtons}>
+                    <StatusButton
+                      active={order.status === "Open"}
+                      onClick={() => updateStatus(order.id, "Open")}
+                    >
+                      {isWorking && order.status !== "Open" ? "Updating..." : "Open"}
+                    </StatusButton>
+
+                    <StatusButton
+                      active={order.status === "In Progress"}
+                      onClick={() => updateStatus(order.id, "In Progress")}
+                    >
+                      {isWorking && order.status !== "In Progress"
+                        ? "Updating..."
+                        : "In Progress"}
+                    </StatusButton>
+
+                    <StatusButton
+                      active={order.status === "Completed"}
+                      onClick={() => updateStatus(order.id, "Completed")}
+                    >
+                      {isWorking && order.status !== "Completed"
+                        ? "Updating..."
+                        : "Completed"}
+                    </StatusButton>
+                  </div>
+
+                  <div style={styles.infoGrid}>
+                    <InfoCard
+                      title="Scheduled Date"
+                      value={
+                        order.scheduled_date
+                          ? formatDate(order.scheduled_date)
+                          : "Not scheduled"
+                      }
+                    />
+                    <InfoCard title="Status" value={order.status} />
+                    <InfoCard
+                      title="Description"
+                      value={order.description || "No description provided."}
+                    />
+                    <InfoCard
+                      title="Materials"
+                      value={order.materials || "No materials listed."}
+                    />
+                  </div>
+                </article>
+              );
+            })
+          )}
         </section>
       </div>
     </main>
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-[22px] border border-white/10 bg-white/[0.06] p-4 shadow-2xl sm:p-5">
-      <div className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-500 sm:text-[11px]">
-        {label}
-      </div>
-      <div className="mt-3 text-3xl font-black text-white">{value}</div>
-    </div>
-  );
-}
-
-function InfoCard({ title, value }: { title: string; value: string }) {
-  return (
-    <div className="rounded-[18px] border border-white/10 bg-black/20 p-4">
-      <div className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-500">
-        {title}
-      </div>
-      <div className="mt-3 whitespace-pre-wrap text-sm leading-6 text-white">
-        {value}
-      </div>
+    <div style={styles.statCard}>
+      <div style={styles.statLabel}>{label}</div>
+      <div style={styles.statValue}>{value}</div>
     </div>
   );
 }
 
 function FilterButton({
   active,
-  label,
+  children,
   onClick,
 }: {
   active: boolean;
-  label: string;
+  children: React.ReactNode;
   onClick: () => void;
 }) {
   return (
     <button
       onClick={onClick}
-      className={`rounded-2xl border px-4 py-3 text-sm font-black transition ${
-        active
-          ? "border-cyan-400/30 bg-cyan-400 text-white shadow-[0_0_22px_rgba(34,211,238,0.16)]"
-          : "border-white/10 bg-black/20 text-zinc-300 hover:border-cyan-400/30"
-      }`}
+      style={{
+        ...styles.filterButton,
+        ...(active ? styles.activeButton : {}),
+      }}
     >
-      {label}
+      {children}
     </button>
   );
 }
 
 function StatusButton({
   active,
-  label,
+  children,
   onClick,
 }: {
   active: boolean;
-  label: string;
+  children: React.ReactNode;
   onClick: () => void;
 }) {
   return (
     <button
       onClick={onClick}
-      className={`rounded-2xl border px-4 py-3 text-sm font-black transition ${
-        active
-          ? "border-cyan-400/30 bg-cyan-400 text-white shadow-[0_0_22px_rgba(34,211,238,0.16)]"
-          : "border-white/10 bg-black/20 text-zinc-300 hover:border-cyan-400/30"
-      }`}
+      style={{
+        ...styles.statusButton,
+        ...(active ? styles.activeButton : {}),
+      }}
     >
-      {label}
+      {children}
     </button>
   );
 }
 
 function StatusPill({ status }: { status: WorkOrder["status"] }) {
-  const className =
+  const color =
     status === "Completed"
-      ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
+      ? "#34d399"
       : status === "In Progress"
-      ? "border-amber-400/30 bg-amber-400/10 text-amber-300"
-      : "border-cyan-400/30 bg-cyan-400/10 text-cyan-300";
+      ? "#fbbf24"
+      : "#67e8f9";
 
   return (
-    <span className={`rounded-full border px-3 py-2 text-xs font-black ${className}`}>
+    <span
+      style={{
+        ...styles.statusPill,
+        color,
+        borderColor: `${color}55`,
+        background: `${color}16`,
+      }}
+    >
       {status}
     </span>
+  );
+}
+
+function InfoCard({ title, value }: { title: string; value: string }) {
+  return (
+    <div style={styles.infoCard}>
+      <div style={styles.infoTitle}>{title}</div>
+      <div style={styles.infoValue}>{value}</div>
+    </div>
   );
 }
 
@@ -472,3 +425,294 @@ function formatDate(value: string) {
     return value;
   }
 }
+
+const styles: Record<string, React.CSSProperties> = {
+  page: {
+    minHeight: "100vh",
+    background:
+      "radial-gradient(circle at top left, rgba(0, 198, 255, 0.18), transparent 35%), linear-gradient(135deg, #020713 0%, #061524 50%, #020713 100%)",
+    color: "white",
+    fontFamily:
+      "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+  },
+  wrap: {
+    width: "100%",
+    maxWidth: 1180,
+    margin: "0 auto",
+    padding: "22px 16px 40px",
+  },
+  topBar: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 14,
+    alignItems: "center",
+    marginBottom: 22,
+  },
+  brandBlock: {
+    display: "flex",
+    alignItems: "center",
+    gap: 16,
+    minWidth: 0,
+  },
+  logoBox: {
+    width: 76,
+    height: 76,
+    borderRadius: 24,
+    background: "#ffffff",
+    padding: 10,
+    boxShadow: "0 20px 50px rgba(0, 183, 255, 0.16)",
+    flex: "0 0 auto",
+  },
+  logo: {
+    width: "100%",
+    height: "100%",
+    objectFit: "contain",
+    display: "block",
+  },
+  brandName: {
+    letterSpacing: "0.22em",
+    fontWeight: 900,
+    fontSize: 18,
+  },
+  brandSub: {
+    color: "#cbd5e1",
+    fontSize: 15,
+    marginTop: 5,
+  },
+  logoutButton: {
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(255,255,255,0.08)",
+    color: "white",
+    borderRadius: 16,
+    padding: "12px 16px",
+    fontWeight: 900,
+    cursor: "pointer",
+  },
+  heroCard: {
+    border: "1px solid rgba(255,255,255,0.1)",
+    background:
+      "linear-gradient(180deg, rgba(22, 38, 55, 0.9), rgba(15, 26, 40, 0.9))",
+    borderRadius: 34,
+    padding: "28px 24px",
+    boxShadow: "0 24px 80px rgba(0,0,0,0.32)",
+  },
+  kicker: {
+    color: "#7dd3fc",
+    fontSize: 12,
+    fontWeight: 900,
+    letterSpacing: "0.28em",
+    marginBottom: 12,
+  },
+  heroTop: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 18,
+    alignItems: "flex-start",
+    flexWrap: "wrap",
+  },
+  title: {
+    margin: 0,
+    fontSize: "clamp(38px, 8vw, 72px)",
+    lineHeight: 0.95,
+    letterSpacing: "-0.05em",
+    fontWeight: 950,
+  },
+  subtitle: {
+    margin: "18px 0 0",
+    color: "#cbd5e1",
+    fontSize: "clamp(17px, 4vw, 22px)",
+    lineHeight: 1.55,
+    maxWidth: 780,
+  },
+  totalPill: {
+    border: "1px solid rgba(103,232,249,0.35)",
+    background: "rgba(103,232,249,0.12)",
+    color: "#a5f3fc",
+    borderRadius: 999,
+    padding: "10px 14px",
+    fontWeight: 900,
+    whiteSpace: "nowrap",
+  },
+  statsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+    gap: 14,
+    marginTop: 18,
+  },
+  statCard: {
+    border: "1px solid rgba(255,255,255,0.1)",
+    background: "rgba(255,255,255,0.07)",
+    borderRadius: 26,
+    padding: 18,
+    minHeight: 115,
+    boxShadow: "0 18px 60px rgba(0,0,0,0.25)",
+  },
+  statLabel: {
+    color: "#9ca3af",
+    textTransform: "uppercase",
+    letterSpacing: "0.16em",
+    fontSize: 11,
+    fontWeight: 900,
+  },
+  statValue: {
+    marginTop: 12,
+    fontSize: 38,
+    fontWeight: 950,
+  },
+  controlCard: {
+    border: "1px solid rgba(255,255,255,0.1)",
+    background: "rgba(255,255,255,0.06)",
+    borderRadius: 28,
+    padding: 16,
+    marginTop: 18,
+  },
+  searchInput: {
+    width: "100%",
+    boxSizing: "border-box",
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(0,0,0,0.22)",
+    color: "white",
+    borderRadius: 18,
+    padding: "15px 16px",
+    fontSize: 16,
+    outline: "none",
+  },
+  filterRow: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 14,
+  },
+  filterButton: {
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(0,0,0,0.25)",
+    color: "#e5e7eb",
+    borderRadius: 16,
+    padding: "12px 16px",
+    fontWeight: 900,
+    cursor: "pointer",
+  },
+  activeButton: {
+    borderColor: "rgba(34,211,238,0.45)",
+    background: "linear-gradient(135deg, #00d5ff, #008cff)",
+    color: "#00111f",
+    boxShadow: "0 0 28px rgba(34,211,238,0.22)",
+  },
+  message: {
+    marginTop: 18,
+    border: "1px solid rgba(255,255,255,0.1)",
+    background: "rgba(255,255,255,0.06)",
+    borderRadius: 20,
+    padding: 14,
+    color: "#cbd5e1",
+  },
+  orders: {
+    marginTop: 18,
+    display: "grid",
+    gap: 16,
+  },
+  emptyCard: {
+    border: "1px solid rgba(255,255,255,0.1)",
+    background: "rgba(255,255,255,0.07)",
+    borderRadius: 30,
+    padding: 24,
+    boxShadow: "0 24px 80px rgba(0,0,0,0.28)",
+  },
+  emptyTitle: {
+    margin: 0,
+    fontSize: 24,
+    fontWeight: 950,
+  },
+  emptyText: {
+    margin: "10px 0 0",
+    color: "#cbd5e1",
+    fontSize: 16,
+  },
+  orderCard: {
+    border: "1px solid rgba(255,255,255,0.1)",
+    background: "rgba(255,255,255,0.07)",
+    borderRadius: 30,
+    padding: 22,
+    boxShadow: "0 24px 80px rgba(0,0,0,0.28)",
+  },
+  orderHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 16,
+  },
+  orderTitle: {
+    margin: 0,
+    fontSize: 28,
+    fontWeight: 950,
+  },
+  pillRow: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 12,
+  },
+  darkPill: {
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(0,0,0,0.24)",
+    borderRadius: 999,
+    padding: "8px 12px",
+    color: "#d1d5db",
+    fontSize: 13,
+    fontWeight: 800,
+  },
+  statusPill: {
+    border: "1px solid",
+    borderRadius: 999,
+    padding: "8px 12px",
+    fontSize: 13,
+    fontWeight: 900,
+  },
+  statusButtons: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 18,
+  },
+  statusButton: {
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(0,0,0,0.25)",
+    color: "#e5e7eb",
+    borderRadius: 16,
+    padding: "12px 16px",
+    fontWeight: 900,
+    cursor: "pointer",
+  },
+  infoGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+    gap: 12,
+    marginTop: 18,
+  },
+  infoCard: {
+    border: "1px solid rgba(255,255,255,0.1)",
+    background: "rgba(0,0,0,0.22)",
+    borderRadius: 20,
+    padding: 16,
+  },
+  infoTitle: {
+    color: "#9ca3af",
+    textTransform: "uppercase",
+    letterSpacing: "0.14em",
+    fontSize: 10,
+    fontWeight: 900,
+  },
+  infoValue: {
+    marginTop: 10,
+    color: "#ffffff",
+    fontSize: 14,
+    lineHeight: 1.55,
+    whiteSpace: "pre-wrap",
+  },
+  loadingCard: {
+    margin: 16,
+    border: "1px solid rgba(255,255,255,0.1)",
+    background: "rgba(255,255,255,0.06)",
+    borderRadius: 24,
+    padding: 20,
+  },
+};

@@ -19,6 +19,7 @@ type ScheduleItem = {
   status: string | null;
   notes: string | null;
   assigned_installer_id: string | null;
+  work_order_id: string | null;
 };
 
 export default function InstallerSchedulePage() {
@@ -162,48 +163,45 @@ export default function InstallerSchedulePage() {
               </div>
             ) : (
               assignments.map((item) => (
-                <article key={item.id} className={styles.assignmentCard}>
-                  <div className={styles.assignmentTop}>
-                    <p className={styles.assignmentId}>
-                      {item.assignment_date}
-                    </p>
-                    <span className={styles.assignmentCrew}>
-                      {item.crew ?? "—"}
-                    </span>
-                  </div>
+               <Link
+  key={item.id}
+  href={
+    item.work_order_id
+      ? `/installer/work-orders/${item.work_order_id}`
+      : "/installer/work-orders"
+  }
+  className={styles.assignmentCard}
+>
+  <div className={styles.assignmentTop}>
+    <p className={styles.assignmentId}>{item.assignment_date}</p>
+    <span className={styles.assignmentCrew}>{item.crew ?? "—"}</span>
+  </div>
 
-                  <h3 className={styles.assignmentTitle}>{item.title}</h3>
+  <h3 className={styles.assignmentTitle}>{item.title}</h3>
 
-                  <div className={styles.assignmentMeta}>
-                    <div className={styles.metaItem}>
-                      <span className={styles.metaLabel}>Client</span>
-                      <span className={styles.metaValue}>
-                        {item.client_name ?? "—"}
-                      </span>
-                    </div>
+  <div className={styles.assignmentMeta}>
+    <div className={styles.metaItem}>
+      <span className={styles.metaLabel}>Client</span>
+      <span className={styles.metaValue}>{item.client_name ?? "—"}</span>
+    </div>
 
-                    <div className={styles.metaItem}>
-                      <span className={styles.metaLabel}>Time</span>
-                      <span className={styles.metaValue}>
-                        {item.assignment_time ?? "—"}
-                      </span>
-                    </div>
+    <div className={styles.metaItem}>
+      <span className={styles.metaLabel}>Time</span>
+      <span className={styles.metaValue}>{item.assignment_time ?? "—"}</span>
+    </div>
 
-                    <div className={styles.metaItem}>
-                      <span className={styles.metaLabel}>Location</span>
-                      <span className={styles.metaValue}>
-                        {item.location ?? "—"}
-                      </span>
-                    </div>
+    <div className={styles.metaItem}>
+      <span className={styles.metaLabel}>Location</span>
+      <span className={styles.metaValue}>{item.location ?? "—"}</span>
+    </div>
 
-                    <div className={styles.metaItem}>
-                      <span className={styles.metaLabel}>Status</span>
-                      <span className={styles.metaValue}>
-                        {item.status ?? "—"}
-                      </span>
-                    </div>
-                  </div>
-                </article>
+    <div className={styles.metaItem}>
+      <span className={styles.metaLabel}>Status</span>
+      <span className={styles.metaValue}>{item.status ?? "—"}</span>
+    </div>
+  </div>
+</Link>
+
               ))
             )}
           </section>

@@ -6,6 +6,12 @@ import { supabase } from "../../lib/supabase";
 
 const JOBS_STORAGE_KEY = "artipoxi_jobs";
 
+type InstallerOption = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+};
+
 type Job = {
   id: string;
   quote_request_id: string | null;
@@ -23,6 +29,8 @@ type Job = {
   scheduled_date?: string | null;
   scheduled_time?: string | null;
   installer?: string | null;
+  assigned_installer_id?: string | null;
+  assigned_installer_name?: string | null;
 };
 
 type Invoice = {
@@ -66,6 +74,7 @@ type NewJobForm = {
   notes: string;
   value: string;
   installer: string;
+  assigned_installer_id: string;
   scheduled_date: string;
   scheduled_time: string;
 };
@@ -80,12 +89,14 @@ type EditJobForm = {
   notes: string;
   value: string;
   installer: string;
+  assigned_installer_id: string;
   scheduled_date: string;
   scheduled_time: string;
 };
 
 function getPhotoUrl(pathOrUrl: string) {
   if (!pathOrUrl) return "";
+
   if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
     return pathOrUrl;
   }
@@ -100,6 +111,7 @@ export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [workOrders, setWorkOrders] = useState<WorkOrderLite[]>([]);
+  const [installerOptions, setInstallerOptions] = useState<InstallerOption[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -121,6 +133,7 @@ export default function JobsPage() {
     notes: "",
     value: "",
     installer: "",
+    assigned_installer_id: "",
     scheduled_date: "",
     scheduled_time: "",
   });
@@ -135,6 +148,7 @@ export default function JobsPage() {
     notes: "",
     value: "",
     installer: "",
+    assigned_installer_id: "",
     scheduled_date: "",
     scheduled_time: "",
   });
@@ -162,6 +176,7 @@ export default function JobsPage() {
     }
 
     handleResize();
+
     window.addEventListener("resize", handleResize);
     window.addEventListener("keydown", handleEscape);
     window.addEventListener("click", handleWindowClick);
@@ -172,6 +187,16 @@ export default function JobsPage() {
       window.removeEventListener("click", handleWindowClick);
     };
   }, []);
+
+  function getSelectedInstaller(installerId: string) {
+    const installer = installerOptions.find((item) => item.id === installerId);
+
+    return {
+      assigned_installer_id: installer?.id || null,
+      assigned_installer_name: installer?.full_name || installer?.email || null,
+      installer: installer?.full_name || installer?.email || null,
+    };
+  }
 
   function syncJobsToScheduleStorage(nextJobs: Job[]) {
     try {
@@ -184,8 +209,10 @@ export default function JobsPage() {
         email: job.email ?? "",
         location: job.location ?? "",
         city: job.location ?? "",
-        installer: job.installer ?? "Unassigned",
-        crew: job.installer ?? "Unassigned",
+        installer: job.installer ?? job.assigned_installer_name ?? "Unassigned",
+        crew: job.installer ?? job.assigned_installer_name ?? "Unassigned",
+        assigned_installer_id: job.assigned_installer_id ?? null,
+        assigned_installer_name: job.assigned_installer_name ?? null,
         system: job.system_type ?? "Epoxy System",
         project_type: job.system_type ?? "Epoxy System",
         notes: job.notes ?? "",
@@ -210,14 +237,20 @@ export default function JobsPage() {
     setLoading(true);
     setMessage("");
 
-    const [jobsRes, invoicesRes, workOrdersRes] = await Promise.all([
-      supabase.from("jobs").select("*").order("created_at", { ascending: false }),
-      supabase.from("invoices").select("*").order("created_at", { ascending: false }),
-      supabase
-        .from("work_orders")
-        .select("id, job_id, title, status, scheduled_date, assigned_installer_name")
-        .order("created_at", { ascending: false }),
-    ]);
+    const [jobsRes, invoicesRes, workOrdersRes, installersRes] =
+      await Promise.all([
+        supabase.from("jobs").select("*").order("created_at", { ascending: false }),
+        supabase.from("invoices").select("*").order("created_at", { ascending: false }),
+        supabase
+          .from("work_orders")
+          .select("id, job_id, title, status, scheduled_date, assigned_installer_name")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("profiles")
+          .select("id, full_name, email")
+          .eq("role", "installer")
+          .order("full_name", { ascending: true }),
+      ]);
 
     if (jobsRes.error) {
       console.error("Failed to load jobs:", jobsRes.error);
@@ -231,7 +264,12 @@ export default function JobsPage() {
       ...job,
       scheduled_date: (job as any).scheduled_date ?? null,
       scheduled_time: (job as any).scheduled_time ?? null,
-      installer: (job as any).installer ?? null,
+      installer:
+        (job as any).installer ??
+        (job as any).assigned_installer_name ??
+        null,
+      assigned_installer_id: (job as any).assigned_installer_id ?? null,
+      assigned_installer_name: (job as any).assigned_installer_name ?? null,
     }));
 
     setJobs(nextJobs);
@@ -249,6 +287,13 @@ export default function JobsPage() {
       setWorkOrders([]);
     } else {
       setWorkOrders((workOrdersRes.data as WorkOrderLite[]) || []);
+    }
+
+    if (installersRes.error) {
+      console.error("Failed to load installers:", installersRes.error);
+      setInstallerOptions([]);
+    } else {
+      setInstallerOptions((installersRes.data as InstallerOption[]) || []);
     }
 
     setLoading(false);
@@ -285,6 +330,101 @@ export default function JobsPage() {
     return uploadedUrls;
   }
 
+  async function ensureWorkOrderAndSchedule(job: Job) {
+    const assignedInstallerId = job.assigned_installer_id || null;
+    const assignedInstallerName =
+      job.assigned_installer_name || job.installer || null;
+
+    let workOrderId: string | null = null;
+
+    const { data: existingWorkOrder, error: existingWorkOrderError } = await supabase
+      .from("work_orders")
+      .select("id")
+      .eq("job_id", job.id)
+      .maybeSingle();
+
+    if (existingWorkOrderError) {
+      throw existingWorkOrderError;
+    }
+
+    const workOrderPayload = {
+      job_id: job.id,
+      title: job.customer || "Untitled Work Order",
+      description: job.notes || null,
+      scheduled_date: job.scheduled_date || null,
+      status:
+        job.status === "complete"
+          ? "Completed"
+          : job.status === "in_progress"
+          ? "In Progress"
+          : "Open",
+      assigned_installer_id: assignedInstallerId,
+      assigned_installer_name: assignedInstallerName,
+    };
+
+    if (existingWorkOrder?.id) {
+      workOrderId = existingWorkOrder.id;
+
+      const { error } = await supabase
+        .from("work_orders")
+        .update(workOrderPayload)
+        .eq("id", existingWorkOrder.id);
+
+      if (error) throw error;
+    } else {
+      const { data, error } = await supabase
+        .from("work_orders")
+        .insert([workOrderPayload])
+        .select("id")
+        .single();
+
+      if (error) throw error;
+
+      workOrderId = data?.id || null;
+    }
+
+    if (job.scheduled_date && workOrderId) {
+      const schedulePayload = {
+        title: job.system_type || job.customer || "Scheduled Job",
+        client_name: job.customer || null,
+        location: job.location || null,
+        crew: assignedInstallerName || "Unassigned",
+        assignment_date: job.scheduled_date,
+        assignment_time: job.scheduled_time || null,
+        status: "Scheduled",
+        notes: job.notes || null,
+        installer_user_id: assignedInstallerId,
+        work_order_id: workOrderId,
+      };
+
+      const { data: existingSchedule, error: existingScheduleError } =
+        await supabase
+          .from("schedule_assignments")
+          .select("id")
+          .eq("work_order_id", workOrderId)
+          .maybeSingle();
+
+      if (existingScheduleError) {
+        throw existingScheduleError;
+      }
+
+      if (existingSchedule?.id) {
+        const { error } = await supabase
+          .from("schedule_assignments")
+          .update(schedulePayload)
+          .eq("id", existingSchedule.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("schedule_assignments")
+          .insert([schedulePayload]);
+
+        if (error) throw error;
+      }
+    }
+  }
+
   const visibleJobs = useMemo(() => {
     const term = search.trim().toLowerCase();
 
@@ -303,6 +443,7 @@ export default function JobsPage() {
         job.value?.toString(),
         job.square_footage?.toString(),
         job.installer,
+        job.assigned_installer_name,
         job.scheduled_date,
         job.scheduled_time,
       ]
@@ -314,6 +455,7 @@ export default function JobsPage() {
   const openCount = jobs.filter((job) => job.status === "open").length;
   const scheduledCount = jobs.filter((job) => job.status === "scheduled").length;
   const inProgressCount = jobs.filter((job) => job.status === "in_progress").length;
+
   const openValue = jobs
     .filter((job) => job.status !== "complete")
     .reduce((sum, job) => sum + Number(job.value || 0), 0);
@@ -343,10 +485,9 @@ export default function JobsPage() {
       system_type: job.system_type ?? "",
       notes: job.notes ?? "",
       value:
-        job.value !== null && job.value !== undefined
-          ? String(job.value)
-          : "",
-      installer: job.installer ?? "",
+        job.value !== null && job.value !== undefined ? String(job.value) : "",
+      installer: job.installer ?? job.assigned_installer_name ?? "",
+      assigned_installer_id: job.assigned_installer_id ?? "",
       scheduled_date: job.scheduled_date ?? "",
       scheduled_time: job.scheduled_time ?? "",
     });
@@ -361,21 +502,34 @@ export default function JobsPage() {
     setWorkingJobId(jobId);
     setMessage("");
 
+    const selectedInstaller = getSelectedInstaller(
+      editJobForm.assigned_installer_id
+    );
+
     const payload = {
       customer: editJobForm.customer.trim() || "New Job",
       phone: editJobForm.phone.trim() || null,
       email: editJobForm.email.trim() || null,
       location: editJobForm.location.trim() || null,
-      square_footage: editJobForm.square_footage ? Number(editJobForm.square_footage) : null,
+      square_footage: editJobForm.square_footage
+        ? Number(editJobForm.square_footage)
+        : null,
       system_type: editJobForm.system_type.trim() || null,
       notes: editJobForm.notes.trim() || null,
       value: editJobForm.value ? Number(editJobForm.value) : 0,
-      installer: editJobForm.installer.trim() || null,
+      installer: selectedInstaller.installer,
+      assigned_installer_id: selectedInstaller.assigned_installer_id,
+      assigned_installer_name: selectedInstaller.assigned_installer_name,
       scheduled_date: editJobForm.scheduled_date || null,
       scheduled_time: editJobForm.scheduled_time || null,
     };
 
-    const { error } = await supabase.from("jobs").update(payload).eq("id", jobId);
+    const { data, error } = await supabase
+      .from("jobs")
+      .update(payload)
+      .eq("id", jobId)
+      .select("*")
+      .single();
 
     if (error) {
       console.error(error);
@@ -384,39 +538,80 @@ export default function JobsPage() {
       return;
     }
 
+    try {
+      await ensureWorkOrderAndSchedule(data as Job);
+    } catch (syncError: any) {
+      console.error(syncError);
+      setMessage(
+        `Job saved, but installer schedule sync failed: ${
+          syncError?.message || "unknown error"
+        }`
+      );
+      setWorkingJobId(null);
+      await loadJobs();
+      return;
+    }
+
     setEditingJobId(null);
     setWorkingJobId(null);
-    setMessage("Job updated.");
+    setMessage("Job updated and installer assignment synced.");
     await loadJobs();
   }
 
   async function createNewJob(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
     setCreatingJob(true);
     setMessage("");
+
+    const selectedInstaller = getSelectedInstaller(
+      newJobForm.assigned_installer_id
+    );
 
     const payload = {
       customer: newJobForm.customer.trim() || "New Job",
       phone: newJobForm.phone.trim() || null,
       email: newJobForm.email.trim() || null,
       location: newJobForm.location.trim() || null,
-      square_footage: newJobForm.square_footage ? Number(newJobForm.square_footage) : null,
+      square_footage: newJobForm.square_footage
+        ? Number(newJobForm.square_footage)
+        : null,
       system_type: newJobForm.system_type.trim() || null,
       notes: newJobForm.notes.trim() || null,
       value: newJobForm.value ? Number(newJobForm.value) : 0,
-      installer: newJobForm.installer.trim() || null,
+      installer: selectedInstaller.installer,
+      assigned_installer_id: selectedInstaller.assigned_installer_id,
+      assigned_installer_name: selectedInstaller.assigned_installer_name,
       scheduled_date: newJobForm.scheduled_date || null,
       scheduled_time: newJobForm.scheduled_time || null,
       status: newJobForm.scheduled_date ? "scheduled" : "open",
       photo_urls: [],
     };
 
-    const { error } = await supabase.from("jobs").insert([payload]);
+    const { data, error } = await supabase
+      .from("jobs")
+      .insert([payload])
+      .select("*")
+      .single();
 
     if (error) {
       console.error(error);
       setMessage(`Could not create job: ${error.message}`);
       setCreatingJob(false);
+      return;
+    }
+
+    try {
+      await ensureWorkOrderAndSchedule(data as Job);
+    } catch (syncError: any) {
+      console.error(syncError);
+      setMessage(
+        `Job created, but installer schedule sync failed: ${
+          syncError?.message || "unknown error"
+        }`
+      );
+      setCreatingJob(false);
+      await loadJobs();
       return;
     }
 
@@ -430,13 +625,14 @@ export default function JobsPage() {
       notes: "",
       value: "",
       installer: "",
+      assigned_installer_id: "",
       scheduled_date: "",
       scheduled_time: "",
     });
 
     setCreatingJob(false);
     setShowNewJobModal(false);
-    setMessage("New job created.");
+    setMessage("New job created and installer assignment synced.");
     await loadJobs();
   }
 
@@ -444,7 +640,10 @@ export default function JobsPage() {
     setWorkingJobId(jobId);
     setMessage("");
 
-    const { error } = await supabase.from("jobs").update({ status: nextStatus }).eq("id", jobId);
+    const { error } = await supabase
+      .from("jobs")
+      .update({ status: nextStatus })
+      .eq("id", jobId);
 
     if (error) {
       console.error(error);
@@ -463,18 +662,20 @@ export default function JobsPage() {
     setWorkingJobId(job.id);
     setMessage("");
 
-    const nextScheduledDate = job.scheduled_date || new Date().toISOString().split("T")[0];
+    const nextScheduledDate =
+      job.scheduled_date || new Date().toISOString().split("T")[0];
     const nextScheduledTime = job.scheduled_time || "8:00 AM";
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("jobs")
       .update({
         status: "scheduled",
         scheduled_date: nextScheduledDate,
         scheduled_time: nextScheduledTime,
-        installer: job.installer || "Unassigned",
       })
-      .eq("id", job.id);
+      .eq("id", job.id)
+      .select("*")
+      .single();
 
     if (error) {
       console.error(error);
@@ -483,9 +684,23 @@ export default function JobsPage() {
       return;
     }
 
+    try {
+      await ensureWorkOrderAndSchedule(data as Job);
+    } catch (syncError: any) {
+      console.error(syncError);
+      setMessage(
+        `Job scheduled, but installer schedule sync failed: ${
+          syncError?.message || "unknown error"
+        }`
+      );
+      setWorkingJobId(null);
+      await loadJobs();
+      return;
+    }
+
     setWorkingJobId(null);
     setOpenActionsId(null);
-    setMessage("Job is now ready in schedule.");
+    setMessage("Job is now ready in installer schedule.");
     await loadJobs();
   }
 
@@ -494,6 +709,7 @@ export default function JobsPage() {
     setMessage("");
 
     const existing = getInvoiceForJob(job.id);
+
     if (existing) {
       setWorkingJobId(null);
       setMessage("This job already has an invoice.");
@@ -509,7 +725,6 @@ export default function JobsPage() {
     const tax = 0;
     const discount = 0;
     const total = subtotal + tax - discount;
-
     const invoiceNumber = `INV-${String(Date.now()).slice(-6)}`;
 
     const { data, error } = await supabase
@@ -562,6 +777,7 @@ export default function JobsPage() {
 
     const nextAmountPaid =
       next === "paid" ? Number(invoice.total || 0) : Number(invoice.amount_paid || 0);
+
     const nextBalance =
       next === "paid"
         ? 0
@@ -603,6 +819,7 @@ export default function JobsPage() {
 
       let nextNotes = job.notes?.trim() || "";
       const stamp = new Date().toLocaleString();
+
       const line =
         label === "progress"
           ? `[Progress photos added: ${stamp}]`
@@ -618,11 +835,14 @@ export default function JobsPage() {
         })
         .eq("id", job.id);
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
-      setMessage(label === "progress" ? "Progress photos added." : "Completion photos added.");
+      setMessage(
+        label === "progress"
+          ? "Progress photos added."
+          : "Completion photos added."
+      );
+
       await loadJobs();
     } catch (error: any) {
       console.error(error);
@@ -640,7 +860,7 @@ export default function JobsPage() {
           <h1 style={titleStyle}>Jobs</h1>
           <p style={subtitleStyle}>
             Track saved jobs, work orders, invoice foundation, schedule fields,
-            and project photos from one page.
+            installer assignment, and project photos from one page.
           </p>
         </div>
 
@@ -660,7 +880,7 @@ export default function JobsPage() {
           <div style={heroSmallLabelStyle}>Jobs Snapshot</div>
           <div style={heroBigTextStyle}>Keep production moving.</div>
           <div style={heroTextStyle}>
-            View open jobs, update statuses, assign schedule fields, connect work orders,
+            View open jobs, update statuses, assign installers, connect work orders,
             and start invoice tracking now.
           </div>
         </div>
@@ -670,17 +890,14 @@ export default function JobsPage() {
             <div style={miniStatLabelStyle}>OPEN</div>
             <div style={miniStatValueStyle}>{openCount}</div>
           </div>
-
           <div style={miniStatStyle}>
             <div style={miniStatLabelStyle}>SCHEDULED</div>
             <div style={miniStatValueStyle}>{scheduledCount}</div>
           </div>
-
           <div style={miniStatStyle}>
             <div style={miniStatLabelStyle}>IN PROGRESS</div>
             <div style={miniStatValueStyle}>{inProgressCount}</div>
           </div>
-
           <div style={miniStatStyle}>
             <div style={miniStatLabelStyle}>OPEN VALUE</div>
             <div style={miniStatValueStyle}>${openValue.toLocaleString()}</div>
@@ -765,6 +982,7 @@ export default function JobsPage() {
                           >
                             Edit
                           </button>
+
                           <button
                             type="button"
                             style={dropdownButtonStyle}
@@ -773,6 +991,7 @@ export default function JobsPage() {
                           >
                             Mark Open
                           </button>
+
                           <button
                             type="button"
                             style={dropdownButtonStyle}
@@ -781,6 +1000,7 @@ export default function JobsPage() {
                           >
                             Mark Scheduled
                           </button>
+
                           <button
                             type="button"
                             style={dropdownButtonStyle}
@@ -789,6 +1009,7 @@ export default function JobsPage() {
                           >
                             Mark In Progress
                           </button>
+
                           <button
                             type="button"
                             style={dropdownButtonStyle}
@@ -797,6 +1018,7 @@ export default function JobsPage() {
                           >
                             Send to Schedule
                           </button>
+
                           <button
                             type="button"
                             style={dropdownButtonPrimaryStyle}
@@ -817,67 +1039,122 @@ export default function JobsPage() {
                       style={editInputStyle}
                       placeholder="Customer"
                       value={editJobForm.customer}
-                      onChange={(e) => setEditJobForm({ ...editJobForm, customer: e.target.value })}
+                      onChange={(e) =>
+                        setEditJobForm({ ...editJobForm, customer: e.target.value })
+                      }
                     />
+
                     <input
                       style={editInputStyle}
                       placeholder="Phone"
                       value={editJobForm.phone}
-                      onChange={(e) => setEditJobForm({ ...editJobForm, phone: e.target.value })}
+                      onChange={(e) =>
+                        setEditJobForm({ ...editJobForm, phone: e.target.value })
+                      }
                     />
+
                     <input
                       style={editInputStyle}
                       placeholder="Email"
                       value={editJobForm.email}
-                      onChange={(e) => setEditJobForm({ ...editJobForm, email: e.target.value })}
+                      onChange={(e) =>
+                        setEditJobForm({ ...editJobForm, email: e.target.value })
+                      }
                     />
+
                     <input
                       style={editInputStyle}
                       placeholder="Location"
                       value={editJobForm.location}
-                      onChange={(e) => setEditJobForm({ ...editJobForm, location: e.target.value })}
+                      onChange={(e) =>
+                        setEditJobForm({ ...editJobForm, location: e.target.value })
+                      }
                     />
+
                     <input
                       style={editInputStyle}
                       placeholder="Square Footage"
                       value={editJobForm.square_footage}
-                      onChange={(e) => setEditJobForm({ ...editJobForm, square_footage: e.target.value })}
+                      onChange={(e) =>
+                        setEditJobForm({
+                          ...editJobForm,
+                          square_footage: e.target.value,
+                        })
+                      }
                     />
+
                     <input
                       style={editInputStyle}
                       placeholder="System Type"
                       value={editJobForm.system_type}
-                      onChange={(e) => setEditJobForm({ ...editJobForm, system_type: e.target.value })}
+                      onChange={(e) =>
+                        setEditJobForm({
+                          ...editJobForm,
+                          system_type: e.target.value,
+                        })
+                      }
                     />
+
                     <input
                       style={editInputStyle}
                       placeholder="Job Value"
                       value={editJobForm.value}
-                      onChange={(e) => setEditJobForm({ ...editJobForm, value: e.target.value })}
+                      onChange={(e) =>
+                        setEditJobForm({ ...editJobForm, value: e.target.value })
+                      }
                     />
-                    <input
+
+                    <select
                       style={editInputStyle}
-                      placeholder="Installer / Crew"
-                      value={editJobForm.installer}
-                      onChange={(e) => setEditJobForm({ ...editJobForm, installer: e.target.value })}
-                    />
+                      value={editJobForm.assigned_installer_id}
+                      onChange={(e) => {
+                        const selected = getSelectedInstaller(e.target.value);
+                        setEditJobForm({
+                          ...editJobForm,
+                          assigned_installer_id: e.target.value,
+                          installer: selected.installer || "",
+                        });
+                      }}
+                    >
+                      <option value="">Unassigned</option>
+                      {installerOptions.map((installer) => (
+                        <option key={installer.id} value={installer.id}>
+                          {installer.full_name || installer.email}
+                        </option>
+                      ))}
+                    </select>
+
                     <input
                       style={editInputStyle}
                       type="date"
                       value={editJobForm.scheduled_date}
-                      onChange={(e) => setEditJobForm({ ...editJobForm, scheduled_date: e.target.value })}
+                      onChange={(e) =>
+                        setEditJobForm({
+                          ...editJobForm,
+                          scheduled_date: e.target.value,
+                        })
+                      }
                     />
+
                     <input
                       style={editInputStyle}
                       placeholder="Scheduled Time"
                       value={editJobForm.scheduled_time}
-                      onChange={(e) => setEditJobForm({ ...editJobForm, scheduled_time: e.target.value })}
+                      onChange={(e) =>
+                        setEditJobForm({
+                          ...editJobForm,
+                          scheduled_time: e.target.value,
+                        })
+                      }
                     />
+
                     <textarea
                       style={editTextareaStyle}
                       placeholder="Notes"
                       value={editJobForm.notes}
-                      onChange={(e) => setEditJobForm({ ...editJobForm, notes: e.target.value })}
+                      onChange={(e) =>
+                        setEditJobForm({ ...editJobForm, notes: e.target.value })
+                      }
                     />
 
                     <div style={editActionsRowStyle}>
@@ -889,6 +1166,7 @@ export default function JobsPage() {
                       >
                         {isWorking ? "Saving..." : "Save"}
                       </button>
+
                       <button
                         type="button"
                         style={ghostButtonStyle}
@@ -909,7 +1187,9 @@ export default function JobsPage() {
                           accept="image/*"
                           multiple
                           style={hiddenInput}
-                          onChange={(e) => appendPhotosToJob(job, e.target.files, "progress")}
+                          onChange={(e) =>
+                            appendPhotosToJob(job, e.target.files, "progress")
+                          }
                         />
                       </label>
 
@@ -920,7 +1200,9 @@ export default function JobsPage() {
                           accept="image/*"
                           multiple
                           style={hiddenInput}
-                          onChange={(e) => appendPhotosToJob(job, e.target.files, "completion")}
+                          onChange={(e) =>
+                            appendPhotosToJob(job, e.target.files, "completion")
+                          }
                         />
                       </label>
                     </div>
@@ -949,7 +1231,10 @@ export default function JobsPage() {
                         label="Source Quote"
                         value={job.quote_request_id ? "Converted quote" : "Manual job"}
                       />
-                      <Info label="Installer" value={job.installer} />
+                      <Info
+                        label="Installer"
+                        value={job.assigned_installer_name || job.installer}
+                      />
                       <Info label="Scheduled Date" value={job.scheduled_date} />
                       <Info label="Scheduled Time" value={job.scheduled_time} />
                     </div>
@@ -957,6 +1242,7 @@ export default function JobsPage() {
                     <div style={{ ...systemBlocksGridStyle, ...(isMobile ? systemBlocksGridMobileStyle : null) }}>
                       <div style={systemBlockStyle}>
                         <div style={notesLabelStyle}>WORK ORDERS</div>
+
                         {linkedWorkOrders.length === 0 ? (
                           <div style={notesTextStyle}>No work orders linked yet.</div>
                         ) : (
@@ -969,7 +1255,9 @@ export default function JobsPage() {
                                   </div>
                                   <div style={miniListMetaStyle}>
                                     {(order.status || "open").toUpperCase()}
-                                    {order.scheduled_date ? ` • ${formatDate(order.scheduled_date)}` : ""}
+                                    {order.scheduled_date
+                                      ? ` • ${formatDate(order.scheduled_date)}`
+                                      : ""}
                                   </div>
                                 </div>
                               </div>
@@ -991,6 +1279,7 @@ export default function JobsPage() {
                               >
                                 Cycle Status
                               </button>
+
                               <button
                                 type="button"
                                 style={primaryButtonStyle}
@@ -1035,9 +1324,11 @@ export default function JobsPage() {
                     {photos.length > 0 ? (
                       <div style={photosSectionStyle}>
                         <div style={notesLabelStyle}>Project Photos</div>
+
                         <div style={{ ...photoGridStyle, ...(isMobile ? photoGridMobileStyle : null) }}>
                           {photos.map((raw, index) => {
                             const url = getPhotoUrl(raw);
+
                             return (
                               <button
                                 key={`${job.id}-${index}`}
@@ -1091,75 +1382,135 @@ export default function JobsPage() {
                   style={modalInput}
                   placeholder="Customer Name"
                   value={newJobForm.customer}
-                  onChange={(e) => setNewJobForm({ ...newJobForm, customer: e.target.value })}
+                  onChange={(e) =>
+                    setNewJobForm({ ...newJobForm, customer: e.target.value })
+                  }
                   required
                 />
+
                 <input
                   style={modalInput}
                   placeholder="Phone"
                   value={newJobForm.phone}
-                  onChange={(e) => setNewJobForm({ ...newJobForm, phone: e.target.value })}
+                  onChange={(e) =>
+                    setNewJobForm({ ...newJobForm, phone: e.target.value })
+                  }
                 />
+
                 <input
                   style={modalInput}
                   placeholder="Email"
                   value={newJobForm.email}
-                  onChange={(e) => setNewJobForm({ ...newJobForm, email: e.target.value })}
+                  onChange={(e) =>
+                    setNewJobForm({ ...newJobForm, email: e.target.value })
+                  }
                 />
+
                 <input
                   style={modalInput}
                   placeholder="Location"
                   value={newJobForm.location}
-                  onChange={(e) => setNewJobForm({ ...newJobForm, location: e.target.value })}
+                  onChange={(e) =>
+                    setNewJobForm({ ...newJobForm, location: e.target.value })
+                  }
                 />
+
                 <input
                   style={modalInput}
                   placeholder="Square Footage"
                   value={newJobForm.square_footage}
-                  onChange={(e) => setNewJobForm({ ...newJobForm, square_footage: e.target.value })}
+                  onChange={(e) =>
+                    setNewJobForm({
+                      ...newJobForm,
+                      square_footage: e.target.value,
+                    })
+                  }
                 />
+
                 <input
                   style={modalInput}
                   placeholder="System Type"
                   value={newJobForm.system_type}
-                  onChange={(e) => setNewJobForm({ ...newJobForm, system_type: e.target.value })}
+                  onChange={(e) =>
+                    setNewJobForm({
+                      ...newJobForm,
+                      system_type: e.target.value,
+                    })
+                  }
                 />
+
                 <input
                   style={modalInput}
                   placeholder="Job Value"
                   value={newJobForm.value}
-                  onChange={(e) => setNewJobForm({ ...newJobForm, value: e.target.value })}
+                  onChange={(e) =>
+                    setNewJobForm({ ...newJobForm, value: e.target.value })
+                  }
                 />
-                <input
+
+                <select
                   style={modalInput}
-                  placeholder="Installer / Crew"
-                  value={newJobForm.installer}
-                  onChange={(e) => setNewJobForm({ ...newJobForm, installer: e.target.value })}
-                />
+                  value={newJobForm.assigned_installer_id}
+                  onChange={(e) => {
+                    const selected = getSelectedInstaller(e.target.value);
+                    setNewJobForm({
+                      ...newJobForm,
+                      assigned_installer_id: e.target.value,
+                      installer: selected.installer || "",
+                    });
+                  }}
+                >
+                  <option value="">Unassigned Installer</option>
+                  {installerOptions.map((installer) => (
+                    <option key={installer.id} value={installer.id}>
+                      {installer.full_name || installer.email}
+                    </option>
+                  ))}
+                </select>
+
                 <input
                   style={modalInput}
                   type="date"
                   value={newJobForm.scheduled_date}
-                  onChange={(e) => setNewJobForm({ ...newJobForm, scheduled_date: e.target.value })}
+                  onChange={(e) =>
+                    setNewJobForm({
+                      ...newJobForm,
+                      scheduled_date: e.target.value,
+                    })
+                  }
                 />
+
                 <input
                   style={modalInput}
                   placeholder="Scheduled Time"
                   value={newJobForm.scheduled_time}
-                  onChange={(e) => setNewJobForm({ ...newJobForm, scheduled_time: e.target.value })}
+                  onChange={(e) =>
+                    setNewJobForm({
+                      ...newJobForm,
+                      scheduled_time: e.target.value,
+                    })
+                  }
                 />
+
                 <textarea
                   style={modalTextarea}
                   placeholder="Job notes"
                   value={newJobForm.notes}
-                  onChange={(e) => setNewJobForm({ ...newJobForm, notes: e.target.value })}
+                  onChange={(e) =>
+                    setNewJobForm({ ...newJobForm, notes: e.target.value })
+                  }
                 />
               </div>
 
               <div style={modalActions}>
-                <button type="submit" style={primaryActionStyle} disabled={creatingJob}>
+                <button
+                  type="submit"
+                  style={primaryActionStyle}
+                  disabled={creatingJob}
+                >
                   {creatingJob ? "Creating..." : "Create Job"}
                 </button>
+
                 <button
                   type="button"
                   style={ghostButtonStyle}
@@ -1176,9 +1527,14 @@ export default function JobsPage() {
 
       {lightboxUrl ? (
         <div style={lightboxOverlay} onClick={() => setLightboxUrl(null)}>
-          <button type="button" onClick={() => setLightboxUrl(null)} style={lightboxClose}>
+          <button
+            type="button"
+            onClick={() => setLightboxUrl(null)}
+            style={lightboxClose}
+          >
             ×
           </button>
+
           <img
             src={lightboxUrl}
             alt="Expanded project photo"
@@ -1211,8 +1567,11 @@ function formatStatus(status: string) {
 
 function formatDate(value?: string | null) {
   if (!value) return "—";
+
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return value;
+
   return date.toLocaleDateString();
 }
 
@@ -1259,7 +1618,8 @@ const primaryActionStyle: React.CSSProperties = {
   borderRadius: "14px",
   fontWeight: 700,
   color: "#031019",
-  background: "linear-gradient(135deg, rgba(0,212,255,0.95), rgba(0,140,255,0.9))",
+  background:
+    "linear-gradient(135deg, rgba(0,212,255,0.95), rgba(0,140,255,0.9))",
   border: "none",
   cursor: "pointer",
 };
@@ -1271,7 +1631,8 @@ const heroCardStyle: React.CSSProperties = {
   marginBottom: "18px",
   borderRadius: "24px",
   padding: "22px",
-  background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
+  background:
+    "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
   border: "1px solid rgba(255,255,255,0.1)",
   backdropFilter: "blur(16px)",
 };
@@ -1356,7 +1717,8 @@ const messageBoxStyle: React.CSSProperties = {
 const emptyPanelStyle: React.CSSProperties = {
   borderRadius: "22px",
   padding: "20px",
-  background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
+  background:
+    "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
   border: "1px solid rgba(255,255,255,0.1)",
   backdropFilter: "blur(16px)",
   color: "rgba(231,243,255,0.82)",
@@ -1371,7 +1733,8 @@ const rowsWrapStyle: React.CSSProperties = {
 const jobRowCardStyle: React.CSSProperties = {
   borderRadius: "18px",
   padding: "14px",
-  background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
+  background:
+    "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
   border: "1px solid rgba(255,255,255,0.1)",
   backdropFilter: "blur(16px)",
   minWidth: 0,
@@ -1490,7 +1853,8 @@ const dropdownButtonPrimaryStyle: React.CSSProperties = {
   fontWeight: 700,
   cursor: "pointer",
   color: "#031019",
-  background: "linear-gradient(135deg, rgba(0,212,255,0.95), rgba(0,140,255,0.9))",
+  background:
+    "linear-gradient(135deg, rgba(0,212,255,0.95), rgba(0,140,255,0.9))",
   textAlign: "left",
 };
 
@@ -1501,7 +1865,8 @@ const primaryButtonStyle: React.CSSProperties = {
   fontWeight: 700,
   cursor: "pointer",
   color: "#031019",
-  background: "linear-gradient(135deg, rgba(0,212,255,0.95), rgba(0,140,255,0.9))",
+  background:
+    "linear-gradient(135deg, rgba(0,212,255,0.95), rgba(0,140,255,0.9))",
 };
 
 const ghostButtonStyle: React.CSSProperties = {
@@ -1741,7 +2106,8 @@ const modalCard: React.CSSProperties = {
   maxWidth: "860px",
   borderRadius: "22px",
   padding: "20px",
-  background: "linear-gradient(180deg, rgba(18,25,38,0.98), rgba(10,16,28,0.96))",
+  background:
+    "linear-gradient(180deg, rgba(18,25,38,0.98), rgba(10,16,28,0.96))",
   border: "1px solid rgba(255,255,255,0.12)",
   boxShadow: "0 24px 80px rgba(0,0,0,0.45)",
 };

@@ -171,7 +171,7 @@ export default function InstallerPage() {
           <div style={styles.brandBlock}>
             <div style={styles.logoBox}>
               <Image
-                src="/branding/app-logo.png"
+                src="/branding/site-logo.png"
                 alt="ArtiPoxi Logo"
                 width={96}
                 height={96}

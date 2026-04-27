@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
@@ -17,6 +18,7 @@ type ScheduleItem = {
   assignment_time: string | null;
   status: string | null;
   notes: string | null;
+  assigned_installer_id: string | null;
 };
 
 export default function InstallerSchedulePage() {
@@ -25,6 +27,7 @@ export default function InstallerSchedulePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [assignments, setAssignments] = useState<ScheduleItem[]>([]);
 
+  // 🔐 AUTH CHECK
   useEffect(() => {
     let mounted = true;
 
@@ -54,24 +57,32 @@ export default function InstallerSchedulePage() {
     };
   }, [router]);
 
+  // 📅 FETCH ASSIGNED SCHEDULE (FIXED FILTER)
   useEffect(() => {
-    async function fetchAssignments() {
-      const { data, error } = await supabase
-        .from("schedule_assignments")
-        .select("*")
-        .order("assignment_date", { ascending: true });
+  const installerId = profile?.id;
 
-      if (error) {
-        console.error("Installer schedule fetch error:", error.message);
-        return;
-      }
+  if (!installerId) return;
 
-      setAssignments((data as ScheduleItem[]) || []);
+  async function fetchAssignments() {
+    const { data, error } = await supabase
+      .from("schedule_assignments")
+      .select("*")
+      .eq("assigned_installer_id", installerId)
+      .order("assignment_date", { ascending: true });
+
+    if (error) {
+      console.error("Installer schedule fetch error:", error.message);
+      return;
     }
 
-    fetchAssignments();
-  }, []);
+    setAssignments((data as ScheduleItem[]) || []);
+  }
 
+  fetchAssignments();
+}, [profile?.id]);
+
+
+  // 🔓 LOGOUT
   async function handleLogout() {
     await supabase.auth.signOut();
     router.replace("/login");
@@ -82,7 +93,9 @@ export default function InstallerSchedulePage() {
     return (
       <main className={styles.page}>
         <div className={styles.loadingWrap}>
-          <div className={styles.loadingCard}>Checking installer access...</div>
+          <div className={styles.loadingCard}>
+            Checking installer access...
+          </div>
         </div>
       </main>
     );
@@ -91,9 +104,18 @@ export default function InstallerSchedulePage() {
   return (
     <main className={styles.page}>
       <div className={styles.shell}>
+        {/* SIDEBAR */}
         <aside className={styles.sidebar}>
           <div className={styles.brandCard}>
-            <div className={styles.logo}>AP</div>
+            <div className={styles.logo}>
+              <Image
+                src="/branding/site-logo.png"
+                alt="ArtiPoxi Logo"
+                width={60}
+                height={60}
+              />
+            </div>
+
             <div>
               <p className={styles.brandTop}>ARTIPOXI</p>
               <h2 className={styles.brandBottom}>Installer Hub</h2>
@@ -104,19 +126,24 @@ export default function InstallerSchedulePage() {
             <Link href="/installer/work-orders" className={styles.sideLink}>
               Work Orders
             </Link>
+
             <Link href="/installer/schedule" className={styles.sideLinkActive}>
               Schedule
             </Link>
           </nav>
 
           <div className={styles.sideFooter}>
-            {profile?.email ? <p className={styles.userEmail}>{profile.email}</p> : null}
+            {profile?.email && (
+              <p className={styles.userEmail}>{profile.email}</p>
+            )}
+
             <button className={styles.logoutBtn} onClick={handleLogout}>
               Logout
             </button>
           </div>
         </aside>
 
+        {/* MAIN */}
         <section className={styles.main}>
           <header className={styles.topbar}>
             <div>
@@ -129,35 +156,56 @@ export default function InstallerSchedulePage() {
           </header>
 
           <section className={styles.assignmentGrid}>
-            {assignments.map((item) => (
-              <article key={item.id} className={styles.assignmentCard}>
-                <div className={styles.assignmentTop}>
-                  <p className={styles.assignmentId}>{item.assignment_date}</p>
-                  <span className={styles.assignmentCrew}>{item.crew ?? "—"}</span>
-                </div>
+            {assignments.length === 0 ? (
+              <div className={styles.assignmentCard}>
+                <h3>No assigned schedule yet.</h3>
+              </div>
+            ) : (
+              assignments.map((item) => (
+                <article key={item.id} className={styles.assignmentCard}>
+                  <div className={styles.assignmentTop}>
+                    <p className={styles.assignmentId}>
+                      {item.assignment_date}
+                    </p>
+                    <span className={styles.assignmentCrew}>
+                      {item.crew ?? "—"}
+                    </span>
+                  </div>
 
-                <h3 className={styles.assignmentTitle}>{item.title}</h3>
+                  <h3 className={styles.assignmentTitle}>{item.title}</h3>
 
-                <div className={styles.assignmentMeta}>
-                  <div className={styles.metaItem}>
-                    <span className={styles.metaLabel}>Client</span>
-                    <span className={styles.metaValue}>{item.client_name ?? "—"}</span>
+                  <div className={styles.assignmentMeta}>
+                    <div className={styles.metaItem}>
+                      <span className={styles.metaLabel}>Client</span>
+                      <span className={styles.metaValue}>
+                        {item.client_name ?? "—"}
+                      </span>
+                    </div>
+
+                    <div className={styles.metaItem}>
+                      <span className={styles.metaLabel}>Time</span>
+                      <span className={styles.metaValue}>
+                        {item.assignment_time ?? "—"}
+                      </span>
+                    </div>
+
+                    <div className={styles.metaItem}>
+                      <span className={styles.metaLabel}>Location</span>
+                      <span className={styles.metaValue}>
+                        {item.location ?? "—"}
+                      </span>
+                    </div>
+
+                    <div className={styles.metaItem}>
+                      <span className={styles.metaLabel}>Status</span>
+                      <span className={styles.metaValue}>
+                        {item.status ?? "—"}
+                      </span>
+                    </div>
                   </div>
-                  <div className={styles.metaItem}>
-                    <span className={styles.metaLabel}>Time</span>
-                    <span className={styles.metaValue}>{item.assignment_time ?? "—"}</span>
-                  </div>
-                  <div className={styles.metaItem}>
-                    <span className={styles.metaLabel}>Location</span>
-                    <span className={styles.metaValue}>{item.location ?? "—"}</span>
-                  </div>
-                  <div className={styles.metaItem}>
-                    <span className={styles.metaLabel}>Status</span>
-                    <span className={styles.metaValue}>{item.status ?? "—"}</span>
-                  </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              ))
+            )}
           </section>
         </section>
       </div>

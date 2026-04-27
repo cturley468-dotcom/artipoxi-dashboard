@@ -1,445 +1,451 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import BrandMark from "../components/BrandMark";
-import { getCurrentProfile } from "../lib/auth";
 import { supabase } from "../lib/supabase";
-
-type Profile = {
-  id: string;
-  email: string | null;
-  full_name: string | null;
-  role: "admin" | "staff" | "installer" | "customer";
-};
 
 type WorkOrder = {
   id: string;
-  title: string | null;
-  description: string | null;
-  materials: string | null;
-  scheduled_date: string | null;
-  status: "Open" | "In Progress" | "Completed";
-  assigned_installer_id: string | null;
-  assigned_installer_name: string | null;
+  customer_name?: string | null;
+  city?: string | null;
+  status?: string | null;
+  scheduled_date?: string | null;
+  project_type?: string | null;
+  details?: string | null;
 };
-
-type FilterMode = "all" | "open" | "in_progress" | "completed";
 
 export default function InstallerPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
-  const [message, setMessage] = useState("");
+  const [installerName, setInstallerName] = useState("Installer");
+  const [orders, setOrders] = useState<WorkOrder[]>([]);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<FilterMode>("all");
-  const [workingId, setWorkingId] = useState<string | null>(null);
+  const [filter, setFilter] = useState("All");
 
   useEffect(() => {
-    async function load() {
-      try {
-        const currentProfile = await getCurrentProfile();
+    async function loadPage() {
+      const { data: authData } = await supabase.auth.getUser();
 
-        if (!currentProfile) {
-          router.replace("/login");
-          return;
-        }
-
-        if (currentProfile.role !== "installer") {
-          router.replace("/auth/callback");
-          return;
-        }
-
-        setProfile(currentProfile as Profile);
-
-        const { data, error } = await supabase
-          .from("work_orders")
-          .select("*")
-          .eq("assigned_installer_id", currentProfile.id)
-          .order("created_at", { ascending: false });
-
-        if (error) throw error;
-
-        setWorkOrders((data as WorkOrder[]) || []);
-      } catch (error: any) {
-        setMessage(error?.message || "Failed to load installer portal.");
-      } finally {
-        setLoading(false);
+      if (!authData.user) {
+        router.push("/login");
+        return;
       }
+
+      const name =
+        authData.user.user_metadata?.full_name ||
+        authData.user.email?.split("@")[0] ||
+        "Installer";
+
+      setInstallerName(name);
+
+      const { data } = await supabase
+        .from("jobs")
+        .select("*")
+        .order("scheduled_date", { ascending: true });
+
+      setOrders(data || []);
+      setLoading(false);
     }
 
-    load();
+    loadPage();
   }, [router]);
 
-  async function updateStatus(
-    workOrderId: string,
-    nextStatus: "Open" | "In Progress" | "Completed"
-  ) {
-    setWorkingId(workOrderId);
-    setMessage("");
-
-    const { error } = await supabase
-      .from("work_orders")
-      .update({ status: nextStatus })
-      .eq("id", workOrderId);
-
-    if (error) {
-      setMessage(error.message);
-      setWorkingId(null);
-      return;
-    }
-
-    setWorkOrders((prev) =>
-      prev.map((item) =>
-        item.id === workOrderId ? { ...item, status: nextStatus } : item
-      )
-    );
-
-    setWorkingId(null);
-    setMessage("Work order updated.");
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    router.push("/login");
   }
 
-  const stats = useMemo(() => {
-    const open = workOrders.filter((item) => item.status === "Open").length;
-    const inProgress = workOrders.filter((item) => item.status === "In Progress").length;
-    const completed = workOrders.filter((item) => item.status === "Completed").length;
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order) => {
+      const matchesSearch =
+        (order.customer_name || "")
+          .toLowerCase()
+          .includes(search.toLowerCase()) ||
+        (order.city || "").toLowerCase().includes(search.toLowerCase()) ||
+        (order.project_type || "").toLowerCase().includes(search.toLowerCase());
 
-    const todayKey = new Date().toDateString();
-    const todayCount = workOrders.filter((item) => {
-      if (!item.scheduled_date) return false;
-      return new Date(item.scheduled_date).toDateString() === todayKey;
-    }).length;
+      const matchesFilter =
+        filter === "All" || (order.status || "Open") === filter;
 
-    return {
-      open,
-      inProgress,
-      completed,
-      todayCount,
-      total: workOrders.length,
-    };
-  }, [workOrders]);
+      return matchesSearch && matchesFilter;
+    });
+  }, [orders, search, filter]);
 
-  const visibleWorkOrders = useMemo(() => {
-    let next = [...workOrders];
+  const todayCount = orders.filter((o) => {
+    if (!o.scheduled_date) return false;
+    const today = new Date().toISOString().slice(0, 10);
+    return o.scheduled_date.slice(0, 10) === today;
+  }).length;
 
-    if (filter === "open") {
-      next = next.filter((item) => item.status === "Open");
-    }
-
-    if (filter === "in_progress") {
-      next = next.filter((item) => item.status === "In Progress");
-    }
-
-    if (filter === "completed") {
-      next = next.filter((item) => item.status === "Completed");
-    }
-
-    const term = search.trim().toLowerCase();
-
-    if (!term) return next;
-
-    return next.filter((item) =>
-      [
-        item.title,
-        item.description,
-        item.materials,
-        item.scheduled_date,
-        item.status,
-        item.assigned_installer_name,
-      ]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(term))
-    );
-  }, [workOrders, filter, search]);
+  const openCount = orders.filter((o) => (o.status || "Open") === "Open").length;
+  const progressCount = orders.filter((o) => o.status === "In Progress").length;
+  const completedCount = orders.filter((o) => o.status === "Completed").length;
 
   if (loading) {
     return (
-      <div className="rounded-[28px] border border-white/10 bg-black/20 p-6 text-white">
-        Loading installer portal...
-      </div>
+      <main style={styles.page}>
+        <div style={styles.loading}>Loading installer workspace...</div>
+      </main>
     );
   }
 
   return (
-    <main className="min-h-screen text-white">
-      <div className="mx-auto max-w-7xl px-4 py-6 md:px-6 md:py-8">
-        <div className="flex flex-col gap-6">
-          <section className="glass-panel-soft rounded-[30px] p-6 md:p-8">
-            <BrandMark href="/" subtitle="Installer Portal" size="md" />
+    <main style={styles.page}>
+      <section style={styles.shell}>
+        <aside style={styles.sidebar}>
+          <Image
+            src="/branding/app-logo.png"
+            alt="ArtiPoxi Logo"
+            width={76}
+            height={76}
+            style={styles.logo}
+          />
 
-            <div className="mt-8 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-              <div>
-                <div className="section-kicker">Assigned Work</div>
-                <h1 className="mt-4 text-4xl font-black tracking-tight md:text-5xl">
-                  {profile?.full_name || "Installer"} Workspace
-                </h1>
-                <p className="mt-4 max-w-2xl text-base leading-7 text-zinc-400">
-                  View assigned work orders, track today’s jobs, update progress,
-                  and stay locked in from the field.
+          <div>
+            <h2 style={styles.brand}>ArtiPoxi</h2>
+            <p style={styles.portal}>Installer Portal</p>
+          </div>
+
+          <nav style={styles.nav}>
+            <div style={styles.navItemActive}>Assigned Work</div>
+          </nav>
+
+          <button onClick={handleLogout} style={styles.logout}>
+            Logout
+          </button>
+        </aside>
+
+        <section style={styles.content}>
+          <header style={styles.header}>
+            <div>
+              <p style={styles.eyebrow}>Installer Access</p>
+              <h1 style={styles.title}>{installerName} Workspace</h1>
+              <p style={styles.subtitle}>
+                View assigned work orders, track today’s jobs, update progress,
+                and stay locked in from the field.
+              </p>
+            </div>
+
+            <button onClick={handleLogout} style={styles.mobileLogout}>
+              Logout
+            </button>
+          </header>
+
+          <section style={styles.statsGrid}>
+            <StatCard label="Work Orders Today" value={todayCount} />
+            <StatCard label="Open" value={openCount} />
+            <StatCard label="In Progress" value={progressCount} />
+            <StatCard label="Completed" value={completedCount} />
+          </section>
+
+          <section style={styles.controls}>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search work orders"
+              style={styles.search}
+            />
+
+            <div style={styles.filters}>
+              {["All", "Open", "In Progress", "Completed"].map((item) => (
+                <button
+                  key={item}
+                  onClick={() => setFilter(item)}
+                  style={{
+                    ...styles.filterButton,
+                    ...(filter === item ? styles.filterButtonActive : {}),
+                  }}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section style={styles.ordersGrid}>
+            {filteredOrders.length === 0 ? (
+              <div style={styles.emptyCard}>
+                <h3 style={styles.emptyTitle}>No matching work orders found.</h3>
+                <p style={styles.emptyText}>
+                  Assigned jobs will appear here once they are scheduled.
                 </p>
               </div>
-
-              <div className="flex flex-wrap gap-2">
-                <span className="ui-chip ui-chip-cyan">Installer Access</span>
-                <span className="ui-chip">
-                  {stats.total} Work Order{stats.total === 1 ? "" : "s"}
-                </span>
-              </div>
-            </div>
-          </section>
-
-          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <StatCard label="Today" value={String(stats.todayCount)} tone="cyan" />
-            <StatCard label="Open" value={String(stats.open)} />
-            <StatCard label="In Progress" value={String(stats.inProgress)} tone="amber" />
-            <StatCard label="Completed" value={String(stats.completed)} tone="green" />
-          </section>
-
-          <section className="glass-panel-soft rounded-[28px] p-4 md:p-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <input
-                type="text"
-                placeholder="Search work orders"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full max-w-xl rounded-[16px] border border-white/10 bg-black/20 px-4 py-3 text-white outline-none placeholder:text-zinc-500 focus:border-cyan-400/30"
-              />
-
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-                <FilterButton
-                  active={filter === "all"}
-                  label="All"
-                  onClick={() => setFilter("all")}
-                />
-                <FilterButton
-                  active={filter === "open"}
-                  label="Open"
-                  onClick={() => setFilter("open")}
-                />
-                <FilterButton
-                  active={filter === "in_progress"}
-                  label="In Progress"
-                  onClick={() => setFilter("in_progress")}
-                />
-                <FilterButton
-                  active={filter === "completed"}
-                  label="Completed"
-                  onClick={() => setFilter("completed")}
-                />
-              </div>
-            </div>
-          </section>
-
-          {message && (
-            <div className="rounded-[20px] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-zinc-300">
-              {message}
-            </div>
-          )}
-
-          <section className="space-y-4">
-            {visibleWorkOrders.length === 0 ? (
-              <div className="glass-panel-soft rounded-[28px] p-6 text-zinc-400">
-                No matching work orders found.
-              </div>
             ) : (
-              visibleWorkOrders.map((order) => {
-                const isWorking = workingId === order.id;
-
-                return (
-                  <div
-                    key={order.id}
-                    className="glass-panel-soft rounded-[28px] p-5 md:p-6"
-                  >
-                    <div className="flex flex-col gap-5">
-                      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                        <div className="min-w-0">
-                          <div className="text-2xl font-black tracking-tight text-white md:text-3xl">
-                            {order.title || "Untitled Work Order"}
-                          </div>
-
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            <span className="ui-chip">
-                              {order.assigned_installer_name || "Assigned installer"}
-                            </span>
-                            <StatusPill status={order.status} />
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2">
-                          <StatusButton
-                            active={order.status === "Open"}
-                            label={isWorking && order.status !== "Open" ? "Updating..." : "Open"}
-                            onClick={() => updateStatus(order.id, "Open")}
-                          />
-                          <StatusButton
-                            active={order.status === "In Progress"}
-                            label={
-                              isWorking && order.status !== "In Progress"
-                                ? "Updating..."
-                                : "In Progress"
-                            }
-                            onClick={() => updateStatus(order.id, "In Progress")}
-                          />
-                          <StatusButton
-                            active={order.status === "Completed"}
-                            label={
-                              isWorking && order.status !== "Completed"
-                                ? "Updating..."
-                                : "Completed"
-                            }
-                            onClick={() => updateStatus(order.id, "Completed")}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                        <InfoCard
-                          title="Scheduled Date"
-                          value={
-                            order.scheduled_date
-                              ? formatDate(order.scheduled_date)
-                              : "Not scheduled"
-                          }
-                        />
-                        <InfoCard
-                          title="Status"
-                          value={order.status}
-                        />
-                        <InfoCard
-                          title="Description"
-                          value={order.description || "No description provided."}
-                        />
-                        <InfoCard
-                          title="Materials"
-                          value={order.materials || "No materials listed."}
-                        />
-                      </div>
+              filteredOrders.map((order) => (
+                <article key={order.id} style={styles.orderCard}>
+                  <div style={styles.cardTop}>
+                    <div>
+                      <h3 style={styles.customer}>
+                        {order.customer_name || "Unnamed Customer"}
+                      </h3>
+                      <p style={styles.location}>{order.city || "No city set"}</p>
                     </div>
+
+                    <span style={styles.status}>{order.status || "Open"}</span>
                   </div>
-                );
-              })
+
+                  <p style={styles.project}>
+                    {order.project_type || "Epoxy Floor Project"}
+                  </p>
+
+                  <p style={styles.details}>
+                    {order.details || "No job details added yet."}
+                  </p>
+
+                  <div style={styles.dateBox}>
+                    Scheduled:{" "}
+                    <strong>
+                      {order.scheduled_date
+                        ? new Date(order.scheduled_date).toLocaleDateString()
+                        : "Not scheduled"}
+                    </strong>
+                  </div>
+                </article>
+              ))
             )}
           </section>
-        </div>
-      </div>
+        </section>
+      </section>
     </main>
   );
 }
 
-function StatCard({
-  label,
-  value,
-  tone = "default",
-}: {
-  label: string;
-  value: string;
-  tone?: "default" | "cyan" | "amber" | "green";
-}) {
-  const valueClass =
-    tone === "cyan"
-      ? "text-cyan-300"
-      : tone === "amber"
-      ? "text-amber-300"
-      : tone === "green"
-      ? "text-emerald-300"
-      : "text-white";
-
+function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="glass-panel-soft rounded-[24px] p-5">
-      <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">
-        {label}
-      </div>
-      <div className={`mt-3 text-3xl font-black ${valueClass}`}>{value}</div>
+    <div style={styles.statCard}>
+      <p style={styles.statLabel}>{label}</p>
+      <h2 style={styles.statValue}>{value}</h2>
     </div>
   );
 }
 
-function InfoCard({
-  title,
-  value,
-}: {
-  title: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-[20px] border border-white/10 bg-black/20 p-4">
-      <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">
-        {title}
-      </div>
-      <div className="mt-3 whitespace-pre-wrap text-sm leading-7 text-white">
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function FilterButton({
-  active,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`rounded-[14px] border px-4 py-2 text-sm font-semibold transition ${
-        active
-          ? "border-cyan-400/30 bg-cyan-400/12 text-cyan-300 shadow-[0_0_18px_rgba(73,230,255,0.08)]"
-          : "border-white/10 bg-black/20 text-zinc-300 hover:border-cyan-400/20"
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
-
-function StatusButton({
-  active,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`rounded-[14px] border px-4 py-2 text-sm font-semibold transition ${
-        active
-          ? "border-cyan-400/30 bg-cyan-400/12 text-cyan-300 shadow-[0_0_18px_rgba(73,230,255,0.08)]"
-          : "border-white/10 bg-black/20 text-zinc-300 hover:border-cyan-400/20"
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
-
-function StatusPill({ status }: { status: WorkOrder["status"] }) {
-  const className =
-    status === "Completed"
-      ? "border-emerald-400/30 bg-emerald-400/12 text-emerald-300"
-      : status === "In Progress"
-      ? "border-amber-400/30 bg-amber-400/12 text-amber-300"
-      : "border-cyan-400/30 bg-cyan-400/12 text-cyan-300";
-
-  return (
-    <span className={`ui-chip border ${className}`}>
-      {status}
-    </span>
-  );
-}
-
-function formatDate(value: string) {
-  try {
-    return new Date(value).toLocaleDateString();
-  } catch {
-    return value;
-  }
-}
+const styles: Record<string, React.CSSProperties> = {
+  page: {
+    minHeight: "100vh",
+    background:
+      "radial-gradient(circle at top left, rgba(0, 132, 255, 0.25), transparent 35%), linear-gradient(135deg, #020611, #06111f 55%, #020611)",
+    color: "#f8fbff",
+    fontFamily:
+      "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+  },
+  shell: {
+    display: "flex",
+    minHeight: "100vh",
+  },
+  sidebar: {
+    width: 260,
+    padding: 24,
+    background: "rgba(2, 8, 20, 0.92)",
+    borderRight: "1px solid rgba(255,255,255,0.1)",
+    display: "flex",
+    flexDirection: "column",
+    gap: 18,
+  },
+  logo: {
+    borderRadius: 18,
+    objectFit: "contain",
+    background: "#fff",
+    padding: 8,
+  },
+  brand: {
+    margin: 0,
+    fontSize: 26,
+    fontWeight: 800,
+  },
+  portal: {
+    margin: "4px 0 0",
+    color: "#9fb7d8",
+    fontSize: 14,
+  },
+  nav: {
+    marginTop: 20,
+  },
+  navItemActive: {
+    padding: "13px 14px",
+    borderRadius: 14,
+    background: "linear-gradient(135deg, #0077ff, #00b7ff)",
+    fontWeight: 800,
+  },
+  logout: {
+    marginTop: "auto",
+    padding: "13px 16px",
+    borderRadius: 14,
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(255,255,255,0.08)",
+    color: "#fff",
+    fontWeight: 800,
+    cursor: "pointer",
+  },
+  content: {
+    flex: 1,
+    padding: 28,
+  },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 20,
+    alignItems: "flex-start",
+    marginBottom: 24,
+  },
+  eyebrow: {
+    margin: 0,
+    color: "#4cc9ff",
+    fontWeight: 900,
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+    fontSize: 12,
+  },
+  title: {
+    margin: "8px 0",
+    fontSize: "clamp(34px, 5vw, 58px)",
+    lineHeight: 1,
+    fontWeight: 900,
+  },
+  subtitle: {
+    maxWidth: 760,
+    margin: 0,
+    color: "#b9c8dc",
+    fontSize: 18,
+    lineHeight: 1.6,
+  },
+  mobileLogout: {
+    padding: "12px 16px",
+    borderRadius: 14,
+    border: "1px solid rgba(255,255,255,0.16)",
+    background: "rgba(255,255,255,0.08)",
+    color: "#fff",
+    fontWeight: 800,
+    cursor: "pointer",
+  },
+  statsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, minmax(140px, 1fr))",
+    gap: 16,
+    marginBottom: 22,
+  },
+  statCard: {
+    padding: 20,
+    borderRadius: 22,
+    background: "rgba(255,255,255,0.07)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    boxShadow: "0 20px 60px rgba(0,0,0,0.25)",
+  },
+  statLabel: {
+    margin: 0,
+    color: "#aabbd2",
+    fontSize: 14,
+    fontWeight: 700,
+  },
+  statValue: {
+    margin: "10px 0 0",
+    fontSize: 36,
+  },
+  controls: {
+    display: "flex",
+    gap: 14,
+    alignItems: "center",
+    marginBottom: 20,
+    flexWrap: "wrap",
+  },
+  search: {
+    flex: "1 1 280px",
+    padding: "15px 16px",
+    borderRadius: 16,
+    border: "1px solid rgba(255,255,255,0.15)",
+    background: "rgba(255,255,255,0.08)",
+    color: "#fff",
+    fontSize: 16,
+    outline: "none",
+  },
+  filters: {
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+  filterButton: {
+    padding: "12px 14px",
+    borderRadius: 14,
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(255,255,255,0.07)",
+    color: "#dce9fb",
+    fontWeight: 800,
+    cursor: "pointer",
+  },
+  filterButtonActive: {
+    background: "linear-gradient(135deg, #0077ff, #00b7ff)",
+    color: "#fff",
+  },
+  ordersGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+    gap: 18,
+  },
+  orderCard: {
+    padding: 20,
+    borderRadius: 24,
+    background: "rgba(255,255,255,0.075)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    boxShadow: "0 18px 55px rgba(0,0,0,0.25)",
+  },
+  cardTop: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 14,
+  },
+  customer: {
+    margin: 0,
+    fontSize: 22,
+  },
+  location: {
+    margin: "5px 0 0",
+    color: "#9fb7d8",
+  },
+  status: {
+    height: "fit-content",
+    padding: "8px 10px",
+    borderRadius: 999,
+    background: "rgba(0,183,255,0.15)",
+    border: "1px solid rgba(0,183,255,0.35)",
+    color: "#8ee4ff",
+    fontWeight: 900,
+    fontSize: 12,
+  },
+  project: {
+    margin: "18px 0 8px",
+    fontWeight: 900,
+    color: "#ffffff",
+  },
+  details: {
+    margin: 0,
+    color: "#b9c8dc",
+    lineHeight: 1.5,
+  },
+  dateBox: {
+    marginTop: 18,
+    padding: 13,
+    borderRadius: 14,
+    background: "rgba(0,0,0,0.22)",
+    color: "#dce9fb",
+  },
+  emptyCard: {
+    gridColumn: "1 / -1",
+    padding: 28,
+    borderRadius: 24,
+    background: "rgba(255,255,255,0.07)",
+    border: "1px solid rgba(255,255,255,0.12)",
+  },
+  emptyTitle: {
+    margin: 0,
+    fontSize: 22,
+  },
+  emptyText: {
+    margin: "8px 0 0",
+    color: "#aabbd2",
+  },
+  loading: {
+    padding: 32,
+    fontSize: 20,
+  },
+};
